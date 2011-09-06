@@ -13,12 +13,7 @@ __status__ = "Test"
 
 from abc import ABCMeta, abstractmethod
 
-class Config():
-  def __init__(self, serverName):
-    self.serverName = serverName
-
-  def getServerName(self):
-    return self.serverName
+from config import Config
 
 class NetworkNode():
   __metaclass__ = ABCMeta
@@ -95,22 +90,22 @@ class OAND():
     self.networkNode.addNode(networkNode)
 
   def dbgPrintNetwork(self):
-    print "Nodes in network on " + self.config.serverName
+    print "Nodes in network on " + self.config.getServerName()
     self.networkNode.dbgWalk()
     print
 
 def buildNetwork(networkNode):
   # Simulate starting of 4 nodes, on 4 different physical machines
-  solServer = OAND(networkNode, Config('solServer'))
+  solServer = OAND(networkNode, Config('sol-server', "sol-server.cybercow.se", "4000"))
   solServer.startDeamon()
 
-  mapaBook = OAND(networkNode, Config('mapaBook'), solServer)
+  mapaBook = OAND(networkNode, Config('mapa-book', "mapa-book.cybercow.se", "4001", "sol-server.cybercow.se:4000"), solServer)
   mapaBook.startDeamon()
 
-  aspServer = OAND(networkNode,  Config('aspServer'), solServer)
+  aspServer = OAND(networkNode,  Config('asp-server', "asp-server.cybecow.se", "4002", "sol-server.cybercow.se:4000"), solServer)
   aspServer.startDeamon()
 
-  daliBook = OAND(networkNode,  Config('daliBook'), aspServer)
+  daliBook = OAND(networkNode,  Config('dali-book', "dali-book.cybercow.se", "4003", "asp-server.cybercow.se"), aspServer)
   daliBook.startDeamon()
 
   solServer.dbgPrintNetwork()
