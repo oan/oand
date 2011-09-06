@@ -9,14 +9,16 @@ All unit tests can be found in oand/src/tests. These tests can either be
 executed separately, or all at the same time.
 
 To run all tests
-  $ cd oand/src
-  $ . test.env
-  $ ./tools/testall.py
+
+    $ cd oand/src
+    $ . test.env
+    $ ./tools/testall.py
 
 To execute them separatley
-  $ cd oand/src
-  $ . test.env
-  $ ./tests/test_oand.py  
+
+    $ cd oand/src
+    $ . test.env
+    $ ./tests/test_oand.py  
 
 Things to test
 ===============
