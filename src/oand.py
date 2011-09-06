@@ -7,7 +7,7 @@ Proof of concept of distributed nosql database/filesystem.
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
 __maintainer__ = "daniel.lindh@cybercow.se"
-__license__ = "We own it all"
+__license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
@@ -72,12 +72,12 @@ class OAND():
   networkNode = None
   config = None
 
-  def __init__(self, networkNode, config, firstFriendNode = None):
+  def __init__(self, networkNode, config, bffNode = None):
     self.networkNode = networkNode(config)
     self.config = config
     
-    if (firstFriendNode != None):
-      self.join(firstFriendNode)
+    if (bffNode != None):
+      self.join(bffNode)
 
   def startDeamon(self):
     self.dbgPrintNetwork()
