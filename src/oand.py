@@ -18,10 +18,10 @@ from config import Config
 class NetworkNode():
   __metaclass__ = ABCMeta
 
-  config = None
+  _config = None
   
   def __init__(self, config):
-    self.config = config
+    self._config = config
 
   @abstractmethod
   def join(self, node):
@@ -35,8 +35,13 @@ class CircularNetworkNode(NetworkNode):
   prevNode = None
   nextNode = None
 
-  def join(self, oandNode):    
-    oandNode.addNode(self)
+  def join(self):
+    if (self._config.getBffNode()):
+      print "Connect " + self._config.getServerName() + " with " + self._config.getBffNode()._config.getServerName()
+      self._config.getBffNode().addNode(self)
+
+      # remoteNode = connect(self_config.getBffNode())
+      # remoteNode.addMe(self._config.getServerDomainName(), self._config.getServerPort())
 
   def addNode(self, networkNode):
     if (self.prevNode == None and self.nextNode == None):
@@ -62,51 +67,46 @@ class CircularNetworkNode(NetworkNode):
       if (startNode == None):
         startNode = self
       else:
-        print self.config.getServerName()
+        print self._config.getServerName()
       if (self.nextNode):
         self.nextNode.dbgWalk(startNode)
       else:
         print "None"
 
 class OAND():
-  networkNode = None
-  config = None
-
-  def __init__(self, networkNode, config, bffNode = None):
-    self.networkNode = networkNode(config)
-    self.config = config
+  _networkNode = None
+  _config = None
     
-    if (bffNode != None):
-      self.join(bffNode)
-
-  def startDeamon(self):
+  def startDeamon(self, networkNode, config):
+    self._config = config    
+    self._networkNode = networkNode(config)
+    self.joinOAN()
     self.dbgPrintNetwork()
 
-  def join(self, oandNode):
-    print "Connect " + self.config.getServerName() + " with " + oandNode.config.getServerName()
-    self.networkNode.join(oandNode)
+  def joinOAN(self):    
+    self._networkNode.join()
 
   def addNode(self, networkNode):
-    self.networkNode.addNode(networkNode)
+    self._networkNode.addNode(networkNode)
 
   def dbgPrintNetwork(self):
-    print "Nodes in network on " + self.config.getServerName()
-    self.networkNode.dbgWalk()
+    print "Nodes in network on " + self._config.getServerName()
+    self._networkNode.dbgWalk()
     print
 
 def buildNetwork(networkNode):
   # Simulate starting of 4 nodes, on 4 different physical machines
-  solServer = OAND(networkNode, Config('sol-server', "sol-server.cybercow.se", "4000"))
-  solServer.startDeamon()
+  solServer = OAND()
+  solServer.startDeamon(networkNode, Config('sol-server', "localhost", "4000"))
 
-  mapaBook = OAND(networkNode, Config('mapa-book', "mapa-book.cybercow.se", "4001", "sol-server.cybercow.se:4000"), solServer)
-  mapaBook.startDeamon()
+  mapaBook = OAND()
+  mapaBook.startDeamon(networkNode, Config('mapa-book', "localhost", "4001", solServer)) # localhost:4000
 
-  aspServer = OAND(networkNode,  Config('asp-server', "asp-server.cybecow.se", "4002", "sol-server.cybercow.se:4000"), solServer)
-  aspServer.startDeamon()
+  aspServer = OAND()
+  aspServer.startDeamon(networkNode,  Config('asp-server', "localhost", "4002", solServer)) # localhost:4000
 
-  daliBook = OAND(networkNode,  Config('dali-book', "dali-book.cybercow.se", "4003", "asp-server.cybercow.se"), aspServer)
-  daliBook.startDeamon()
+  daliBook = OAND()
+  daliBook.startDeamon(networkNode,  Config('dali-book', "localhost", "4003", aspServer)) # localhost:4002
 
   solServer.dbgPrintNetwork()
 
