@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Test of DHT algorithms.
+Proof of concept of distributed nosql database/filesystem.
 
 '''
 
