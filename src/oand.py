@@ -16,99 +16,227 @@ from abc import ABCMeta, abstractmethod
 from config import Config
 
 class NetworkNode():
-  __metaclass__ = ABCMeta
+    '''Abstract class for Networknodes'''
+    __metaclass__ = ABCMeta
 
-  _config = None
-  
-  def __init__(self, config):
-    self._config = config
+    _name = None
+    _domain_name = None
+    _port = None
 
-  @abstractmethod
-  def join(self, node):
-    pass
+    def __init__(self, name, domain_name, port):
+        self._name = name
+        self._domain_name = domain_name
+        self._port = port
 
-  @abstractmethod
-  def addNode(self, networkNode):
-    pass
+    def get_name(self):
+        return self._name
+
+    def get_domain_name(self):
+        return self._domain_name
+
+    def get_port(self):
+        return self._port
+
+    def get_connection_url(self):
+        return self.get_domain_name() + ':' + self.get_port()
+
+    def is_valid(self):
+        if (self.get_name() and
+            self.get_domain_name() and
+            self.get_port()):
+            return True
+        else:
+            return False
+
+    @abstractmethod
+    def join_remote_server(self, remote_node):
+        pass
+
+    @abstractmethod
+    def add_node(self, name, domain_name, port):
+        pass
 
 class CircularNetworkNode(NetworkNode):
-  prevNode = None
-  nextNode = None
+    _prev_node = None
+    _next_node = None
 
-  def join(self):
-    if (self._config.getBffNode()):
-      print "Connect " + self._config.getServerName() + " with " + self._config.getBffNode()._config.getServerName()
-      self._config.getBffNode().addNode(self)
+    def join_remote_server(self, remote_node):
+        if (remote_node.is_valid()):
+            print("Connect " + self.get_name() + " with " +
+                  remote_node.get_name())
 
-      # remoteNode = connect(self_config.getBffNode())
-      # remoteNode.addMe(self._config.getServerDomainName(), self._config.getServerPort())
+            remote_server = Client()
+            remote_server.connect(remote_node.get_connection_url())
+            remote_server.add_node(
+                self.get_name(), self.get_domain_name(), self.get_port())
+        else:
+            print "Nobody to join"
 
-  def addNode(self, networkNode):
-    if (self.prevNode == None and self.nextNode == None):
-      self.nextNode = networkNode
-      self.prevNode = networkNode
-      oldPrevNode = networkNode
-    elif self.prevNode != networkNode:
-      oldPrevNode = self.prevNode
-      self.prevNode.setNextNode(networkNode)
-      self.prevNode = networkNode
+    def add_node(self, name, domain_name, port):
+        remote_node = CircularNetworkNode(name, domain_name, port)
 
-    networkNode.setPrevNode(oldPrevNode)
-    networkNode.setNextNode(self)
+        if (self._prev_node == None and self._next_node == None):
+            old_prev_node = self
+            self._next_node = remote_node
+            self._prev_node = remote_node
+        elif self._prev_node.get_name() != remote_node.get_name():
+            old_prev_node = self._prev_node
+            self._prev_node.set_remote_next_node(remote_node)
+            self._prev_node = remote_node
 
-  def setPrevNode(self, networkNode):
-    self.prevNode = networkNode
+        remote_node.set_remote_prev_node(old_prev_node)
+        remote_node.set_remote_next_node(self)
 
-  def setNextNode(self, networkNode):
-    self.nextNode = networkNode
+    def set_prev_node(self, name, domain_name, port):
+        self._prev_node = CircularNetworkNode(name, domain_name, port)
 
-  def dbgWalk(self, startNode = None):      
-    if (startNode != self):
-      if (startNode == None):
-        startNode = self
-      else:
-        print self._config.getServerName()
-      if (self.nextNode):
-        self.nextNode.dbgWalk(startNode)
-      else:
-        print "None"
+    def set_next_node(self, name, domain_name, port):
+        self._next_node = CircularNetworkNode(name, domain_name, port)
+
+    def set_remote_prev_node(self, remote_node):
+        self.set_prev_node(remote_node.get_name(),
+                           remote_node.get_domain_name(),
+                           remote_node.get_port())
+
+        client = Client()
+        client.connect(self.get_connection_url())
+        client.set_prev_node(remote_node.get_name(),
+                             remote_node.get_domain_name(),
+                             remote_node.get_port())
+
+    def set_remote_next_node(self, remote_node):
+        self.set_next_node(remote_node.get_name(),
+                           remote_node.get_domain_name(),
+                           remote_node.get_port())
+
+        client = Client()
+        client.connect(self.get_connection_url())
+        client.set_next_node(remote_node.get_name(),
+                             remote_node.get_domain_name(),
+                             remote_node.get_port())
+
+    def dbg_nodes(self):
+        if (self._prev_node):
+            print(self._prev_node.get_name()),
+        else:
+            print('None'),
+
+        print('- ' + self.get_name() + ' -'),
+
+        if (self._next_node):
+            print(self._next_node.get_name())
+        else:
+            print('None')
+
+    def dbg_walk(self, start_node = None):
+        if (start_node != self):
+            if (start_node == None):
+                start_node = self
+            else:
+                print self.get_name()
+            if (self._next_node):
+                self._next_node.dbg_walk(start_node)
+            else:
+                print "None"
+
+SERVERS = {}
+
+class Client():
+
+    _server = None
+
+    def connect(self, connection_url):
+        global SERVERS
+        print "Connect to " + connection_url
+        self._server = SERVERS[connection_url]
+
+    def add_node(self, name, domain_name, port):
+        self._server.add_node(name, domain_name, port)
+
+    def set_prev_node(self, name, domain_name, port):
+        self._server.set_prev_node(name, domain_name, port)
+
+    def set_next_node(self, name, domain_name, port):
+        self._server.set_next_node(name, domain_name, port)
+
+class Server():
+    _network_node = None
+
+    def __init__(self, network_node):
+        self._network_node = network_node
+        self.start()
+
+    def start(self):
+        '''Start server and listen on port xx for incoming tcp/ip requests'''
+        global SERVERS
+
+        print "Start server on " + self._network_node.get_connection_url()
+        SERVERS[self._network_node.get_connection_url()] = self
+
+    def add_node(self, name, domain_name, port):
+        self._network_node.add_node(name, domain_name, port)
+
+    def set_prev_node(self, name, domain_name, port):
+        self._network_node.set_prev_node(name, domain_name, port)
+
+    def set_next_node(self, name, domain_name, port):
+        self._network_node.set_next_node(name, domain_name, port)
 
 class OAND():
-  _networkNode = None
-  _config = None
-    
-  def startDeamon(self, networkNode, config):
-    self._config = config    
-    self._networkNode = networkNode(config)
-    self.joinOAN()
-    self.dbgPrintNetwork()
+    _network_node = None
+    _config = None
+    _server = None
 
-  def joinOAN(self):    
-    self._networkNode.join()
+    def start_deamon(self, network_node_class, config):
+        self._config = config
+        self._network_node = network_node_class(
+            self._config.get_server_name(),
+            self._config.get_server_domain_name(),
+            self._config.get_server_port())
 
-  def addNode(self, networkNode):
-    self._networkNode.addNode(networkNode)
+        bff_node = network_node_class(
+            self._config.get_bff_name(),
+            self._config.get_bff_domain_name(),
+            self._config.get_bff_port())
 
-  def dbgPrintNetwork(self):
-    print "Nodes in network on " + self._config.getServerName()
-    self._networkNode.dbgWalk()
+        self._server = Server(self._network_node)
+        self._network_node.join_remote_server(bff_node)
+
+        self.dbg_print_network()
+
+    def dbg_print_network(self):
+        print "Nodes in network on " + self._network_node.get_name()
+        self._network_node.dbg_nodes()
+        print
+
+def build_network(network_node_class):
+    '''Simulate starting of 4 nodes, on 4 different physical machines'''
+    sol_server = OAND()
+    sol_server.start_deamon(network_node_class, Config(
+        'sol-server', "localhost", "4000"))
+
+    mapa_book = OAND()
+    mapa_book.start_deamon(network_node_class, Config(
+        'mapa-book', "localhost", "4001",
+        'sol-server', "localhost", "4000"))
+
+    asp_server = OAND()
+    asp_server.start_deamon(network_node_class, Config(
+        'asp-server', "localhost", "4002",
+        'sol-server', "localhost", "4000"))
+
+    dali_book = OAND()
+    dali_book.start_deamon(network_node_class,Config(
+        'dali-book', "localhost", "4003",
+        'asp-server',"localhost", "4002"))
+
     print
-
-def buildNetwork(networkNode):
-  # Simulate starting of 4 nodes, on 4 different physical machines
-  solServer = OAND()
-  solServer.startDeamon(networkNode, Config('sol-server', "localhost", "4000"))
-
-  mapaBook = OAND()
-  mapaBook.startDeamon(networkNode, Config('mapa-book', "localhost", "4001", solServer)) # localhost:4000
-
-  aspServer = OAND()
-  aspServer.startDeamon(networkNode,  Config('asp-server', "localhost", "4002", solServer)) # localhost:4000
-
-  daliBook = OAND()
-  daliBook.startDeamon(networkNode,  Config('dali-book', "localhost", "4003", aspServer)) # localhost:4002
-
-  solServer.dbgPrintNetwork()
+    print("All network")
+    print
+    sol_server.dbg_print_network()
+    mapa_book.dbg_print_network()
+    dali_book.dbg_print_network()
+    asp_server.dbg_print_network()
 
 if __name__ == '__main__':
-  buildNetwork(CircularNetworkNode)
+    build_network(CircularNetworkNode)

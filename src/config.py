@@ -17,47 +17,61 @@ __status__ = "Test"
 import ConfigParser
 
 class Config():
-  # The name of the server oand is running on. This has no connection
-  # to the hostname in the OS.
-  _serverName = None
+    # The name of the server oand is running on. This has no connection
+    # to the hostname in the OS.
+    _server_name = None
 
-  # The ip number or domain name of this oand node.
-  _serverDomainName = None
+    # The ip number or domain name of this oand node.
+    _server_domain_name = None
 
-  # The tcp/ip port that is open for connection.
-  _serverPort = None
+    # The tcp/ip port that is open for connection.
+    _server_port = None
 
-  # Best Friend Forever Node. The first node to connect to, which will
-  # give you access and knowledge to the whole network.
-  _bffNode = None
+    # Best Friend Forever Node. The first node to connect to, which will
+    # give you access and knowledge to the whole network.
+    _bff_name = None
+    _bff_domain_name = None
+    _bff_port = None
 
-  def __init__(self, serverName, domainName, port, bffNode = None):
-    self._serverName = serverName
-    self._serverDomainName = domainName
-    self._serverPort = port
-    self._bffNode = bffNode
+    def __init__(self, server_name, domain_name, port,
+                   bff_name = None, bff_domain_name = None, bff_port = None):
+        self._server_name = server_name
+        self._server_domain_name = domain_name
+        self._server_port = port
 
-  @classmethod
-  def fromFilename(cls, filename):
-    "Initialize Config from a file"
-    config = ConfigParser.ConfigParser()    
-    config.readfp(open(filename))
+        self._bff_name = bff_name
+        self._bff_domain_name = bff_domain_name
+        self._bff_port = bff_port
 
-    return cls(
-      config.get("oand", "server-name"),
-      config.get("oand", "server-domain-name"),
-      config.get("oand", "server-port"),
-      config.get("oand", "bff-node")
-    )
+    @classmethod
+    def from_filename(cls, filename):
+        "Initialize Config from a file"
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(filename))
 
-  def getServerName(self):
-    return self._serverName
+        return cls(
+          config.get("oand", "server-name"),
+          config.get("oand", "server-domain-name"),
+          config.get("oand", "server-port"),
+          config.get("oand", "bff-name"),
+          config.get("oand", "bff-domain-name"),
+          config.get("oand", "bff-port")
+        )
 
-  def getServerDomainName(self):
-    return self._serverDomainName
+    def get_server_name(self):
+        return self._server_name
 
-  def getServerPort(self):
-    return self._serverPort
+    def get_server_domain_name(self):
+        return self._server_domain_name
 
-  def getBffNode(self):
-    return self._bffNode
+    def get_server_port(self):
+        return self._server_port
+
+    def get_bff_name(self):
+        return self._bff_name
+
+    def get_bff_domain_name(self):
+        return self._bff_domain_name
+
+    def get_bff_port(self):
+        return self._bff_port
