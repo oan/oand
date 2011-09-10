@@ -60,8 +60,7 @@ class TestConfigLoadFromFile(TestConfig):
         self._config = Config.from_filename("./tests/oand.cfg")
 
     def test_file_not_exist(self):
-        self.assertRaises(IOError,
-                          Config.from_filename, ("file-not-exist.cfg"))
+        self.assertRaises(IOError, Config.from_filename, "./tests/osand.cfg")
 
 if __name__ == '__main__':
     unittest.main()

@@ -18,17 +18,20 @@ To execute them separatley
 
     $ cd oand/src
     $ . test.env
-    $ ./tests/test_oand.py  
+    $ ./tests/test_oand.py
 
 Things to test
 ===============
+
+* Fuse-python
+  http://websaucesoftware.com/programming/python/installing-fuse-python-on-os-x-105
 
 DHT
 ---
 
 Different DHT algorithms Chord, Kademlia, Pastry, OceanStore and Coral.
 
-Features: anonymity, Byzantine fault-tolerant lookups, geographic routing and the efficient broadcasting of messages to enter the network. 
+Features: anonymity, Byzantine fault-tolerant lookups, geographic routing and the efficient broadcasting of messages to enter the network.
 
 General links to good reading
 -----------------------------
