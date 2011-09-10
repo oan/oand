@@ -115,18 +115,21 @@ class CircularNetworkNode(NetworkNode):
                              remote_node.get_domain_name(),
                              remote_node.get_port())
 
-    def dbg_nodes(self):
+    def get_dbg_nodes(self):
+        out = ""
         if (self._prev_node):
-            print(self._prev_node.get_name()),
+            out += self._prev_node.get_name()
         else:
-            print('None'),
+            out += 'None'
 
-        print('- ' + self.get_name() + ' -'),
+        out += ' - ' + self.get_name() + ' - '
 
         if (self._next_node):
-            print(self._next_node.get_name())
+            out += self._next_node.get_name()
         else:
-            print('None')
+            out += 'None'
+
+        return out
 
     def dbg_walk(self, start_node = None):
         if (start_node != self):
@@ -204,39 +207,10 @@ class OAND():
 
         self.dbg_print_network()
 
+    def get_network_node(self):
+        return self._network_node
+
     def dbg_print_network(self):
         print "Nodes in network on " + self._network_node.get_name()
-        self._network_node.dbg_nodes()
+        print self._network_node.get_dbg_nodes()
         print
-
-def build_network(network_node_class):
-    '''Simulate starting of 4 nodes, on 4 different physical machines'''
-    sol_server = OAND()
-    sol_server.start_deamon(network_node_class, Config(
-        'sol-server', "localhost", "4000"))
-
-    mapa_book = OAND()
-    mapa_book.start_deamon(network_node_class, Config(
-        'mapa-book', "localhost", "4001",
-        'sol-server', "localhost", "4000"))
-
-    asp_server = OAND()
-    asp_server.start_deamon(network_node_class, Config(
-        'asp-server', "localhost", "4002",
-        'sol-server', "localhost", "4000"))
-
-    dali_book = OAND()
-    dali_book.start_deamon(network_node_class,Config(
-        'dali-book', "localhost", "4003",
-        'asp-server',"localhost", "4002"))
-
-    print
-    print("All network")
-    print
-    sol_server.dbg_print_network()
-    mapa_book.dbg_print_network()
-    dali_book.dbg_print_network()
-    asp_server.dbg_print_network()
-
-if __name__ == '__main__':
-    build_network(CircularNetworkNode)

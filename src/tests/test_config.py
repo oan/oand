@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Test cases for oand.
+Test cases for Config.
 
 '''
 
