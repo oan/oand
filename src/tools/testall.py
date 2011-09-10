@@ -19,6 +19,14 @@ __maintainer__ = "daniel.lindh@cybercow.se"
 import unittest
 import os, os.path
 import sys
+import trace
+
+def get_project_home():
+    '''Return the path to the root folder of the project.'''
+    project_home = os.path.realpath(__file__)
+    project_home = os.path.split(project_home)[0]
+    project_home = os.path.split(project_home)[0]
+    return project_home
 
 def add_tests_to_list (import_list, dirname, names):
   # Only check directories named 'tests'.
@@ -47,13 +55,40 @@ def find_modules_and_add_paths (root_path):
   module_list.sort()
   return module_list
 
-def suite():  
+def suite():
   modules_to_test = find_modules_and_add_paths(os.getcwd())
   alltests = unittest.TestSuite()
   for module in map(__import__, modules_to_test):
     alltests.addTest(unittest.findTestCases(module))
-    
+
   return alltests
 
+def main():
+    unittest.main(defaultTest='suite')
+
+def setup_env():
+    sys.path.insert(1, get_project_home())
+    os.chdir(get_project_home())
+
+def run_main_with_trace():
+    # create a Trace object, telling it what to ignore, and whether to
+    # do tracing or line-counting or both.
+    tracer = trace.Trace(
+        ignoredirs=[sys.prefix, sys.exec_prefix],
+        trace=0,
+        count=1,
+        countfuncs=1,
+        countcallers=1,
+        infile='/tmp/cover.tmp',
+        outfile='/tmp/cover.tmp')
+
+    # run the new command using the given tracer
+    tracer.run('main()')
+
+    # make a report, placing output in /tmp
+    r = tracer.results()
+    r.write_results(show_missing=True, summary=True, coverdir="/tmp")
+
 if __name__ == '__main__':
-  unittest.main(defaultTest='suite')
+    setup_env()
+    run_main_with_trace()
