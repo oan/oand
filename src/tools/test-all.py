@@ -66,6 +66,9 @@ def suite():
 def main():
     unittest.main(defaultTest='suite')
 
+def remove_cmd_line_arguments():
+    del sys.argv[1:]
+
 def setup_env():
     sys.path.insert(1, get_project_home())
     os.chdir(get_project_home())
@@ -91,4 +94,5 @@ def run_main_with_trace():
 
 if __name__ == '__main__':
     setup_env()
+    remove_cmd_line_arguments()
     run_main_with_trace()
