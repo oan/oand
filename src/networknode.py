@@ -11,6 +11,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import logging
+
 from abc import ABCMeta, abstractmethod
 
 class NetworkNode():
@@ -22,11 +24,14 @@ class NetworkNode():
     _domain_name = None
     _port = None
 
+    _logger = None
+
     def __init__(self, client_class, name, domain_name, port):
         self._client_class = client_class
         self._name = name
         self._domain_name = domain_name
         self._port = port
+        self._logger = logging.getLogger('oand' + name)
 
     def get_name(self):
         return self._name
@@ -62,10 +67,10 @@ class CircularNetworkNode(NetworkNode):
 
     def join_remote_server(self, remote_node):
         if (remote_node.is_valid()):
-            print("Connect " + self.get_name() + " with " +
-                  remote_node.get_name())
+            self._logger.info("Connect " + self.get_name() + " with " +
+                              remote_node.get_name())
 
-            remote_server = self._client_class()
+            remote_server = self._client_class(self.get_name())
             remote_server.connect(remote_node.get_connection_url())
             remote_server.add_node(
                 self.get_name(), self.get_domain_name(), self.get_port())
@@ -101,7 +106,7 @@ class CircularNetworkNode(NetworkNode):
                            remote_node.get_domain_name(),
                            remote_node.get_port())
 
-        client = self._client_class()
+        client = self._client_class(self.get_name())
         client.connect(self.get_connection_url())
         client.set_prev_node(remote_node.get_name(),
                              remote_node.get_domain_name(),
@@ -112,7 +117,7 @@ class CircularNetworkNode(NetworkNode):
                            remote_node.get_domain_name(),
                            remote_node.get_port())
 
-        client = self._client_class()
+        client = self._client_class(self.get_name())
         client.connect(self.get_connection_url())
         client.set_next_node(remote_node.get_name(),
                              remote_node.get_domain_name(),
