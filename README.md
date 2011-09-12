@@ -20,6 +20,16 @@ To execute them separatley
     $ . test.env
     $ ./tests/test_oand.py
 
+TODO
+====
+
+* Add network capability.
+* Add "REST" messages for the network server.
+* Add heartbeat.
+* Add get/set value.
+* Add unit test, testing many thousand nodes.
+* Clients to connect to other dist databases, couchdb??
+
 Things to test
 ===============
 
