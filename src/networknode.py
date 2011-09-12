@@ -102,6 +102,8 @@ class CircularNetworkNode(NetworkNode):
                                               name, domain_name, port)
 
     def set_remote_prev_node(self, remote_node):
+        # @todo self.set_prev_node(remote_node) need to be executed, 
+	# can't create new node.
         self.set_prev_node(remote_node.get_name(),
                            remote_node.get_domain_name(),
                            remote_node.get_port())
