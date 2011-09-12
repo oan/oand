@@ -47,10 +47,10 @@ class TestOand(unittest.TestCase):
                          "asp-server - sol-server - mapa-book")
         self.assertEqual(self._mapa_book.get_network_node().get_dbg_nodes(),
                          "sol-server - mapa-book - dali-book")
-        self.assertEqual(self._asp_server.get_network_node().get_dbg_nodes(),
-                         "dali-book - asp-server - sol-server")
         self.assertEqual(self._dali_book.get_network_node().get_dbg_nodes(),
                          "mapa-book - dali-book - asp-server")
+        self.assertEqual(self._asp_server.get_network_node().get_dbg_nodes(),
+                         "dali-book - asp-server - sol-server")
 
 if __name__ == '__main__':
     unittest.main()
