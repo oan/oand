@@ -16,7 +16,7 @@ import logging, sys
 import logging.handlers
 
 from networknode import CircularNetworkNode
-from clientserver import LocalNetworkClient, LocalNetworkServer
+from objectclientserver import ObjectClient, ObjectServer
 
 class OAND():
     _network_node = None
@@ -56,7 +56,7 @@ class OAND():
     @classmethod
     def create_localnetwork_circular_node(cls, config):
         return cls(config, CircularNetworkNode,
-                   LocalNetworkServer, LocalNetworkClient)
+                   ObjectServer, ObjectClient)
 
     def get_network_node(self):
         return self._network_node

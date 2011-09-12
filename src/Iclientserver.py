@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Handles connections between client and servers.
+Interfaces/Abstract classes for handling connections between client and servers.
 
 '''
 
@@ -66,42 +66,3 @@ class Server():
     @abstractmethod
     def set_next_node(self, name, domain_name, port):
         pass
-
-SERVERS = {}
-
-class LocalNetworkServer(Server):
-    _network_node = None
-
-    def start(self):
-        '''Start server and listen on port xx for incoming tcp/ip requests'''
-        global SERVERS
-
-        self._logger.info("Start server on " + self._network_node.get_connection_url())
-        SERVERS[self._network_node.get_connection_url()] = self
-
-    def add_node(self, name, domain_name, port):
-        self._network_node.add_node(name, domain_name, port)
-
-    def set_prev_node(self, name, domain_name, port):
-        self._network_node.set_prev_node(name, domain_name, port)
-
-    def set_next_node(self, name, domain_name, port):
-        self._network_node.set_next_node(name, domain_name, port)
-
-class LocalNetworkClient(Client):
-    _server = None
-
-    def connect(self, connection_url):
-        global SERVERS
-        self._logger.info("Connect to " + connection_url)
-        self._server = SERVERS[connection_url]
-
-    def add_node(self, name, domain_name, port):
-        self._server.add_node(name, domain_name, port)
-
-    def set_prev_node(self, name, domain_name, port):
-        self._server.set_prev_node(name, domain_name, port)
-
-    def set_next_node(self, name, domain_name, port):
-        self._server.set_next_node(name, domain_name, port)
-
