@@ -1,12 +1,29 @@
 #!/usr/bin/env python
-
+'''
+Testing twisted and RESTfulnes.
 
 # READ MORE
 # http://twistedmatrix.com/documents/current/web/
 
+
+# Test with
+# curl -d "hashKey=key1;body=fulltextbodynoencoding" http://localhost:8082/train
+# Content-Type: application/json
+# json.dumps(args)
+
+'''
+
+__author__ = "daniel.lindh@cybercow.se"
+__copyright__ = "Copyright 2011, Amivono AB"
+__maintainer__ = "daniel.lindh@cybercow.se"
+__license__ = "We pwn it all."
+__version__ = "0.1"
+__status__ = "Test"
+
 import pickle, os, sys, time
 import logging
 import logging.handlers
+from optparse import OptionParser
 
 from twisted.web import server, resource, http
 from twisted.internet import reactor
@@ -178,44 +195,72 @@ class OAND(Daemon):
     def run(self):
         self._app.start_server()
 
-class CmdLine():
-    def handle_cmd_line(self):
-        '''
-        Handle the commandline commands.
-        start - Will create pid file and start server.
-        stop - Will remove pid file and stop server.
-        restart - Will run stop and start.
-        '''
-        if len(sys.argv) == 2:
-            app = OANApplication()
-            daemon = OAND(app)
-            if 'start' == sys.argv[1]:
-                daemon.start()
-            elif 'stop' == sys.argv[1]:
-                daemon.stop()
-            elif 'restart' == sys.argv[1]:
-                daemon.restart()
-            elif 'native' == sys.argv[1]:
-                app.start_server()
-            else:
-                print "Unknown command: %s" % sys.argv[1]
-                self.print_usage()
-                sys.exit(2)
-            sys.exit(0)
-        else:
-            self.print_usage()
-            sys.exit(2)
+class ApplicationStarter():
+    '''
+    Handles all command line options/arguments and start the oand server.
 
-    def print_usage(self):
-        '''Display information about how to start the daemon-server.'''
-        print "usage: %s start|stop|restart|native" % sys.argv[0]
+    '''
+    parser = None
+
+    def __init__(self):
+        '''
+        Used to control the command line options, and the execution of the script.
+
+        First function called when using the script.
+
+        '''
+
+        self._parser = Optionself._parser(
+                                          usage=self._get_usage(),
+                                          version="oand " + __version__,
+                                          add_help_option=True)
+
+        self._parser.add_option(
+            "-v", "--verbose", action="store_const", const=2, dest="verbose",
+            default=1, help="Show more output.")
+
+        self._parser.add_option(
+            "-q", "--quiet", action="store_const", const=0, dest="verbose",
+            help="Show no output.")
+
+        (options, args) = self._parser.parse_args()
+
+        print self._parser.get_version()
+
+        if len(args) != 1:
+            self._parser.print_help()
+        else:
+            self._handle_positional_argument(args[0])
+
+    def _handle_positional_argument(self, argument):
+        '''
+        Handle the positional arguments from the commandline.
+
+        '''
+        app = OANApplication()
+        daemon = OAND(app)
+        if argument == 'start':
+            daemon.start()
+        elif argument == 'stop':
+            daemon.stop()
+        elif argument == 'restart':
+            daemon.restart()
+        elif argument == 'native':
+            app.start_server()
+        else
+            self._parser.print_help()
+
+    def _get_usage(self):
+        '''
+        Display information about how to start the daemon-server.
+
+        '''
+        return """usage: %prog [-vqf] {start|stop|restart|native|status}
+
+start - Start oand server as a deamon.
+stop - Stop oand server deamon.
+restart - Retart oand server deamon.
+native - Start oand server as a reqular application."""
 
 if __name__ == "__main__":
-
-    cmd_line = CmdLine()
-    cmd_line.handle_cmd_line()
-
-# Test with
-# curl -d "hashKey=key1;body=fulltextbodynoencoding" http://localhost:8082/train
-# Content-Type: application/json
-# json.dumps(args)
+    ApplicationStarter()
