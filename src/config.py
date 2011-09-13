@@ -50,13 +50,20 @@ class Config():
         config.readfp(open(filename))
 
         return cls(
-          config.get("oand", "server-name"),
-          config.get("oand", "server-domain-name"),
-          config.get("oand", "server-port"),
-          config.get("oand", "bff-name"),
-          config.get("oand", "bff-domain-name"),
-          config.get("oand", "bff-port")
+          cls.get_from_config(config, "oand", "server-name"),
+          cls.get_from_config(config, "oand", "server-domain-name"),
+          cls.get_from_config(config, "oand", "server-port"),
+          cls.get_from_config(config, "oand", "bff-name"),
+          cls.get_from_config(config, "oand", "bff-domain-name"),
+          cls.get_from_config(config, "oand", "bff-port")
         )
+
+    @staticmethod
+    def get_from_config(config, section, option):
+        if config.has_section(section) and config.has_option(section, option):
+            return config.get(section, option)
+        else:
+            return None
 
     def get_server_name(self):
         return self._server_name

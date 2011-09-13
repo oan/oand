@@ -12,8 +12,14 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import logging
+import json
+import os
 
-from iclientserver.py import Server
+from twisted.web import server, resource, http
+from twisted.internet import reactor
+from twisted.web.static import File
+
+from Iclientserver import Server
 
 class TwistedServer(Server):
     '''
@@ -34,7 +40,7 @@ class TwistedServer(Server):
     def start(self):
         '''Start server and listen on port xx for incoming tcp/ip requests'''
         self._logger.debug("Start twisted server")
-        reactor.listenTCP(8082, server.Site(RootResource(self.data_store_manager)))
+        reactor.listenTCP(8082, server.Site(RootResource(self._data_store_manager)))
         reactor.run()
 
     def add_node(self, name, domain_name, port):
@@ -51,11 +57,13 @@ class RootResource(resource.Resource):
         self._data_store_manager = data_store_manager
         resource.Resource.__init__(self)
         self.putChild('value', MessageHandler(self._data_store_manager))
-        self.putChild('', File("html/index.html"))
+        self.putChild('', File(self.get_current_dir() + "html/index.html"))
 
     def getChild(self, path, request):
-        logging.getLogger('oandtwisted').debug("root: " + path)
-        return File("html/404.html")
+        return File(self.get_current_dir() + "html/404.html")
+
+    def get_current_dir(self):
+        return os.path.dirname(__file__) + "/"
 
 class MessageHandler(resource.Resource):
     def __init__(self, data_store_manager):
@@ -71,7 +79,7 @@ class MessageHandler(resource.Resource):
         filename = self._get_filename(request)
         logging.getLogger('oandtwisted').debug("value: " + filename)
 
-        if (self._data_store_manager.hasMessage(filename)):
+        if (self._data_store_manager.exist(filename)):
             request.setHeader("Content-Type", "application/json")
             request.setResponseCode(http.FOUND)
             obj = {}

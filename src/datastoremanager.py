@@ -13,6 +13,7 @@ __status__ = "Test"
 
 from abc import ABCMeta, abstractmethod
 import pickle
+import os
 
 class ADataStoreManager(object):
     """
@@ -54,7 +55,7 @@ class SimpleDataStoreManager(ADataStoreManager):
         self._filename = filename
         self._load()
 
-    def _load():
+    def _load(self):
         if os.path.exists(self._filename):
             self._data = pickle.load(file(self._filename, 'r+b'))
         else:
