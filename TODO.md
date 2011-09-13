@@ -23,6 +23,9 @@ TODO
   anonymity, Byzantine fault-tolerant lookups, geographic routing and the
   efficient broadcasting of messages to enter the network.
 
+* Try this daemon? http://pypi.python.org/pypi/python-daemon/
+
+
 Things to read
 ==============
 
