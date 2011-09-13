@@ -29,64 +29,26 @@ from twisted.web import server, resource, http
 from twisted.internet import reactor
 from twisted.web.static import File
 
-import markdown
 import json
-import codecs
 
 from daemon import Daemon
-# TODO, try this daemon??
-# http://pypi.python.org/pypi/python-daemon/
 
-
-class MessageStore(object):
-    """class for managing messages in the form: md5hash:text"""
-
-    messages = None
-    filename = None
-
-    def __init__(self, filename):
-        self.filename = filename
-        if os.path.exists(filename):
-            self.messages = pickle.load(file(filename, 'r+b'))
-        else:
-            self.messages = {}
-
-    def save(self):
-        pickle.dump(self.messages, file(self.filename, 'w+b'))
-
-    def hasMessage(self, hashKey):
-        return self.messages.has_key(hashKey)
-
-    def listMessageKeys(self):
-        return self.messages.keys()
-
-    def listMessages(self):
-        return self.messages.items()
-
-    def getMessage(self, hashKey):
-        return self.messages[hashKey]
-
-    def setMessage(self, hashKey, content):
-        self.messages[hashKey] = content
-        self.save()
-
-    def delMessage(self, hashKey):
-        del(self.messages[hashKey])
+from SimpleDataStoreManager import SimpleSimpleDataStoreManager
 
 class RootResource(resource.Resource):
-    def __init__(self, messageStore):
-        self.messageStore = messageStore
+    def __init__(self, data_store_manager):
+        self._data_store_manager = data_store_manager
         resource.Resource.__init__(self)
-        self.putChild('value', MessageHandler(self.messageStore))
+        self.putChild('value', MessageHandler(self._data_store_manager))
         self.putChild('', File("html/index.html"))
 
     def getChild(self, path, request):
         logging.getLogger('oandtwisted').debug("root: " + path)
-        return Child404()
+        return File("html/404.html")
 
 class MessageHandler(resource.Resource):
-    def __init__(self, messageStore):
-        self.messageStore = messageStore
+    def __init__(self, data_store_manager):
+        self._data_store_manager = data_store_manager
         self.isLeaf=True
         resource.Resource.__init__(self)
 
@@ -98,12 +60,12 @@ class MessageHandler(resource.Resource):
         filename = self._get_filename(request)
         logging.getLogger('oandtwisted').debug("value: " + filename)
 
-        if (self.messageStore.hasMessage(filename)):
+        if (self._data_store_manager.hasMessage(filename)):
             request.setHeader("Content-Type", "application/json")
             request.setResponseCode(http.FOUND)
             obj = {}
             obj["filename"] = filename
-            obj["data"] = self.messageStore.getMessage(filename)
+            obj["data"] = self._data_store_manager.get(filename)
             return json.dumps(obj)
         else:
             request.setHeader("Content-Type", "text/html")
@@ -119,12 +81,12 @@ class MessageHandler(resource.Resource):
     def render_POST(self, request):
         filename = self._get_filename(request)
         body=request.args['body'][0]
-        self.messageStore.setMessage(filename, body)
+        self._data_store_manager.set(filename, body)
         return "Posted"
 
     def render_DELETE(self, request):
-        if self.messageStore.hasMessage(self.path):
-            self.messageStore.delMessage(self.path)
+        if self._data_store_manager.exist(self.path):
+            self._data_store_manager.delete(self.path)
             return """ msg %s deleted	""" % (self.path)
         else:
             return """ msg not found for hashKey: %s""" % self.path
@@ -132,7 +94,6 @@ class MessageHandler(resource.Resource):
 class Child404(resource.Resource):
     isLeaf=True
     def __init__(self):
-
         resource.Resource.__init__(self)
 
     def render_GET(self, request):
@@ -183,11 +144,11 @@ class OANApplication():
         '''
         self._start_logger("twisted")
         self._logger.debug("Start twisted server")
-        messageStore = MessageStore("data.dat")
-        reactor.listenTCP(8082, server.Site(RootResource(messageStore)))
+        data_store_manager = SimpleDataStoreManager("data.dat")
+        reactor.listenTCP(8082, server.Site(RootResource(data_store_manager)))
         reactor.run()
 
-class OAND(Daemon):
+class OANDaemon(Daemon):
     def __init__(self, app):
         Daemon.__init__(self, '/tmp/oand.pid', '/tmp/stdin', '/tmp/stdout','/tmp/stderr')
         self._app = app
@@ -210,10 +171,10 @@ class ApplicationStarter():
 
         '''
 
-        self._parser = Optionself._parser(
-                                          usage=self._get_usage(),
-                                          version="oand " + __version__,
-                                          add_help_option=True)
+        self._parser = OptionParser(
+                                    usage=self._get_usage(),
+                                    version="oand " + __version__,
+                                    add_help_option=True)
 
         self._parser.add_option(
             "-v", "--verbose", action="store_const", const=2, dest="verbose",
@@ -238,7 +199,7 @@ class ApplicationStarter():
 
         '''
         app = OANApplication()
-        daemon = OAND(app)
+        daemon = OANDaemon(app)
         if argument == 'start':
             daemon.start()
         elif argument == 'stop':
@@ -247,7 +208,7 @@ class ApplicationStarter():
             daemon.restart()
         elif argument == 'native':
             app.start_server()
-        else
+        else:
             self._parser.print_help()
 
     def _get_usage(self):
