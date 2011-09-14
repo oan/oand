@@ -33,6 +33,12 @@ class Config():
     _bff_domain_name = None
     _bff_port = None
 
+    # Name and path of the pidfile
+    _pid_file = "oand.pid"
+
+    # Name and path of the logfile.
+    _log_file = "oand.log"
+
     def __init__(self, server_name, domain_name, port,
                    bff_name = None, bff_domain_name = None, bff_port = None):
         self._server_name = server_name
@@ -46,10 +52,10 @@ class Config():
     @classmethod
     def from_filename(cls, filename):
         "Initialize Config from a file"
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser.ConfigParser({"log-file" : "oand.log"})
         config.readfp(open(filename))
 
-        return cls(
+        obj = cls(
           cls.get_from_config(config, "oand", "server-name"),
           cls.get_from_config(config, "oand", "server-domain-name"),
           cls.get_from_config(config, "oand", "server-port"),
@@ -57,6 +63,11 @@ class Config():
           cls.get_from_config(config, "oand", "bff-domain-name"),
           cls.get_from_config(config, "oand", "bff-port")
         )
+
+        obj.set_pid_file(cls.get_from_config(config, "oand", "pid-file"))
+        obj.set_log_file(cls.get_from_config(config, "oand", "log-file"))
+
+        return obj
 
     @staticmethod
     def get_from_config(config, section, option):
@@ -82,3 +93,15 @@ class Config():
 
     def get_bff_port(self):
         return self._bff_port
+
+    def set_pid_file(self, value):
+        self._pid_file = value
+
+    def get_pid_file(self):
+        return self._pid_file
+
+    def set_log_file(self, value):
+        self._log_file = value
+
+    def get_log_file(self):
+        return self._log_file

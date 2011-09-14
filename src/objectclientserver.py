@@ -17,7 +17,7 @@ __status__ = "Test"
 import logging
 from abc import ABCMeta, abstractmethod
 
-from clientserver import Client, Server
+from Iclientserver import Client, Server
 
 SERVERS = {}
 
