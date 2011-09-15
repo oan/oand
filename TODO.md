@@ -25,6 +25,7 @@ TODO
 
 * Try this daemon? http://pypi.python.org/pypi/python-daemon/
 
+# Testing some git merge commands.
 
 Things to read
 ==============
