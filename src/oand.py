@@ -34,38 +34,39 @@ from daemon import Daemon
 from config import Config
 from datastoremanager import SimpleDataStoreManager
 from twistedserver import TwistedServer
-from networknode import CircularNetworkNode
+from jsonclient import JsonClient
+from networknodemanager import CircularNetworkNodeManager, NetworkNode
 from objectclientserver import ObjectClient, ObjectServer
 
 class OANApplication():
     _data_store_manager_class = None
-    _network_node_class = None
+    _network_node_manager_class = None
     _server_class = None
     _client_class = None
 
     _config = None
     _data_store_manager = None
-    _network_node = None
+    _network_node_manager = None
     _server = None
 
-    def __init__(self, config, data_store_manager_class, network_node_class,
-                 server_class, client_class):
+    def __init__(self, config, data_store_manager_class,
+                 network_node_manager_class, server_class, client_class):
         self._config = config
         self._data_store_manager_class = data_store_manager_class
-        self._network_node_class = network_node_class
+        self._network_node_manager_class = network_node_manager_class
         self._server_class = server_class
         self._client_class = client_class
         self._start_logger(config.get_server_name())
 
     @classmethod
     def create_localnetwork_circular_node(cls, config):
-        return cls(config, SimpleDataStoreManager, CircularNetworkNode,
+        return cls(config, SimpleDataStoreManager, CircularNetworkNodeManager,
                    ObjectServer, ObjectClient)
 
     @classmethod
     def create_twisted_circular_node(cls, config):
-        return cls(config, SimpleDataStoreManager, CircularNetworkNode,
-                   TwistedServer, ObjectClient)
+        return cls(config, SimpleDataStoreManager, CircularNetworkNodeManager,
+                   TwistedServer, JsonClient)
 
     def run_server(self):
         self._logger.info("Starting Open Archive Network (oand) for " +
@@ -73,43 +74,45 @@ class OANApplication():
 
         self._logger.debug("data_store_manager " +
                            str(self._data_store_manager_class))
-        self._logger.debug("network_node_class " +
-                           str(self._network_node_class))
+        self._logger.debug("network_node_manager_class " +
+                           str(self._network_node_manager_class))
         self._logger.debug("server_class " + str(self._server_class))
         self._logger.debug("client_class " + str(self._client_class))
 
         self._data_store_manager = self._data_store_manager_class("data.dat")
 
-        self._network_node = self._network_node_class(
+        self._network_node_manager = self._network_node_manager_class(
             self._client_class,
+            self._logger)
+
+        self._network_node_manager.set_my_node(NetworkNode(
             self._config.get_server_name(),
             self._config.get_server_domain_name(),
-            self._config.get_server_port())
+            self._config.get_server_port()))
 
         if (self._config.get_bff_name()):
-            bff_node = self._network_node_class(
-                self._client_class,
+            self._network_node_manager.add_node(NetworkNode(
                 self._config.get_bff_name(),
                 self._config.get_bff_domain_name(),
-                self._config.get_bff_port())
+                self._config.get_bff_port()))
 
-            self._network_node.join_remote_server(bff_node)
+            self._network_node_manager.connect_to_oan()
 
         self.dbg_print_network()
-        self._server = self._server_class(self._network_node,
+        self._server = self._server_class(self._network_node_manager,
                                           self._data_store_manager)
         self._logger.info("Stopping Open Archive Network (oand)")
 
     def get_config(self):
         return self._config
 
-    def get_network_node(self):
-        return self._network_node
+    def get_network_node_manager(self):
+        return self._network_node_manager
 
     def dbg_print_network(self):
         self._logger.debug("Nodes in network on " +
-                           self._network_node.get_name())
-        self._logger.debug("    " + self._network_node.get_dbg_nodes())
+                           self._network_node_manager.get_my_node().get_name())
+        self._logger.debug("    " + self._network_node_manager.get_dbg_nodes())
 
     def _start_logger(self, server_name):
         # create logger
@@ -119,7 +122,8 @@ class OANApplication():
         # create console handler and set level to debug
         ch1 = logging.handlers.SysLogHandler()
         ch1.setLevel(logging.DEBUG)
-        ch2 = logging.handlers.RotatingFileHandler(self._config.get_log_file(), maxBytes=2000000, backupCount=100)
+        ch2 = logging.handlers.RotatingFileHandler(
+            self._config.get_log_file(), maxBytes=2000000, backupCount=100)
         ch2.setLevel(logging.DEBUG)
 
         # create formatter

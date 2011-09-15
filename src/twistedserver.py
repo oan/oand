@@ -26,21 +26,20 @@ class TwistedServer(Server):
     Creating a twisted server.
 
     '''
-
     _logger = None
-    _network_node = None
+    _network_nodes_manager = None
     _data_store_manager = None
 
-    def __init__(self, network_node, data_store_manager):
-        self._logger = logging.getLogger('oand' + network_node.get_name())
-        self._network_node = network_node
+    def __init__(self, network_nodes_manager, data_store_manager):
+        self._logger = logging.getLogger('oand' + network_nodes_manager.get_my_node().get_name())
+        self._network_nodes_manager = network_nodes_manager
         self._data_store_manager = data_store_manager
         self.start()
 
     def start(self):
         '''Start server and listen on port xx for incoming tcp/ip requests'''
         self._logger.debug("Start twisted server")
-        reactor.listenTCP(8082, server.Site(RootResource(self._data_store_manager)))
+        reactor.listenTCP(8082, server.Site(RootResource(self._data_store_manager, self._network_nodes_manager)))
         reactor.run()
 
     def add_node(self, name, domain_name, port):
@@ -53,10 +52,10 @@ class TwistedServer(Server):
         pass
 
 class RootResource(resource.Resource):
-    def __init__(self, data_store_manager):
-        self._data_store_manager = data_store_manager
+    def __init__(self, data_store_manager, network_nodes_manager):
         resource.Resource.__init__(self)
-        self.putChild('value', MessageHandler(self._data_store_manager))
+        self.putChild('nodes', NodeListHandler(network_nodes_manager))
+        self.putChild('value', MessageHandler(data_store_manager))
         self.putChild('', File(self.get_current_dir() + "html/index.html"))
 
     def getChild(self, path, request):
@@ -64,6 +63,35 @@ class RootResource(resource.Resource):
 
     def get_current_dir(self):
         return os.path.dirname(__file__) + "/"
+
+class NodeListHandler(resource.Resource):
+    _network_nodes_manager = None
+
+    def __init__(self, network_nodes_manager):
+        self._network_nodes_manager = network_nodes_manager
+        self.isLeaf=True
+        resource.Resource.__init__(self)
+
+    def render_GET(self, request):
+        request.setHeader("Server", "OAND")
+        request.setHeader("Content-Type", "application/json")
+        request.setResponseCode(http.FOUND)
+        obj = {}
+        obj["status"] = "ok"
+        obj["nodes"] = {}
+        for node in self._network_nodes_manager.get_nodes().itervalues():
+            obj["nodes"][node.get_id()] = {}
+            obj["nodes"][node.get_id()]['name'] = node.get_name()
+            obj["nodes"][node.get_id()]['domain_name'] = node.get_domain_name()
+            obj["nodes"][node.get_id()]['port'] = node.get_port()
+
+        return json.dumps(obj)
+
+    def render_POST(self, request):
+        return File(self.get_current_dir() + "html/not-supported.html")
+
+    def render_DELETE(self, request):
+        return File(self.get_current_dir() + "html/not-supported.html")
 
 class MessageHandler(resource.Resource):
     def __init__(self, data_store_manager):
