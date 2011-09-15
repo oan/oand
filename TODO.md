@@ -1,6 +1,21 @@
 TODO
 ====
 
+# Every node has a list with all other nodes, both online and offline.
+  Attributes: node_id, ip, port, last_heartbeat
+
+# When a connection to the OAN is done, a connection to the BFF or other known
+  node are performed, and a list of all active nodes are requested.
+
+* If the last heartbeat is done 5-10 minutes ago, do a new heartbeat/ping
+  to that node.
+
+* If the last succeded heartbeat to any node is done 10 minutes ago, assume
+  we are or has been an inactive node and perform a new connection.
+
+* Offline nodes are deleted from the list when they have been inaccessiable
+  for more than 5 days.
+
 * Add network capability.
 * Add "REST" messages for the network server.
 * Add heartbeat.

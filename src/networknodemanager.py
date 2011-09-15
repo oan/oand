@@ -15,41 +15,7 @@ import logging
 
 from abc import ABCMeta, abstractmethod
 
-class NetworkNode():
-    _node_id = None
-    _name = None
-    _domain_name = None
-    _port = None
-    _last_heartbeat = None
-
-    def __init__(self, name, domain_name, port):
-        self._node_id = name
-        self._name = name
-        self._domain_name = domain_name
-        self._port = port
-
-    def get_id(self):
-        return self._node_id
-
-    def get_name(self):
-        return self._name
-
-    def get_domain_name(self):
-        return self._domain_name
-
-    def get_port(self):
-        return self._port
-
-    def get_connection_url(self):
-        return self.get_domain_name() + ':' + self.get_port()
-
-    def is_valid(self):
-        if (self.get_name() and
-            self.get_domain_name() and
-            self.get_port()):
-            return True
-        else:
-            return False
+from networknode import NetworkNode
 
 class NetworkNodeManager():
     '''Abstract class for Networknodes'''

@@ -84,6 +84,7 @@ class NodeListHandler(resource.Resource):
             obj["nodes"][node.get_id()]['name'] = node.get_name()
             obj["nodes"][node.get_id()]['domain_name'] = node.get_domain_name()
             obj["nodes"][node.get_id()]['port'] = node.get_port()
+            obj["nodes"][node.get_id()]['last_heartbeat'] = node.get_last_heartbeat()
 
         return json.dumps(obj)
 
