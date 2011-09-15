@@ -73,17 +73,56 @@ class CircularNetworkNodeManager(NetworkNodeManager):
                 try:
                     self._logger.info(
                         "Connect " + self._my_node.get_name() + " with " +
-                        remote_node.get_name())
-
+                        node.get_name() + "(" + node.get_connection_url() + ")")
                     remote_node.connect(node.get_connection_url())
                     nodes = remote_node.get_nodes()
                     self.merge_nodes(nodes)
                     return
+                except IOError as (errno, strerror):
+                    self._logger.warning(
+                        "Failed to connect to: " + node.get_name() + " " +
+                        "(I/O error({0}): {1}".format(errno, strerror) + ')')
                 except:
-                    pass
+                    self._logger.warning(
+                        "Failed to connect to: " + node.get_name() +
+                        "Unexpected error:", sys.exc_info()[0])
             self._logger.warning("Failed to connect to all friends.")
         else:
             self._logger.info("No friends to connect to.")
+
+    def touch_last_heartbeat(self, node_id):
+        self._nodes[node_id].touch_last_heartbeat()
+
+    def send_heartbeat(self, node):
+        self._logger.debug("Send heartbeat to: " + node.get_name())
+        try:
+            remote_node.connect(node.get_connection_url())
+            resp = remote_node.send_heartbeat(self.get_my_node().get_node_id())
+            if resp.status == 'ok':
+                return True
+            else:
+                return False
+        except:
+            return False
+
+    def check_heartbeat(self):
+        all_nodes_are_inactive = True
+        for node_id, node in self._nodes.iteritems():
+            if (node.is_heartbeat_expired()):
+                if (self.send_heartbeat(node)):
+                    self._nodes[node_id].touch_last_heartbeat()
+                    all_nodes_are_inactive = False
+
+        if all_nodes_are_inactive:
+            self.connect_to_oan()
+
+    def remove_expired_nodes(self):
+        nodes_to_remove = []
+        for node_id, node in self._nodes.iteritems():
+            if (node.is_node_expired()):
+                nodes_to_remove.append(node_id)
+        for node_id in nodes_to_remove:
+            del(self._nodes[node_id])
 
     def get_dbg_nodes(self):
         nodes = self._my_node.get_name()

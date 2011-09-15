@@ -55,6 +55,7 @@ class RootResource(resource.Resource):
     def __init__(self, data_store_manager, network_nodes_manager):
         resource.Resource.__init__(self)
         self.putChild('nodes', NodeListHandler(network_nodes_manager))
+        self.putChild('heartbeat', HeartbeatHandler(network_nodes_manager))
         self.putChild('value', MessageHandler(data_store_manager))
         self.putChild('', File(self.get_current_dir() + "html/index.html"))
 
@@ -64,18 +65,35 @@ class RootResource(resource.Resource):
     def get_current_dir(self):
         return os.path.dirname(__file__) + "/"
 
-class NodeListHandler(resource.Resource):
-    _network_nodes_manager = None
-
-    def __init__(self, network_nodes_manager):
-        self._network_nodes_manager = network_nodes_manager
+class OANHandler(resource.Resource):
+    def __init__(self):
         self.isLeaf=True
         resource.Resource.__init__(self)
 
     def render_GET(self, request):
+        return File(self.get_current_dir() + "html/not-supported.html")
+
+    def render_POST(self, request):
+        return File(self.get_current_dir() + "html/not-supported.html")
+
+    def render_DELETE(self, request):
+        return File(self.get_current_dir() + "html/not-supported.html")
+
+    def set_default_headers(self, request):
         request.setHeader("Server", "OAND")
         request.setHeader("Content-Type", "application/json")
         request.setResponseCode(http.FOUND)
+
+class NodeListHandler(OANHandler):
+    _network_nodes_manager = None
+
+    def __init__(self, network_nodes_manager):
+        self._network_nodes_manager = network_nodes_manager
+        OANHandler.__init__(self)
+
+    def render_GET(self, request):
+        self.set_default_headers(request)
+
         obj = {}
         obj["status"] = "ok"
         obj["nodes"] = {}
@@ -88,17 +106,26 @@ class NodeListHandler(resource.Resource):
 
         return json.dumps(obj)
 
-    def render_POST(self, request):
-        return File(self.get_current_dir() + "html/not-supported.html")
+class HeartbeatHandler(OANHandler):
+    _network_nodes_manager = None
 
-    def render_DELETE(self, request):
-        return File(self.get_current_dir() + "html/not-supported.html")
+    def __init__(self, network_nodes_manager):
+        self._network_nodes_manager = network_nodes_manager
+        OANHandler.__init__(self)
 
-class MessageHandler(resource.Resource):
+    def render_GET(self, request):
+        remote_node_id = request.postpath[0]
+        self._network_nodes_manager.touch_last_heartbeat(remote_node_id)
+
+        self.set_default_headers(request)
+        obj = {}
+        obj["status"] = "ok"
+        return json.dumps(obj)
+
+class MessageHandler(OANHandler):
     def __init__(self, data_store_manager):
         self._data_store_manager = data_store_manager
-        self.isLeaf=True
-        resource.Resource.__init__(self)
+        OANHandler.__init__(self)
 
     def _get_filename(self, request):
         return "/".join(request.postpath)

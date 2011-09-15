@@ -37,6 +37,7 @@ from twistedserver import TwistedServer
 from jsonclient import JsonClient
 from networknodemanager import CircularNetworkNodeManager, NetworkNode
 from objectclientserver import ObjectClient, ObjectServer
+from apscheduler.scheduler import Scheduler
 
 class OANApplication():
     _data_store_manager_class = None
@@ -48,6 +49,8 @@ class OANApplication():
     _data_store_manager = None
     _network_node_manager = None
     _server = None
+
+    _sched = Scheduler()
 
     def __init__(self, config, data_store_manager_class,
                  network_node_manager_class, server_class, client_class):
@@ -68,6 +71,18 @@ class OANApplication():
         return cls(config, SimpleDataStoreManager, CircularNetworkNodeManager,
                    TwistedServer, JsonClient)
 
+    def run_every_minute(self):
+        self._network_node_manager.check_heartbeat()
+
+    def run_every_day(self):
+        self._network_node_manager.remove_expired_nodes()
+
+    def _start_scheduler():
+        self._logger.debug("Starting scheduler")
+        self._sched.add_interval_job(self.run_every_minute, minutes = 1)
+        self._sched.add_interval_job(self.run_every_day, days = 1)
+        self._sched.start()
+
     def run_server(self):
         self._logger.info("Starting Open Archive Network (oand) for " +
                           self._config.get_server_name())
@@ -84,6 +99,8 @@ class OANApplication():
         self._network_node_manager = self._network_node_manager_class(
             self._client_class,
             self._logger)
+        self._network_node_manager.remove_expired_nodes()
+        self._start_scheduler()
 
         self._network_node_manager.set_my_node(NetworkNode(
             self._config.get_server_name(),
@@ -98,6 +115,7 @@ class OANApplication():
 
             self._network_node_manager.connect_to_oan()
 
+        self._network_node_manager.check_heartbeat()
         self.dbg_print_network()
         self._server = self._server_class(self._network_node_manager,
                                           self._data_store_manager)

@@ -5,27 +5,29 @@ TODO
   Attributes: node_id, ip, port, last_heartbeat
 
 # When a connection to the OAN is done, a connection to the BFF or other known
-  node are performed, and a list of all active nodes are requested.
+  node are performed, and a list of all nodes are requested.
 
-* If the last heartbeat is done 5-10 minutes ago, do a new heartbeat/ping
+# If the last heartbeat is done 5-10 minutes ago, do a new heartbeat/ping
   to that node.
 
-* If the last succeded heartbeat to any node is done 10 minutes ago, assume
+# If the last succeded heartbeat to any node is done 10 minutes ago, assume
   we are or has been an inactive node and perform a new connection.
 
 * Offline nodes are deleted from the list when they have been inaccessiable
   for more than 5 days.
 
-* Add network capability.
-* Add "REST" messages for the network server.
-* Add heartbeat.
-* Add get/set value.
+* Save all known nodes to file/db.
+
 * Add something similar to this.
   http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/examples/create_network.py?revision=81&view=markup
+
 * Add unit test, testing many thousand nodes.
+
 * Have another look at
   http://entangled.svn.sourceforge.net/viewvc/entangled/
+
 * Clients to connect to other dist databases, couchdb??
+
 * Add something like this? easy_install?
   http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/setup.py?revision=157&view=markup
 
@@ -34,13 +36,12 @@ TODO
 
 * Have a look at different DHT algorithms Chord, Kademlia, Pastry, OceanStore
   and Coral.
+
 * Features we should support.
   anonymity, Byzantine fault-tolerant lookups, geographic routing and the
   efficient broadcasting of messages to enter the network.
 
 * Try this daemon? http://pypi.python.org/pypi/python-daemon/
-
-# Testing some git merge commands.
 
 Things to read
 ==============

@@ -35,6 +35,9 @@ class JsonClient(Client):
     def get_nodes(self):
         return self._execute("/nodes")
 
+    def send_heartbeat(self, node_id):
+        return self._execute("/heartbeat/" + node_id)
+
     def _execute(self, cmd):
         '''
         Do a get request against the remote server, and convert the

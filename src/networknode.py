@@ -60,6 +60,9 @@ class NetworkNode():
         '''
         Check if the heartbeat has expired.
 
+        If it has expired we haven't done any heartbeat requests to it during
+        the last 5 minutes.
+
         min - Number of minutes the heatbeat is valid.
 
         '''
@@ -71,7 +74,20 @@ class NetworkNode():
         return True
 
     def is_node_inactive(self):
+        '''
+        This node has not answered to any heartbeat requests for 10 minutes.
+
+        The node is probably offline.
+
+        '''
         return self.is_heartbeat_expired(10)
+
+    def is_node_expired(self):
+        '''
+        This node has not answered to any heartbeat requests for 10 days.
+
+        '''
+        return self.is_heartbeat_expired(864000)
 
     def is_valid(self):
         if (self.get_name() and
