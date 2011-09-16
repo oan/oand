@@ -97,9 +97,10 @@ class CircularNetworkNodeManager(NetworkNodeManager):
     def send_heartbeat(self, node):
         self._logger.debug("Send heartbeat to: " + node.get_name())
         try:
+            remote_node = self._client_class(self._my_node.get_name())
             remote_node.connect(node.get_connection_url())
-            resp = remote_node.send_heartbeat(self.get_my_node().get_node_id())
-            if resp.status == 'ok':
+            response = remote_node.send_heartbeat(self.get_my_node().get_id())
+            if response['status'] == 'ok':
                 return True
             else:
                 return False

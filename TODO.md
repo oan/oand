@@ -16,6 +16,8 @@ TODO
 # Offline nodes are deleted from the list when they have been inaccessiable
   for more than 365 days.
 
+* When node a connects to node b, node b needs to ask node a for it's node-list.
+
 * Add something similar to this.
   http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/examples/create_network.py?revision=81&view=markup
 

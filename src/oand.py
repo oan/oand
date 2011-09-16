@@ -146,8 +146,9 @@ class OANApplication():
         ch2.setLevel(logging.DEBUG)
 
         # create formatter
+        server_name = self._network_node_manager.get_my_node().get_name()
         formatter = logging.Formatter(
-            '%(asctime)s - oand (' + logger_name + ') - %(message)s')
+            '%(asctime)s - oand (' + server_name + ') - %(message)s')
 
         # add formatter to ch
         ch1.setFormatter(formatter)
