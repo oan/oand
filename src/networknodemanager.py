@@ -109,7 +109,6 @@ class CircularNetworkNodeManager(NetworkNodeManager):
     def check_heartbeat(self):
         all_nodes_are_inactive = True
         for node_id, node in self._nodes.iteritems():
-            print "test " +node_id
             if (node.is_heartbeat_expired()):
                 if (self.send_heartbeat(node)):
                     self._nodes[node_id].touch_last_heartbeat()

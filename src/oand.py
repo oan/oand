@@ -59,7 +59,8 @@ class OANApplication():
         self._network_node_manager_class = network_node_manager_class
         self._server_class = server_class
         self._client_class = client_class
-        self._start_logger(config.get_server_name())
+        self._start_logger("oand")
+        self._start_logger("apscheduler.scheduler")
 
     @classmethod
     def create_localnetwork_circular_node(cls, config):
@@ -132,9 +133,9 @@ class OANApplication():
                            self._network_node_manager.get_my_node().get_name())
         self._logger.debug("    " + self._network_node_manager.get_dbg_nodes())
 
-    def _start_logger(self, server_name):
+    def _start_logger(self, logger_name):
         # create logger
-        self._logger = logging.getLogger('oand')
+        self._logger = logging.getLogger(logger_name)
         self._logger.setLevel(logging.DEBUG)
 
         # create console handler and set level to debug
@@ -146,7 +147,7 @@ class OANApplication():
 
         # create formatter
         formatter = logging.Formatter(
-            '%(asctime)s - oand (' + server_name + ') - %(message)s')
+            '%(asctime)s - oand (' + logger_name + ') - %(message)s')
 
         # add formatter to ch
         ch1.setFormatter(formatter)

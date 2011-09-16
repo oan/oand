@@ -17,6 +17,8 @@ import logging
 
 from abc import ABCMeta, abstractmethod
 
+from networknode import NetworkNode
+
 class Client():
     '''Abstract class for network clients'''
     __metaclass__ = ABCMeta
@@ -34,12 +36,15 @@ class JsonClient(Client):
         self._logger.debug("Connect to " +  url)
 
     def get_nodes(self):
+        nodes = {}
         result = self._execute("/nodes")
         if result['status'] == "ok":
-            nodes = result['nodes']
-        else:
-            nodes = {}
-
+            for node_id, node in result['nodes'].iteritems():
+                nodes[node_id] = NetworkNode(
+                    node['name'],
+                    node['domain_name'],
+                    node['port'],
+                    node['last_heartbeat'])
         return nodes
 
     def send_heartbeat(self, node_id):
@@ -52,10 +57,8 @@ class JsonClient(Client):
 
         '''
         url = "http://" + self._url + cmd
+        self._logger.debug("Execute %s." % url)
         f = urllib.urlopen(url)
         json_data = f.read()
-
-        self._logger.debug(
-            "Execute %s returning %d bytes" % (url, len(url)))
 
         return json.loads(json_data)

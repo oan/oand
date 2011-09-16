@@ -23,14 +23,13 @@ class NetworkNode():
 
     _date_fmt = "%Y-%m-%d %H:%M:%S"
 
-    def __init__(self, name, domain_name, port):
+    def __init__(self, name, domain_name, port, last_heartbeat = "2006-06-06 06:06:06"):
         self._node_id = name
         self._name = name
         self._domain_name = domain_name
         self._port = port
 
-        self._last_heartbeat = datetime.strptime("2006-06-06 06:06:06",
-                                                 self._date_fmt)
+        self.set_last_heartbeat(last_heartbeat)
 
     def get_id(self):
         return self._node_id
