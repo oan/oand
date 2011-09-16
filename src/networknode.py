@@ -87,7 +87,7 @@ class NetworkNode():
         This node has not answered to any heartbeat requests for 10 days.
 
         '''
-        return self.is_heartbeat_expired(864000)
+        return self.is_heartbeat_expired(31536000)
 
     def is_valid(self):
         if (self.get_name() and
