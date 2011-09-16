@@ -77,7 +77,7 @@ class OANApplication():
     def run_every_day(self):
         self._network_node_manager.remove_expired_nodes()
 
-    def _start_scheduler():
+    def _start_scheduler(self):
         self._logger.debug("Starting scheduler")
         self._sched.add_interval_job(self.run_every_minute, minutes = 1)
         self._sched.add_interval_job(self.run_every_day, days = 1)

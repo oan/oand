@@ -13,23 +13,21 @@ TODO
 # If the last succeded heartbeat to any node is done 10 minutes ago, assume
   we are or has been an inactive node and perform a new connection.
 
-* Offline nodes are deleted from the list when they have been inaccessiable
-  for more than 5 days.
-
-* Save all known nodes to file/db.
+# Offline nodes are deleted from the list when they have been inaccessiable
+  for more than 365 days.
 
 * Add something similar to this.
   http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/examples/create_network.py?revision=81&view=markup
 
+* Save all known nodes to file/db.
+  Use the oan db class.
+
 * Add unit test, testing many thousand nodes.
+
+* Lots of error checking, code comments etc.
 
 * Have another look at
   http://entangled.svn.sourceforge.net/viewvc/entangled/
-
-* Clients to connect to other dist databases, couchdb??
-
-* Add something like this? easy_install?
-  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/setup.py?revision=157&view=markup
 
 * Test this Fuse-python
   http://websaucesoftware.com/programming/python/installing-fuse-python-on-os-x-105
@@ -42,6 +40,15 @@ TODO
   efficient broadcasting of messages to enter the network.
 
 * Try this daemon? http://pypi.python.org/pypi/python-daemon/
+
+* Add something like this? easy_install?
+  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/setup.py?revision=157&view=markup
+
+* Add config page, looking like this
+  http://www.facebook.com/editprofile.php?sk=basic
+  http://www.youtube.com/account_profile
+
+* Add security, like checking all arguments for XXS. Check owasp.
 
 Things to read
 ==============

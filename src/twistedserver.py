@@ -127,41 +127,64 @@ class MessageHandler(OANHandler):
         self._data_store_manager = data_store_manager
         OANHandler.__init__(self)
 
-    def _get_filename(self, request):
+    def _get_key(self, request):
         return "/".join(request.postpath)
 
     def render_GET(self, request):
-        request.setHeader("Server", "OAND")
-        filename = self._get_filename(request)
-        logging.getLogger('oandtwisted').debug("value: " + filename)
+        key = self._get_key(request)
+        logging.getLogger('oand').debug("Get value: " + key)
 
-        if (self._data_store_manager.exist(filename)):
-            request.setHeader("Content-Type", "application/json")
-            request.setResponseCode(http.FOUND)
-            obj = {}
-            obj["filename"] = filename
-            obj["data"] = self._data_store_manager.get(filename)
-            return json.dumps(obj)
+        self.set_default_headers(request)
+        obj = {}
+
+        if (self._data_store_manager.exist(key)):
+            obj["status"] = "ok"
+            obj["type"] = "get-value"
+            obj["key"] = key
+            obj["value"] = self._data_store_manager.get(key)
         else:
-            request.setHeader("Content-Type", "text/html")
-            request.setResponseCode(http.NOT_FOUND)
-            return """
-            <html><body>use post method for direct insertion or form below<br>
-            <form action='/value/%s' method=POST>
-            <textarea name=body>Body</textarea><br>
-            <input type=submit>
-            </body></html>
-            """ % filename
+            obj["status"] = "fail"
+            obj["type"] = "get-value"
+            obj["key"] = key
+            obj["value"]  = ""
+
+        return json.dumps(obj)
 
     def render_POST(self, request):
-        filename = self._get_filename(request)
-        body=request.args['body'][0]
-        self._data_store_manager.set(filename, body)
-        return "Posted"
+        key = self._get_key(request)
+        logging.getLogger('oand').debug("Post value: " + key)
+
+        data = request.args['data'][0]
+        self._data_store_manager.set(key, data)
+
+        self.set_default_headers(request)
+        obj = {}
+        obj["status"] = "ok"
+        obj["key"] = key
+        obj["value"] = "post-value"
+        return json.dumps(obj)
 
     def render_DELETE(self, request):
-        if self._data_store_manager.exist(self.path):
-            self._data_store_manager.delete(self.path)
-            return """ msg %s deleted	""" % (self.path)
+        key = self._get_key(request)
+        logging.getLogger('oand').debug("Delete value: " + key)
+
+        if self._data_store_manager.exist(key):
+            self._data_store_manager.delete(key)
+            status =  "ok"
         else:
-            return """ msg not found for hashKey: %s""" % self.path
+            status = "fail"
+
+        self.set_default_headers(request)
+        obj = {}
+        obj["status"] = status
+        obj["key"] = key
+        obj["value"] = "delete-value"
+        return json.dumps(obj)
+
+#"""
+#<html><body>use post method for direct insertion or form below<br>
+#<form action='/value/%s' method=POST>
+#<textarea name=body>Body</textarea><br>
+#<input type=submit>
+#</body></html>
+#""" % key
