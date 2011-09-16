@@ -107,7 +107,7 @@ class NodeListHandler(OANHandler):
         obj["nodes"][node.get_id()]['name'] = node.get_name()
         obj["nodes"][node.get_id()]['domain_name'] = node.get_domain_name()
         obj["nodes"][node.get_id()]['port'] = node.get_port()
-        obj["nodes"][node.get_id()]['last_heartbeat'] = node.get_last_heartbeat()
+        obj["nodes"][node.get_id()]['last_heartbeat'] = node.touch_last_heartbeat()
 
         for node in self._network_nodes_manager.get_nodes().itervalues():
             obj["nodes"][node.get_id()] = {}

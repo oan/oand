@@ -20,7 +20,6 @@ class NetworkNode():
     _port = None
     _last_heartbeat = None
 
-
     _date_fmt = "%Y-%m-%d %H:%M:%S"
 
     def __init__(self, name, domain_name, port, last_heartbeat = "2006-06-06 06:06:06"):
@@ -48,6 +47,7 @@ class NetworkNode():
 
     def touch_last_heartbeat(self):
         self._last_heartbeat = datetime.utcnow()
+        return self.get_last_heartbeat()
 
     def get_last_heartbeat(self):
         return self._last_heartbeat.strftime(self._date_fmt)

@@ -101,7 +101,6 @@ class OANApplication():
             self._client_class,
             self._logger)
         self._network_node_manager.remove_expired_nodes()
-        self._start_scheduler()
 
         self._network_node_manager.set_my_node(NetworkNode(
             self._config.get_server_name(),
@@ -116,6 +115,7 @@ class OANApplication():
 
             self._network_node_manager.connect_to_oan()
 
+        self._start_scheduler()
         self._network_node_manager.check_heartbeat()
         self.dbg_print_network()
         self._server = self._server_class(self._network_node_manager,
@@ -146,7 +146,7 @@ class OANApplication():
         ch2.setLevel(logging.DEBUG)
 
         # create formatter
-        server_name = self._network_node_manager.get_my_node().get_name()
+        server_name = self._config.get_server_name()
         formatter = logging.Formatter(
             '%(asctime)s - oand (' + server_name + ') - %(message)s')
 
