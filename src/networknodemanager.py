@@ -12,6 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import logging
+import sys
 
 from abc import ABCMeta, abstractmethod
 
@@ -71,9 +72,6 @@ class CircularNetworkNodeManager(NetworkNodeManager):
             remote_node = self._client_class(self._my_node.get_name())
             for node in self._nodes.itervalues():
                 try:
-                    self._logger.debug(
-                        "Connect " + self._my_node.get_name() + " with " +
-                        node.get_name() + "(" + node.get_connection_url() + ")")
                     remote_node.connect(node.get_connection_url())
                     nodes = remote_node.get_nodes()
                     self.merge_nodes(nodes)
@@ -85,7 +83,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
                 except:
                     self._logger.warning(
                         "Failed to connect to: " + node.get_name() +
-                        "Unexpected error:", sys.exc_info()[0])
+                        "Unexpected error: " + str(sys.exc_info()))
             self._logger.warning("Failed to connect to all friends.")
         else:
             self._logger.debug("No friends to connect to.")
@@ -111,6 +109,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
     def check_heartbeat(self):
         all_nodes_are_inactive = True
         for node_id, node in self._nodes.iteritems():
+            print "test " +node_id
             if (node.is_heartbeat_expired()):
                 if (self.send_heartbeat(node)):
                     self._nodes[node_id].touch_last_heartbeat()

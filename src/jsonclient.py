@@ -31,9 +31,16 @@ class JsonClient(Client):
 
     def connect(self, url):
         self._url = url
+        self._logger.debug("Connect to " +  url)
 
     def get_nodes(self):
-        return self._execute("/nodes")
+        result = self._execute("/nodes")
+        if result['status'] == "ok":
+            nodes = result['nodes']
+        else:
+            nodes = {}
+
+        return nodes
 
     def send_heartbeat(self, node_id):
         return self._execute("/heartbeat/" + node_id)
@@ -44,7 +51,11 @@ class JsonClient(Client):
         json result to a python dict.
 
         '''
-        url = "http://" + self._url + "/" + cmd
+        url = "http://" + self._url + cmd
         f = urllib.urlopen(url)
         json_data = f.read()
+
+        self._logger.debug(
+            "Execute %s returning %d bytes" % (url, len(url)))
+
         return json.loads(json_data)

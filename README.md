@@ -44,6 +44,20 @@ Requirements
 Optional:
 - ??Epydoc (for building API documentation)
 
+Install
+=======
+
+Ubuntu 10.10
+------------
+
+        sudo apt-get install python-setuptools
+        sudo easy_install apscheduler
+        mkdir /usr/local/oand
+        cd /usr/local/oand
+        git clone git://github.com/oan/oand.git
+        cd src
+        ./oand start
+
 How to run all tests
 ====================
 
