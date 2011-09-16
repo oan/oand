@@ -24,7 +24,7 @@ class Client():
     _logger = None
 
     def __init__(self, client_name):
-        self._logger = logging.getLogger('oand' + client_name)
+        self._logger = logging.getLogger('oand')
 
 class JsonClient(Client):
     _url = None

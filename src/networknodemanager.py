@@ -71,7 +71,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
             remote_node = self._client_class(self._my_node.get_name())
             for node in self._nodes.itervalues():
                 try:
-                    self._logger.info(
+                    self._logger.debug(
                         "Connect " + self._my_node.get_name() + " with " +
                         node.get_name() + "(" + node.get_connection_url() + ")")
                     remote_node.connect(node.get_connection_url())
@@ -88,10 +88,13 @@ class CircularNetworkNodeManager(NetworkNodeManager):
                         "Unexpected error:", sys.exc_info()[0])
             self._logger.warning("Failed to connect to all friends.")
         else:
-            self._logger.info("No friends to connect to.")
+            self._logger.debug("No friends to connect to.")
 
     def touch_last_heartbeat(self, node_id):
-        self._nodes[node_id].touch_last_heartbeat()
+        if node_id in self._nodes:
+            self._nodes[node_id].touch_last_heartbeat()
+        else:
+            logging.getLogger('oand').debug("Unknown node %s is touching me." % node_id)
 
     def send_heartbeat(self, node):
         self._logger.debug("Send heartbeat to: " + node.get_name())

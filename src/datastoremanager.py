@@ -75,7 +75,8 @@ class SimpleDataStoreManager(ADataStoreManager):
         return self._data[path]
 
     def delete(self, path):
-        del(self._data[value])
+        if self.exist(path):
+            del(self._data[path])
 
     def list(self, path):
         fake_list = []

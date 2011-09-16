@@ -15,16 +15,24 @@ sS'gauss'
 p7
 S'gaussa gaussaaaaa'
 p8
-sS'readme'
+sS'folder/here/we/come'
 p9
-S'This is the first page'
+S'default'
 p10
 sS'fisle.txt'
 p11
 S'Body'
 p12
-sS'file.txt'
+sS'test'
 p13
-S'Body'
+S'deafultasdf'
 p14
+sS'readme'
+p15
+S'This is the first page'
+p16
+sS'file.txt'
+p17
+S'Body'
+p18
 s.

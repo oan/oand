@@ -31,7 +31,7 @@ class TwistedServer(Server):
     _data_store_manager = None
 
     def __init__(self, network_nodes_manager, data_store_manager):
-        self._logger = logging.getLogger('oand' + network_nodes_manager.get_my_node().get_name())
+        self._logger = logging.getLogger('oand')
         self._network_nodes_manager = network_nodes_manager
         self._data_store_manager = data_store_manager
         self.start()
@@ -56,7 +56,8 @@ class RootResource(resource.Resource):
         resource.Resource.__init__(self)
         self.putChild('nodes', NodeListHandler(network_nodes_manager))
         self.putChild('heartbeat', HeartbeatHandler(network_nodes_manager))
-        self.putChild('value', MessageHandler(data_store_manager))
+        self.putChild('value', ValueHandler(data_store_manager))
+        self.putChild('htmlvalue', HtmlValueHandler(data_store_manager))
         self.putChild('', File(self.get_current_dir() + "html/index.html"))
 
     def getChild(self, path, request):
@@ -79,10 +80,13 @@ class OANHandler(resource.Resource):
     def render_DELETE(self, request):
         return File(self.get_current_dir() + "html/not-supported.html")
 
-    def set_default_headers(self, request):
+    def set_json_headers(self, request):
         request.setHeader("Server", "OAND")
         request.setHeader("Content-Type", "application/json")
-        request.setResponseCode(http.FOUND)
+
+    def set_html_headers(self, request):
+        request.setHeader("Server", "OAND")
+        request.setHeader("Content-Type", "text/html")
 
 class NodeListHandler(OANHandler):
     _network_nodes_manager = None
@@ -92,7 +96,7 @@ class NodeListHandler(OANHandler):
         OANHandler.__init__(self)
 
     def render_GET(self, request):
-        self.set_default_headers(request)
+        self.set_json_headers(request)
 
         obj = {}
         obj["status"] = "ok"
@@ -117,12 +121,12 @@ class HeartbeatHandler(OANHandler):
         remote_node_id = request.postpath[0]
         self._network_nodes_manager.touch_last_heartbeat(remote_node_id)
 
-        self.set_default_headers(request)
+        self.set_json_headers(request)
         obj = {}
         obj["status"] = "ok"
         return json.dumps(obj)
 
-class MessageHandler(OANHandler):
+class ValueHandler(OANHandler):
     def __init__(self, data_store_manager):
         self._data_store_manager = data_store_manager
         OANHandler.__init__(self)
@@ -130,19 +134,26 @@ class MessageHandler(OANHandler):
     def _get_key(self, request):
         return "/".join(request.postpath)
 
+    def log(self, request, type):
+        key = self._get_key(request)
+        ip = request.getClientIP()
+        logging.getLogger('oand').debug("Client %s - %s: %s" % (ip, type, key))
+
     def render_GET(self, request):
         key = self._get_key(request)
-        logging.getLogger('oand').debug("Get value: " + key)
+        self.log(request, "get-value")
 
-        self.set_default_headers(request)
+        self.set_json_headers(request)
         obj = {}
 
         if (self._data_store_manager.exist(key)):
+            request.setResponseCode(http.FOUND)
             obj["status"] = "ok"
             obj["type"] = "get-value"
             obj["key"] = key
             obj["value"] = self._data_store_manager.get(key)
         else:
+            request.setResponseCode(http.NOT_FOUND)
             obj["status"] = "fail"
             obj["type"] = "get-value"
             obj["key"] = key
@@ -152,12 +163,13 @@ class MessageHandler(OANHandler):
 
     def render_POST(self, request):
         key = self._get_key(request)
-        logging.getLogger('oand').debug("Post value: " + key)
+        self.log(request, "post-value")
 
-        data = request.args['data'][0]
-        self._data_store_manager.set(key, data)
+        value = request.args['value'][0]
+        self._data_store_manager.set(key, value)
 
-        self.set_default_headers(request)
+        self.set_json_headers(request)
+        request.setResponseCode(http.FOUND)
         obj = {}
         obj["status"] = "ok"
         obj["key"] = key
@@ -166,7 +178,7 @@ class MessageHandler(OANHandler):
 
     def render_DELETE(self, request):
         key = self._get_key(request)
-        logging.getLogger('oand').debug("Delete value: " + key)
+        self.log(request, "delete-value")
 
         if self._data_store_manager.exist(key):
             self._data_store_manager.delete(key)
@@ -174,17 +186,61 @@ class MessageHandler(OANHandler):
         else:
             status = "fail"
 
-        self.set_default_headers(request)
+        self.set_json_headers(request)
+        request.setResponseCode(http.FOUND)
         obj = {}
         obj["status"] = status
         obj["key"] = key
         obj["value"] = "delete-value"
         return json.dumps(obj)
 
-#"""
-#<html><body>use post method for direct insertion or form below<br>
-#<form action='/value/%s' method=POST>
-#<textarea name=body>Body</textarea><br>
-#<input type=submit>
-#</body></html>
-#""" % key
+class HtmlValueHandler(ValueHandler):
+    def __init__(self, data_store_manager):
+        self._data_store_manager = data_store_manager
+        OANHandler.__init__(self)
+
+    def get_html_form(self, key, value):
+        return """
+        <html><body>Use post method for direct insertion or form below<br>
+        <form action='/htmlvalue/%s' method=POST>
+        Key: %s<br/>
+        <textarea cols="40" rows="20" name=value>%s</textarea><br>
+        <input type="submit" name="save" value="Save">
+        <input type="submit" name="delete" value="Delete">
+        </body></html>
+        """ % (key, key, value)
+
+    def render_GET(self, request):
+        key = self._get_key(request)
+        self.log(request, "get-html-value")
+
+        self.set_html_headers(request)
+
+        if (self._data_store_manager.exist(key)):
+            request.setResponseCode(http.FOUND)
+            value = self._data_store_manager.get(key)
+        else:
+            request.setResponseCode(http.NOT_FOUND)
+            value = "Default"
+
+        return self.get_html_form(key, value)
+
+    def render_POST(self, request):
+        key = self._get_key(request)
+
+        self.set_html_headers(request)
+        request.setResponseCode(http.FOUND)
+
+        if ("delete" in request.args):
+            self.log(request, "delete-html-value")
+            value = "Default"
+            self._data_store_manager.delete(key)
+        else:
+            self.log(request, "post-html-value")
+            value = request.args['value'][0]
+            self._data_store_manager.set(key, value)
+
+        return self.get_html_form(key, value)
+
+    def render_DELETE(self, request):
+        return "Not implemented"

@@ -134,7 +134,7 @@ class OANApplication():
 
     def _start_logger(self, server_name):
         # create logger
-        self._logger = logging.getLogger('oand' + server_name)
+        self._logger = logging.getLogger('oand')
         self._logger.setLevel(logging.DEBUG)
 
         # create console handler and set level to debug

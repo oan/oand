@@ -19,6 +19,13 @@ TODO
 * Add something similar to this.
   http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/examples/create_network.py?revision=81&view=markup
 
+* HtmlValueHandler should see the difference between folder and file.
+
+* ValueHandler (json) should see the difference between folder and file.
+
+* When touch_last_heartbeat is executed by an unknown node, do a connect
+  to that node and retrive a list of nodes.
+
 * Save all known nodes to file/db.
   Use the oan db class.
 

@@ -21,7 +21,7 @@ class Client():
     _logger = None
 
     def __init__(self, client_name):
-        self._logger = logging.getLogger('oand' + client_name)
+        self._logger = logging.getLogger('oand')
 
     @abstractmethod
     def connect(self, connection_url):
@@ -46,7 +46,7 @@ class Server():
 
 
     def __init__(self, network_node):
-        self._logger = logging.getLogger('oand' + network_node.get_name())
+        self._logger = logging.getLogger('oand')
         self._network_node = network_node
         self.start()
 
