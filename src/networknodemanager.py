@@ -94,7 +94,9 @@ class CircularNetworkNodeManager(NetworkNodeManager):
             if (node.is_heartbeat_expired()):
                 if (self.send_heartbeat(node)):
                     self._nodes[node_id].touch_last_heartbeat()
-                    all_nodes_are_inactive = False
+
+            if (not node.is_node_inactive()):
+                all_nodes_are_inactive = False
 
         if all_nodes_are_inactive:
             self.connect_to_oan()
