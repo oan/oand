@@ -35,9 +35,9 @@ class JsonClient(Client):
         self._url = url
         self._logger.debug("Connect to " +  url)
 
-    def get_nodes(self):
+    def get_nodes(self, node):
         nodes = {}
-        result = self._execute_get("/nodes")
+        result = self._execute_post("/nodes", node.get_dict())
         if result['status'] == "ok":
             for node_id, node in result['nodes'].iteritems():
                 nodes[node_id] = NetworkNode(
@@ -69,10 +69,10 @@ class JsonClient(Client):
         json result to a python dict.
 
         '''
-        json_param = json.dumps(param)
+        json_param = "json=" + json.dumps(param)
 
         url = "http://" + self._url + cmd
-        self._logger.debug("Execute %s with param %s." % (url, json_param))
+        self._logger.debug("Execute: curl -X POST -d '%s' %s" % (json_param, url))
         f = urllib.urlopen(url, json_param)
         json_data = f.read()
 

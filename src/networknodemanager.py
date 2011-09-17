@@ -73,7 +73,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
             for node in self._nodes.itervalues():
                 try:
                     remote_node.connect(node.get_connection_url())
-                    nodes = remote_node.get_nodes()
+                    nodes = remote_node.get_nodes(self.get_my_node())
                     self.merge_nodes(nodes)
                     return
                 except IOError as (errno, strerror):
@@ -118,7 +118,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
         if node.get_id() not in self._nodes:
             logging.getLogger('oand').debug(
                 "Unknown node %s is touching me, adding to my nodes list." %
-                str(node))
+                vars(node))
             self.add_node(node)
         self._nodes[node.get_id()].touch_last_heartbeat()
 

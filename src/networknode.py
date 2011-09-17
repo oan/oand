@@ -41,11 +41,11 @@ class NetworkNode():
 
     def get_dict(self):
         param = {}
-        param['node_id'] = node.get_id()
-        param['name'] = node.get_name()
-        param['domain'] = node.get_domain_name()
-        param['port'] = node.get_port()
-        param['last_heartbeat'] = node.get_last_heartbeat()
+        param['node_id'] = self.get_id()
+        param['name'] = self.get_name()
+        param['domain_name'] = self.get_domain_name()
+        param['port'] = self.get_port()
+        param['last_heartbeat'] = self.get_last_heartbeat()
         return param
 
     def get_id(self):

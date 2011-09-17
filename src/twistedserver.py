@@ -105,6 +105,11 @@ class OANHandler(resource.Resource):
     def get_not_supported_resources(self):
         return File(self.get_current_dir() + "html/not-supported.html")
 
+    def create_node_from_request(self, request):
+        json_args = request.args['json'][0]
+        args = json.loads(json_args)
+        return NetworkNode.create_from_dict(args)
+
 class NodeListHandler(OANHandler):
     _network_nodes_manager = None
 
@@ -112,8 +117,7 @@ class NodeListHandler(OANHandler):
         self._network_nodes_manager = network_nodes_manager
         OANHandler.__init__(self)
 
-    def render_GET(self, request):
-        self.log(request, "get-nodes")
+    def render_nodes_result(self, request):
         self.set_json_headers(request)
 
         obj = {}
@@ -136,16 +140,24 @@ class NodeListHandler(OANHandler):
 
         return json.dumps(obj)
 
+    def render_GET(self, request):
+        self.log(request, "get-nodes")
+        return self.render_nodes_result(request)
+
+    def render_POST(self, request):
+        self.log(request, "post-heartbeat")
+
+        remote_node = self.create_node_from_request(request)
+        self._network_nodes_manager.touch_last_heartbeat(remote_node)
+
+        return self.render_nodes_result(request)
+
 class HeartbeatHandler(OANHandler):
     _network_nodes_manager = None
 
     def __init__(self, network_nodes_manager):
         self._network_nodes_manager = network_nodes_manager
         OANHandler.__init__(self)
-    def create_node_from_request(self, request):
-        json_args = request.args['json'][0]
-        args = json.loads(json_args)
-        return NetworkNode.create_from_dict(args)
 
     def render_POST(self, request):
         self.log(request, "post-heartbeat")

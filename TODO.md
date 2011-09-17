@@ -33,6 +33,8 @@ TODO
 
 * Add unit test, testing many thousand nodes.
 
+* Use this for all getter/setters
+  http://docs.python.org/library/functions.html#property
 * Lots of error checking, code comments etc.
 
 * Have another look at
