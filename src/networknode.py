@@ -63,6 +63,9 @@ class NetworkNode():
     def set_last_heartbeat(self, datetime_str):
         self._last_heartbeat = datetime.strptime(datetime_str,  self._date_fmt)
 
+    def set_expired_heartbeat(self):
+        self._last_heartbeat = (datetime.utcnow() - timedelta(minutes = 60))
+
     def touch_last_heartbeat(self):
         self._last_heartbeat = datetime.utcnow()
         return self.get_last_heartbeat()

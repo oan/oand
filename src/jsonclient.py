@@ -12,6 +12,10 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import urllib
+class AppURLopener(urllib.FancyURLopener):
+    version = "OAND/0.1"
+urllib._urlopener = AppURLopener()
+
 import json
 import logging
 
@@ -25,7 +29,7 @@ class Client():
 
     _logger = None
 
-    def __init__(self, DUMMY):
+    def __init__(self):
         self._logger = logging.getLogger('oand')
 
 class JsonClient(Client):
@@ -33,11 +37,10 @@ class JsonClient(Client):
 
     def connect(self, url):
         self._url = url
-        self._logger.debug("Connect to " +  url)
 
     def get_nodes(self, node):
-        nodes = {}
         result = self._execute_post("/nodes", node.get_dict())
+        nodes = {}
         if result['status'] == "ok":
             for node_id, node in result['nodes'].iteritems():
                 nodes[node_id] = NetworkNode(
@@ -50,22 +53,9 @@ class JsonClient(Client):
     def send_heartbeat(self, node):
         return self._execute_post("/heartbeat", node.get_dict())
 
-    def _execute_get(self, cmd):
-        '''
-        Do a get request against the remote server, and convert the
-        json result to a python dict.
-
-        '''
-        url = "http://" + self._url + cmd
-        self._logger.debug("Execute %s." % url)
-        f = urllib.urlopen(url)
-        json_data = f.read()
-
-        return json.loads(json_data)
-
     def _execute_post(self, cmd, param):
         '''
-        Do a get request against the remote server, and convert the
+        Do a POST request against the remote server, and convert the
         json result to a python dict.
 
         '''
@@ -75,5 +65,5 @@ class JsonClient(Client):
         self._logger.debug("Execute: curl -X POST -d '%s' %s" % (json_param, url))
         f = urllib.urlopen(url, json_param)
         json_data = f.read()
-
+        self._logger.debug("  Result: %s" % (json_data))
         return json.loads(json_data)

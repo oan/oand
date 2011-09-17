@@ -46,15 +46,6 @@ class TwistedServer(Server):
         reactor.listenTCP(self._server_port, server.Site(RootResource(self._data_store_manager, self._network_nodes_manager)))
         reactor.run()
 
-    def add_node(self, name, domain_name, port):
-        pass
-
-    def set_prev_node(self, name, domain_name, port):
-        pass
-
-    def set_next_node(self, name, domain_name, port):
-        pass
-
 class RootResource(resource.Resource):
     def __init__(self, data_store_manager, network_nodes_manager):
         resource.Resource.__init__(self)
@@ -98,9 +89,13 @@ class OANHandler(resource.Resource):
         request.setHeader("Server", "OAND")
         request.setHeader("Content-Type", "text/html")
 
-    def log(self, request, type):
-        ip = request.getClientIP()
-        logging.getLogger('oand').debug("Client %s - %s" % (ip, type))
+    def log(self, request, type = None):
+        logging.getLogger('oand').debug(
+            "Access log - from: %s - to: %s - Agent: %s - Type: %s" % (
+            request.getClientIP(),
+            request.URLPath(),
+            request.getHeader("user-agent"),
+            type))
 
     def get_not_supported_resources(self):
         return File(self.get_current_dir() + "html/not-supported.html")
@@ -125,18 +120,11 @@ class NodeListHandler(OANHandler):
         obj["nodes"] = {}
 
         node = self._network_nodes_manager.get_my_node()
-        obj["nodes"][node.get_id()] = {}
-        obj["nodes"][node.get_id()]['name'] = node.get_name()
-        obj["nodes"][node.get_id()]['domain_name'] = node.get_domain_name()
-        obj["nodes"][node.get_id()]['port'] = node.get_port()
-        obj["nodes"][node.get_id()]['last_heartbeat'] = node.touch_last_heartbeat()
+        node.touch_last_heartbeat()
+        obj["nodes"][node.get_id()] = node.get_dict()
 
         for node in self._network_nodes_manager.get_nodes().itervalues():
-            obj["nodes"][node.get_id()] = {}
-            obj["nodes"][node.get_id()]['name'] = node.get_name()
-            obj["nodes"][node.get_id()]['domain_name'] = node.get_domain_name()
-            obj["nodes"][node.get_id()]['port'] = node.get_port()
-            obj["nodes"][node.get_id()]['last_heartbeat'] = node.get_last_heartbeat()
+            obj["nodes"][node.get_id()] = node.get_dict()
 
         return json.dumps(obj)
 
@@ -145,7 +133,7 @@ class NodeListHandler(OANHandler):
         return self.render_nodes_result(request)
 
     def render_POST(self, request):
-        self.log(request, "post-heartbeat")
+        self.log(request, "post-nodes")
 
         remote_node = self.create_node_from_request(request)
         self._network_nodes_manager.touch_last_heartbeat(remote_node)
@@ -177,11 +165,6 @@ class ValueHandler(OANHandler):
 
     def _get_key(self, request):
         return "/".join(request.postpath)
-
-    def log(self, request, type):
-        key = self._get_key(request)
-        ip = request.getClientIP()
-        logging.getLogger('oand').debug("Client %s - %s: %s" % (ip, type, key))
 
     def render_GET(self, request):
         key = self._get_key(request)

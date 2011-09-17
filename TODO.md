@@ -33,6 +33,9 @@ TODO
 
 * Add unit test, testing many thousand nodes.
 
+* Add version to http://localhost:1337/nodes and check if version is the same
+  between nodes.
+
 * Use this for all getter/setters
   http://docs.python.org/library/functions.html#property
 * Lots of error checking, code comments etc.
