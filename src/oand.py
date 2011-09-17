@@ -118,7 +118,8 @@ class OANApplication():
         self._start_scheduler()
         self._network_node_manager.check_heartbeat()
         self.dbg_print_network()
-        self._server = self._server_class(self._network_node_manager,
+        self._server = self._server_class(self._config,
+                                          self._network_node_manager,
                                           self._data_store_manager)
         self._logger.info("Stopping Open Archive Network (oand)")
 

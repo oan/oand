@@ -28,19 +28,22 @@ class TwistedServer(Server):
 
     '''
     _logger = None
+    _server_port = None
     _network_nodes_manager = None
     _data_store_manager = None
 
-    def __init__(self, network_nodes_manager, data_store_manager):
+    def __init__(self, config, network_nodes_manager, data_store_manager):
         self._logger = logging.getLogger('oand')
+        self._server_port = int(config.get_server_port())
         self._network_nodes_manager = network_nodes_manager
         self._data_store_manager = data_store_manager
         self.start()
 
     def start(self):
         '''Start server and listen on port xx for incoming tcp/ip requests'''
-        self._logger.debug("Start twisted server")
-        reactor.listenTCP(8082, server.Site(RootResource(self._data_store_manager, self._network_nodes_manager)))
+        self._logger.debug("Start twisted server on port %d." %
+                           self._server_port)
+        reactor.listenTCP(self._server_port, server.Site(RootResource(self._data_store_manager, self._network_nodes_manager)))
         reactor.run()
 
     def add_node(self, name, domain_name, port):
