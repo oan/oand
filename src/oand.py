@@ -194,6 +194,10 @@ class ApplicationStarter():
             "-q", "--quiet", action="store_const", const=0, dest="verbose",
             help="Show no output.")
 
+        self._parser.add_option(
+            "-c", "--config",  default="oand.cfg",
+            help="The name of the config file, default oand.cfg.")
+
         (options, args) = self._parser.parse_args()
 
         print self._parser.get_version()
@@ -201,14 +205,14 @@ class ApplicationStarter():
         if len(args) != 1:
             self._parser.print_help()
         else:
-            self._handle_positional_argument(args[0])
+            self._handle_positional_argument(options, args[0])
 
-    def _handle_positional_argument(self, argument):
+    def _handle_positional_argument(self, options, argument):
         '''
         Handle the positional arguments from the commandline.
 
         '''
-        config = Config.from_filename('oand.cfg')
+        config = Config.from_filename(options.config)
         app = OANApplication.create_twisted_circular_node(config)
         daemon = OANDaemon(app)
         if argument == 'start':
