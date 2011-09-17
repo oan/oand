@@ -99,3 +99,38 @@ Hur funkar det.
 
 * Vid en connection anropas BFF (eller annat känt ip) och efterfrågar lista
   med alla aktiva noder i nätet.
+
+
+ API Documentation
+ =================
+
+ This describes the resources that make up the official OAN API v1. If you have
+ any problems or requests please contact us through github https://github.com/oan.
+
+Schema
+------
+
+All API access is over HTTPS, and accessed from the domain name and port
+specified in oand.cfg. All data is sent and received as JSON
+
+Blank fields are included as null instead of being omitted
+
+        $ curl -i https://localhost:8082
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json
+        Status: 200 OK
+        X-RateLimit-Limit: 5000
+        X-RateLimit-Remaining: 4999
+        Content-Length: 2
+
+        {}
+
+All timestamps are returned in ISO 8601 format:
+
+        YYYY-MM-DDTHH:MM:SSZ
+
+This API is based on the same RESTful standard as
+[(github v3)](http://developer.github.com/v3/)
+
+curl -X POST -d 'json={"port": "8082", "last_heartbeat": "2011-09-17 00:42:55", "name": "curl-book", "domain_name": "localhost"}' http://localhost:8082/heartbeat
