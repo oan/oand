@@ -37,7 +37,7 @@ class JsonClient(Client):
 
     def get_nodes(self):
         nodes = {}
-        result = self._execute("/nodes")
+        result = self._execute_get("/nodes")
         if result['status'] == "ok":
             for node_id, node in result['nodes'].iteritems():
                 nodes[node_id] = NetworkNode(
@@ -47,10 +47,10 @@ class JsonClient(Client):
                     node['last_heartbeat'])
         return nodes
 
-    def send_heartbeat(self, node_id):
-        return self._execute("/heartbeat/" + node_id)
+    def send_heartbeat(self, node):
+        return self._execute_post("/heartbeat", node.get_dict())
 
-    def _execute(self, cmd):
+    def _execute_get(self, cmd):
         '''
         Do a get request against the remote server, and convert the
         json result to a python dict.
@@ -59,6 +59,21 @@ class JsonClient(Client):
         url = "http://" + self._url + cmd
         self._logger.debug("Execute %s." % url)
         f = urllib.urlopen(url)
+        json_data = f.read()
+
+        return json.loads(json_data)
+
+    def _execute_post(self, cmd, param):
+        '''
+        Do a get request against the remote server, and convert the
+        json result to a python dict.
+
+        '''
+        json_param = json.dumps(param)
+
+        url = "http://" + self._url + cmd
+        self._logger.debug("Execute %s with param %s." % (url, json_param))
+        f = urllib.urlopen(url, json_param)
         json_data = f.read()
 
         return json.loads(json_data)

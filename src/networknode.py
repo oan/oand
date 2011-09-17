@@ -20,15 +20,33 @@ class NetworkNode():
     _port = None
     _last_heartbeat = None
 
-    _date_fmt = "%Y-%m-%d %H:%M:%S"
+    # ISO 8601 format
+    _date_fmt = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self, name, domain_name, port, last_heartbeat = "2006-06-06 06:06:06"):
+    def __init__(self, name, domain_name, port, last_heartbeat = "2006-06-06T06:06:06Z"):
         self._node_id = name
         self._name = name
         self._domain_name = domain_name
         self._port = port
 
         self.set_last_heartbeat(last_heartbeat)
+
+    @classmethod
+    def create_from_dict(cls, node_dict):
+        return cls (
+            args['name'],
+            args['domain_name'],
+            args['port'],
+            args['last_heartbeat'])
+
+    def get_dict(self):
+        param = {}
+        param['node_id'] = node.get_id()
+        param['name'] = node.get_name()
+        param['domain'] = node.get_domain_name()
+        param['port'] = node.get_port()
+        param['last_heartbeat'] = node.get_last_heartbeat()
+        return param
 
     def get_id(self):
         return self._node_id

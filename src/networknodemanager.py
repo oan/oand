@@ -88,25 +88,6 @@ class CircularNetworkNodeManager(NetworkNodeManager):
         else:
             self._logger.debug("No friends to connect to.")
 
-    def touch_last_heartbeat(self, node_id):
-        if node_id in self._nodes:
-            self._nodes[node_id].touch_last_heartbeat()
-        else:
-            logging.getLogger('oand').debug("Unknown node %s is touching me." % node_id)
-
-    def send_heartbeat(self, node):
-        self._logger.debug("Send heartbeat to: " + node.get_name())
-        try:
-            remote_node = self._client_class(self._my_node.get_name())
-            remote_node.connect(node.get_connection_url())
-            response = remote_node.send_heartbeat(self.get_my_node().get_id())
-            if response['status'] == 'ok':
-                return True
-            else:
-                return False
-        except:
-            return False
-
     def check_heartbeat(self):
         all_nodes_are_inactive = True
         for node_id, node in self._nodes.iteritems():
@@ -117,6 +98,27 @@ class CircularNetworkNodeManager(NetworkNodeManager):
 
         if all_nodes_are_inactive:
             self.connect_to_oan()
+
+    def send_heartbeat(self, node):
+        self._logger.debug("Send heartbeat to: " + node.get_name())
+        try:
+            remote_node = self._client_class(self._my_node.get_name())
+            remote_node.connect(node.get_connection_url())
+            response = remote_node.send_heartbeat(self.get_my_node())
+            if response['status'] == 'ok':
+                return True
+        except:
+            pass
+
+        return False
+
+    def touch_last_heartbeat(self, node):
+        if node.get_id() not in self._nodes:
+            logging.getLogger('oand').debug(
+                "Unknown node %s is touching me, adding to my nodes list." %
+                str(node))
+            self.add_node(node)
+        self._nodes[node.get_id()].touch_last_heartbeat()
 
     def remove_expired_nodes(self):
         nodes_to_remove = []

@@ -20,6 +20,7 @@ from twisted.internet import reactor
 from twisted.web.static import File
 
 from Iclientserver import Server
+from networknode import NetworkNode
 
 class TwistedServer(Server):
     '''
@@ -71,14 +72,20 @@ class OANHandler(resource.Resource):
         self.isLeaf=True
         resource.Resource.__init__(self)
 
+    def render_HEAD(self, request):
+        return self.get_not_supported_resources()
+
     def render_GET(self, request):
-        return File(self.get_current_dir() + "html/not-supported.html")
+        return self.get_not_supported_resources()
 
     def render_POST(self, request):
-        return File(self.get_current_dir() + "html/not-supported.html")
+        return self.get_not_supported_resources()
+
+    def render_PUT(self, request):
+        return self.get_not_supported_resources()
 
     def render_DELETE(self, request):
-        return File(self.get_current_dir() + "html/not-supported.html")
+        return self.get_not_supported_resources()
 
     def set_json_headers(self, request):
         request.setHeader("Server", "OAND")
@@ -88,6 +95,13 @@ class OANHandler(resource.Resource):
         request.setHeader("Server", "OAND")
         request.setHeader("Content-Type", "text/html")
 
+    def log(self, request, type):
+        ip = request.getClientIP()
+        logging.getLogger('oand').debug("Client %s - %s" % (ip, type))
+
+    def get_not_supported_resources(self):
+        return File(self.get_current_dir() + "html/not-supported.html")
+
 class NodeListHandler(OANHandler):
     _network_nodes_manager = None
 
@@ -96,6 +110,7 @@ class NodeListHandler(OANHandler):
         OANHandler.__init__(self)
 
     def render_GET(self, request):
+        self.log(request, "get-nodes")
         self.set_json_headers(request)
 
         obj = {}
@@ -124,10 +139,16 @@ class HeartbeatHandler(OANHandler):
     def __init__(self, network_nodes_manager):
         self._network_nodes_manager = network_nodes_manager
         OANHandler.__init__(self)
+    def create_node_from_request(self, request):
+        json_args = request.args['json'][0]
+        args = json.loads(json_args)
+        return NetworkNode.create_from_dict(args)
 
-    def render_GET(self, request):
-        remote_node_id = request.postpath[0]
-        self._network_nodes_manager.touch_last_heartbeat(remote_node_id)
+    def render_POST(self, request):
+        self.log(request, "post-heartbeat")
+
+        remote_node = self.create_node_from_request(request)
+        self._network_nodes_manager.touch_last_heartbeat(remote_node)
 
         self.set_json_headers(request)
         obj = {}
