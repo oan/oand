@@ -16,7 +16,7 @@ __status__ = "Test"
 
 import ConfigParser
 
-class Config():
+class Config(object):
     # The name of the server oand is running on. This has no connection
     # to the hostname in the OS.
     _server_name = None
@@ -82,8 +82,20 @@ class Config():
     def get_server_domain_name(self):
         return self._server_domain_name
 
-    def get_server_port(self):
+    @property
+    def server_port(self):
         return self._server_port
+
+    @server_port.setter
+    def server_port(self, value):
+        self._server_port = str(value)
+
+    @server_port.deleter
+    def server_port(self):
+        del self._server_port
+
+    def get_server_port(self):
+        return self.server_port
 
     def get_bff_name(self):
         return self._bff_name
@@ -91,8 +103,20 @@ class Config():
     def get_bff_domain_name(self):
         return self._bff_domain_name
 
-    def get_bff_port(self):
+    @property
+    def bff_port(self):
         return self._bff_port
+
+    @bff_port.setter
+    def bff_port(self, value):
+        self._bff_port = str(value)
+
+    @bff_port.deleter
+    def bff_port(self):
+        del self._bff_port
+
+    def get_bff_port(self):
+        return self.bff_port
 
     def set_pid_file(self, value):
         self._pid_file = value

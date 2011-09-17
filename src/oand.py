@@ -197,8 +197,16 @@ class ApplicationStarter():
             help="Show no output.")
 
         self._parser.add_option(
-            "-c", "--config",  default="oand.cfg",
+            "-c", "--config",  default="oand.cfg", metavar="FILE",
             help="The name of the config file, default oand.cfg.")
+
+        self._parser.add_option(
+            "-p", "--port", metavar="PORT", type="int",
+            help="The server port number.")
+
+        self._parser.add_option(
+            "-b", "--bport", metavar="PORT", type="int",
+            help="The bff port number.")
 
         (options, args) = self._parser.parse_args()
 
@@ -215,6 +223,12 @@ class ApplicationStarter():
 
         '''
         config = Config.from_filename(options.config)
+        if (options.port):
+            config.server_port = options.port
+
+        if (options.bport):
+            config.bff_port = options.bport
+
         app = OANApplication.create_twisted_circular_node(config)
         daemon = OANDaemon(app)
         if argument == 'start':
