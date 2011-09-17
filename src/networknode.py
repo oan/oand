@@ -32,7 +32,7 @@ class NetworkNode():
         self.set_last_heartbeat(last_heartbeat)
 
     @classmethod
-    def create_from_dict(cls, node_dict):
+    def create_from_dict(cls, args):
         return cls (
             args['name'],
             args['domain_name'],
@@ -104,7 +104,7 @@ class NetworkNode():
         This node has not answered to any heartbeat requests for 10 days.
 
         '''
-        return self.is_heartbeat_expired(31536000)
+        return self.is_heartbeat_expired(525600)
 
     def is_valid(self):
         if (self.get_name() and
