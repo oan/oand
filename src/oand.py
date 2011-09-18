@@ -157,6 +157,7 @@ class OANApplication():
         ch2.setFormatter(formatter)
 
         # add ch to logger
+        self._logger.handlers = []
         self._logger.addHandler(ch1)
         self._logger.addHandler(ch2)
 
@@ -217,12 +218,59 @@ class ApplicationStarter():
         else:
             self._handle_positional_argument(options, args[0])
 
+    def handle_network(self, action):
+        config = {}
+        app = {}
+        daemon = {}
+
+        for x in range(10):
+            x = int(x)
+            print "%s daemon %d" % (action, x)
+            if x == 0:
+                config[x] = Config(
+                  "server-" + str(x),
+                  "localhost",
+                  str(4000 + x)
+                )
+            else:
+                config[x] = Config(
+                  "server-" + str(x),
+                  "localhost",
+                  str(4000 + x),
+                  "server-" + str(x-1),
+                  "localhost",
+                  str(4000 + x - 1)
+                )
+
+            config[x].set_pid_file("/tmp/oand-%d.pid" % x)
+            config[x].set_log_file("../log/oand-network.log")
+
+            app[x] = OANApplication.create_twisted_circular_node(config[x])
+            daemon[x] = OANDaemon(app[x])
+            if (action == "start"):
+                daemon[x].start()
+                time.sleep(1)
+            elif (action == "stop"):
+                daemon[x].stop()
+
     def _handle_positional_argument(self, options, argument):
         '''
         Handle the positional arguments from the commandline.
 
         '''
+        if argument == 'start-network':
+            self.handle_network("start")
+            return
+        elif argument == 'stop-network':
+            self.handle_network("stop")
+            return
+        elif argument == 'restart-network':
+            self.handle_network("stop")
+            self.handle_network("start")
+            return
+
         config = Config.from_filename(options.config)
+
         if (options.port):
             config.server_port = options.port
 
@@ -249,10 +297,15 @@ class ApplicationStarter():
         '''
         return """usage: %prog [-vqf] {start|stop|restart|native|status}
 
-start - Start oand server as a deamon.
-stop - Stop oand server deamon.
-restart - Retart oand server deamon.
-native - Start oand server as a reqular application."""
+start - Start oand server as a daemon.
+stop - Stop oand server daemon.
+restart - Retart oand server daemon.
+native - Start oand server as a reqular application.
+
+start-network   - Start a network of oand daemons.
+stop-network    - Stop a network of oand daemons.
+restart-network - Retart a network of oand daemons.
+"""
 
 if __name__ == "__main__":
     ApplicationStarter()

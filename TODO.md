@@ -23,20 +23,22 @@ TODO
 
 # Has possibility to specify port and bff-port on command line.
 
-* Add something similar to this.
-  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/examples/create_network.py?revision=81&view=markup
+# Added a local oan network spawner.
+
+* Add unit test, testing many thousand nodes.
 
 * Look more at this, giving any ideas?
   http://developer.github.com/v3/gists/
 
-* HtmlValueHandler should see the difference between folder and file.
-
-* ValueHandler (json) should see the difference between folder and file.
-
 * Save all known nodes to file/db.
   Use the oan db class.
 
-* Add unit test, testing many thousand nodes.
+* Add oan-db-backend class system, with possiblity to store all data in sqllite,
+  filesystem or other.
+
+* HtmlValueHandler should see the difference between folder and file.
+
+* ValueHandler (json) should see the difference between folder and file.
 
 * Add version to http://localhost:1337/nodes and check if version is the same
   between nodes.
