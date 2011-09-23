@@ -59,6 +59,9 @@ TODO
 
 * Add security, like checking all arguments for XXS. Check owasp.
 
+* One way to store key/value
+  http://highscalability.com/blog/2011/1/10/riaks-bitcask-a-log-structured-hash-table-for-fast-keyvalue.html
+
 Things to read
 ==============
 
