@@ -34,7 +34,7 @@ class TwistedServer(Server):
 
     def __init__(self, config, network_nodes_manager, data_store_manager):
         self._logger = logging.getLogger('oand')
-        self._server_port = int(config.get_server_port())
+        self._server_port = int(config.server_port)
         self._network_nodes_manager = network_nodes_manager
         self._data_store_manager = data_store_manager
         self.start()
