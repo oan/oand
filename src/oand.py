@@ -28,7 +28,7 @@ import os
 import sys
 import time
 
-from optparse import OptionParser
+from optparse import OptionParser, make_option, IndentedHelpFormatter
 
 from daemon import Daemon
 from config import Config
@@ -59,8 +59,9 @@ class OANApplication():
         self._network_node_manager_class = network_node_manager_class
         self._server_class = server_class
         self._client_class = client_class
-        self._start_logger("oand")
-        self._start_logger("apscheduler.scheduler")
+
+        self._start_logger("apscheduler.scheduler", logging.WARNING)
+        self._start_logger("oand", logging.DEBUG)
 
     @classmethod
     def create_localnetwork_circular_node(cls, config):
@@ -86,7 +87,7 @@ class OANApplication():
 
     def run_server(self):
         self._logger.info("Starting Open Archive Network (oand) for " +
-                          self._config.get_server_name())
+                          self._config.server_name)
 
         self._logger.debug("data_store_manager " +
                            str(self._data_store_manager_class))
@@ -103,22 +104,23 @@ class OANApplication():
         self._network_node_manager.remove_expired_nodes()
 
         self._network_node_manager.set_my_node(NetworkNode(
-            self._config.get_server_name(),
-            self._config.get_server_domain_name(),
-            self._config.get_server_port()))
+            self._config.server_name,
+            self._config.server_domain_name,
+            self._config.server_port))
 
-        if (self._config.get_bff_name()):
+        if (self._config.bff_name):
             self._network_node_manager.add_node(NetworkNode(
-                self._config.get_bff_name(),
-                self._config.get_bff_domain_name(),
-                self._config.get_bff_port()))
+                self._config.bff_name,
+                self._config.bff_domain_name,
+                self._config.bff_port))
 
             self._network_node_manager.connect_to_oan()
 
         self._start_scheduler()
         self._network_node_manager.check_heartbeat()
         self.dbg_print_network()
-        self._server = self._server_class(self._network_node_manager,
+        self._server = self._server_class(self._config,
+                                          self._network_node_manager,
                                           self._data_store_manager)
         self._logger.info("Stopping Open Archive Network (oand)")
 
@@ -133,20 +135,20 @@ class OANApplication():
                            self._network_node_manager.get_my_node().get_name())
         self._logger.debug("    " + self._network_node_manager.get_dbg_nodes())
 
-    def _start_logger(self, logger_name):
+    def _start_logger(self, logger_name, log_level):
         # create logger
         self._logger = logging.getLogger(logger_name)
-        self._logger.setLevel(logging.DEBUG)
+        self._logger.setLevel(log_level)
 
         # create console handler and set level to debug
         ch1 = logging.handlers.SysLogHandler()
-        ch1.setLevel(logging.DEBUG)
+        ch1.setLevel(log_level)
         ch2 = logging.handlers.RotatingFileHandler(
-            self._config.get_log_file(), maxBytes=2000000, backupCount=100)
-        ch2.setLevel(logging.DEBUG)
+            self._config.log_file, maxBytes=2000000, backupCount=100)
+        ch2.setLevel(log_level)
 
         # create formatter
-        server_name = self._config.get_server_name()
+        server_name = self._config.server_name
         formatter = logging.Formatter(
             '%(asctime)s - oand (' + server_name + ') - %(message)s')
 
@@ -155,13 +157,14 @@ class OANApplication():
         ch2.setFormatter(formatter)
 
         # add ch to logger
+        self._logger.handlers = []
         self._logger.addHandler(ch1)
         self._logger.addHandler(ch2)
 
 class OANDaemon(Daemon):
     def __init__(self, app):
         self._app = app
-        Daemon.__init__(self, app.get_config().get_pid_file())
+        Daemon.__init__(self, app.get_config().pid_file)
 
     def run(self):
         self._app.run_server()
@@ -180,19 +183,12 @@ class ApplicationStarter():
         First function called when using the script.
 
         '''
-
         self._parser = OptionParser(
-                                    usage=self._get_usage(),
-                                    version="oand " + __version__,
-                                    add_help_option=True)
-
-        self._parser.add_option(
-            "-v", "--verbose", action="store_const", const=2, dest="verbose",
-            default=1, help="Show more output.")
-
-        self._parser.add_option(
-            "-q", "--quiet", action="store_const", const=0, dest="verbose",
-            help="Show no output.")
+            usage = self._get_usage(),
+            version = "oand " + __version__,
+            add_help_option = True,
+            option_list = self.get_options(),
+            formatter = IndentedHelpFormatter(max_help_position=40, width=80))
 
         (options, args) = self._parser.parse_args()
 
@@ -201,14 +197,112 @@ class ApplicationStarter():
         if len(args) != 1:
             self._parser.print_help()
         else:
-            self._handle_positional_argument(args[0])
+            self._handle_positional_argument(options, args[0])
 
-    def _handle_positional_argument(self, argument):
+    def get_options(self):
+        return [
+            make_option(
+                "-v", "--verbose", action="store_const", const=2, dest="verbose",
+                help="Show more output."),
+
+            make_option(
+                "-q", "--quiet", action="store_const", const=0, dest="verbose",
+                help="Show no output."),
+
+            make_option(
+                "-a", "--server-name", metavar="NAME",
+                help="The server name."),
+
+            make_option(
+                "-s", "--server-domain-name", metavar="NAME",
+                help="The server domain name or ip."),
+
+            make_option(
+                "-d", "--server-port", metavar="PORT", type="int",
+                help="The server port number."),
+
+            make_option(
+                "-z", "--bff-name", metavar="NAME",
+                help="The bff server name."),
+
+            make_option(
+                "-x", "--bff-domain-name", metavar="NAME",
+                help="The bff server domain name or ip."),
+
+            make_option(
+                "-c", "--bff-port", metavar="PORT", type="int",
+                help="The bff server port number."),
+
+            make_option(
+                "--defaults-extra-file", metavar="FILE",
+                dest="config", default="oand.cfg",
+                help="The name of the config file."),
+
+            make_option(
+                "--pid-file", metavar="FILE",
+                help="The pid-file path."),
+
+            make_option(
+                "--log-file", metavar="FILE",
+                help="The log-file path.")
+        ]
+
+    def handle_network(self, action):
+        config = {}
+        app = {}
+        daemon = {}
+
+        for x in range(10):
+            x = int(x)
+            print "%s daemon %d" % (action, x)
+            if x == 0:
+                config[x] = Config(
+                  "server-" + str(x),
+                  "localhost",
+                  str(4000 + x)
+                )
+            else:
+                config[x] = Config(
+                  "server-" + str(x),
+                  "localhost",
+                  str(4000 + x),
+                  "server-" + str(x-1),
+                  "localhost",
+                  str(4000 + x - 1)
+                )
+
+            config[x].pid_file = "/tmp/oand-%d.pid" % x
+            config[x].log_file = "../log/oand-network.log"
+
+            app[x] = OANApplication.create_twisted_circular_node(config[x])
+            daemon[x] = OANDaemon(app[x])
+            if (action == "start"):
+                daemon[x].start()
+                time.sleep(1)
+            elif (action == "stop"):
+                daemon[x].stop()
+
+    def _handle_positional_argument(self, options, argument):
         '''
         Handle the positional arguments from the commandline.
 
         '''
-        config = Config.from_filename('oand.cfg')
+        if argument == 'start-network':
+            self.handle_network("start")
+            return
+        elif argument == 'stop-network':
+            self.handle_network("stop")
+            return
+        elif argument == 'restart-network':
+            self.handle_network("stop")
+            self.handle_network("start")
+            return
+
+        config = Config()
+        config.set_from_file(options.config)
+        config.set_from_cmd_line(options)
+        config.print_options()
+
         app = OANApplication.create_twisted_circular_node(config)
         daemon = OANDaemon(app)
         if argument == 'start':
@@ -229,10 +323,15 @@ class ApplicationStarter():
         '''
         return """usage: %prog [-vqf] {start|stop|restart|native|status}
 
-start - Start oand server as a deamon.
-stop - Stop oand server deamon.
-restart - Retart oand server deamon.
-native - Start oand server as a reqular application."""
+Positional arguments:
+start            Start oand server as a daemon.
+stop             Stop oand server daemon.
+restart          Retart oand server daemon.
+native           Start oand server as a reqular application.
+
+start-network    Start a network of oand daemons.
+stop-network     Stop a network of oand daemons.
+restart-network  Retart a network of oand daemons."""
 
 if __name__ == "__main__":
     ApplicationStarter()

@@ -44,71 +44,85 @@ class CircularNetworkNodeManager(NetworkNodeManager):
     # An dictionary with all nodes in the OAN.
     _nodes = {}
 
-    def add_node(self, node):
-        self._nodes[node.get_id()] = node
-
-    def get_node(self, node_id):
-        return self._nodes[node_id]
-
     def set_my_node(self, node):
         self._my_node = node
 
     def get_my_node(self):
         return self._my_node
 
-    def merge_nodes(self, nodes):
+    def add_node(self, node):
+        self._nodes[node.get_id()] = node
+        self._remove_myself_from_nodes()
+
+    def get_node(self, node_id):
+        return self._nodes[node_id]
+
+    def add_nodes(self, nodes):
         '''
         Merge nodes with internal nodes, replacing existing nodes.
 
         '''
-        self._logger.info("Merging node list")
         self._nodes.update(nodes)
+        self._remove_myself_from_nodes()
 
     def get_nodes(self):
         return self._nodes
 
+    def _remove_myself_from_nodes(self):
+        if self.get_my_node().get_id() in self._nodes:
+            del(self._nodes[self.get_my_node().get_id()])
+
     def connect_to_oan(self):
         if len(self._nodes):
-            remote_node = self._client_class(self._my_node.get_name())
             for node in self._nodes.itervalues():
-                try:
-                    remote_node.connect(node.get_connection_url())
-                    nodes = remote_node.get_nodes()
-                    self.merge_nodes(nodes)
+                if (self.connect_to_node(node)):
                     return
-                except IOError as (errno, strerror):
-                    self._logger.warning(
-                        "Failed to connect to: " + node.get_name() + " " +
-                        "(I/O error({0}): {1}".format(errno, strerror) + ')')
-                except:
-                    self._logger.warning(
-                        "Failed to connect to: " + node.get_name() +
-                        "Unexpected error: " + str(sys.exc_info()))
             self._logger.warning("Failed to connect to all friends.")
-        else:
-            self._logger.debug("No friends to connect to.")
 
     def check_heartbeat(self):
-        all_nodes_are_inactive = True
         for node_id, node in self._nodes.iteritems():
-            if (node.is_heartbeat_expired()):
-                if (self.send_heartbeat(node)):
-                    self._nodes[node_id].touch_last_heartbeat()
-                    all_nodes_are_inactive = False
+            if (node.is_node_inactive()):
+                self.connect_to_node(node)
+            elif (node.is_heartbeat_expired()):
+                self.send_heartbeat(node)
 
-        if all_nodes_are_inactive:
-            self.connect_to_oan()
+    def connect_to_node(self, node):
+        self._logger.debug("Connect to node: " + node.get_name())
+        try:
+            remote_node = self._client_class()
+            remote_node.connect(node.get_connection_url())
+            nodes = remote_node.get_nodes(self.get_my_node())
+            self._logger.info("Add %d nodes from %s" % (
+                              len(nodes),
+                              node.get_connection_url()))
+            self.add_nodes(nodes)
+
+            # We just recived data from this node, so it's alive.
+            self.touch_last_heartbeat(node)
+            return True
+        except IOError as (errno, strerror):
+            self._logger.warning(
+                "Failed to connect to: " + node.get_name() + " " +
+                "(I/O error({0}): {1}".format(errno, strerror) + ')')
+        except:
+            self._logger.warning(
+                "Failed to connect to: " + node.get_name() +
+                "Unexpected error: " + str(sys.exc_info()))
+        return False
 
     def send_heartbeat(self, node):
         self._logger.debug("Send heartbeat to: " + node.get_name())
         try:
-            remote_node = self._client_class(self._my_node.get_name())
+            remote_node = self._client_class()
             remote_node.connect(node.get_connection_url())
             response = remote_node.send_heartbeat(self.get_my_node())
             if response['status'] == 'ok':
+                self.touch_last_heartbeat(node)
                 return True
         except:
-            pass
+            self._logger.warning(
+                "Failed to connect to: " + node.get_name() +
+                "Unexpected error: " + str(sys.exc_info()))
 
         return False
 
@@ -116,9 +130,14 @@ class CircularNetworkNodeManager(NetworkNodeManager):
         if node.get_id() not in self._nodes:
             logging.getLogger('oand').debug(
                 "Unknown node %s is touching me, adding to my nodes list." %
-                str(node))
+                vars(node))
+            # When the heartbeat is expired, the next once-a-minute-scheduler
+            # will ask the new node for it's node list.
+            # The new node might know about nodes we are not aware of.
+            node.set_expired_heartbeat()
             self.add_node(node)
-        self._nodes[node.get_id()].touch_last_heartbeat()
+        else:
+            self._nodes[node.get_id()].touch_last_heartbeat()
 
     def remove_expired_nodes(self):
         nodes_to_remove = []

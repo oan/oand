@@ -16,22 +16,37 @@ TODO
 # Offline nodes are deleted from the list when they have been inaccessiable
   for more than 365 days.
 
-* When node a connects to node b, node b needs to ask node a for it's node-list.
+# When node a connects to node b, node b needs to ask node a for it's node-list.
 
-* Add something similar to this.
-  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/examples/create_network.py?revision=81&view=markup
+# When touch_last_heartbeat is executed by an unknown node, do a connect
+  to that node and retrive a list of nodes.
+
+# Has possibility to specify port and bff-port on command line.
+
+# Added a local oan network spawner.
+
+* Have a look att github ruby comment thing.
+
+* Add unit test, testing many thousand nodes.
+
+* Look more at this, giving any ideas?
+  http://developer.github.com/v3/gists/
+
+* Save all known nodes to file/db.
+  Use the oan db class.
+
+* Add oan-db-backend class system, with possiblity to store all data in sqllite,
+  filesystem or other.
 
 * HtmlValueHandler should see the difference between folder and file.
 
 * ValueHandler (json) should see the difference between folder and file.
 
-* When touch_last_heartbeat is executed by an unknown node, do a connect
-  to that node and retrive a list of nodes.
+* Add version to http://localhost:1337/nodes and check if version is the same
+  between nodes.
 
-* Save all known nodes to file/db.
-  Use the oan db class.
-
-* Add unit test, testing many thousand nodes.
+* Use this for all getter/setters
+  http://docs.python.org/library/functions.html#property
 
 * Lots of error checking, code comments etc.
 

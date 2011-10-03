@@ -133,4 +133,4 @@ All timestamps are returned in ISO 8601 format:
 This API is based on the same RESTful standard as
 [(github v3)](http://developer.github.com/v3/)
 
-curl -X POST -d 'json={"port": "8082", "last_heartbeat": "2011-09-17 00:42:55", "name": "curl-book", "domain_name": "localhost"}' http://localhost:8082/heartbeat
+curl -X POST -d 'json={"port": "1338", "last_heartbeat": "2011-09-17T11:37:32Z", "name": "dali-book", "domain_name": "localhost"}' http://localhost:1337/heartbeat

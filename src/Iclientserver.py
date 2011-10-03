@@ -27,18 +27,6 @@ class Client():
     def connect(self, connection_url):
         pass
 
-    @abstractmethod
-    def add_node(self, name, domain_name, port):
-        pass
-
-    @abstractmethod
-    def set_prev_node(self, name, domain_name, port):
-        pass
-
-    @abstractmethod
-    def set_next_node(self, name, domain_name, port):
-        pass
-
 class Server():
     '''Abstract class for network servers'''
     __metaclass__ = ABCMeta
@@ -53,16 +41,4 @@ class Server():
     @abstractmethod
     def start(self):
         '''Start server and listen on port xx for incoming tcp/ip requests'''
-        pass
-
-    @abstractmethod
-    def add_node(self, name, domain_name, port):
-        pass
-
-    @abstractmethod
-    def set_prev_node(self, name, domain_name, port):
-        pass
-
-    @abstractmethod
-    def set_next_node(self, name, domain_name, port):
         pass
