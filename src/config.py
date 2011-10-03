@@ -1,11 +1,4 @@
 #!/usr/bin/env python
-'''
-Holding all configurations that can be done to oand.
-
-Usually reading contents from a config file (oand.conf) but also possible
-to initialize all data via the constructor.
-
-'''
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -17,115 +10,94 @@ __status__ = "Test"
 import ConfigParser
 
 class Config(object):
-    # The name of the server oand is running on. This has no connection
-    # to the hostname in the OS.
-    _server_name = None
+    '''
+    Holding all configurations that can be done to oand.
 
-    # The ip number or domain name of this oand node.
-    _server_domain_name = None
+    Usually reading contents from a config file (oand.conf) but also possible
+    to initialize all data via the constructor and property members.
+
+    Domain_name/bff_domain_name should point to the public ip number,
+    of the oand computer node. This ip/domain are sent to remote nodes,
+    and they will try to connect to it later.
+
+    '''
+
+    # The output verbose level 0-2
+    verbose = 2 # TODO: During development it's set to 2/debug mode.
+
+    # Config file
+    config = "oand.cfg"
+
+    # Name and path of the pidfile
+    pid_file = "oand.pid"
+
+    # Name and path of the logfile.
+    log_file = "oand.log"
+
+    # The name of the server oand is running on. This has no connection
+    # to the hostname in the OS, it's just for reference.
+    server_name = None
+
+    # The public ip number or domain name of this oand node.
+    server_domain_name = None
 
     # The tcp/ip port that is open for connection.
-    _server_port = None
+    server_port = None
 
     # Best Friend Forever Node. The first node to connect to, which will
     # give you access and knowledge to the whole network.
-    _bff_name = None
-    _bff_domain_name = None
-    _bff_port = None
+    bff_name = None
+    bff_domain_name = None
+    bff_port = None
 
-    # Name and path of the pidfile
-    _pid_file = "oand.pid"
+    def __init__(self, server_name = None, domain_name = None, port = None,
+                 bff_name = None, bff_domain_name = None, bff_port = None):
+        '''
+        Createing a Config object.
 
-    # Name and path of the logfile.
-    _log_file = "oand.log"
+        '''
+        self.server_name = str(server_name)
+        self.server_domain_name = str(domain_name)
+        self.server_port = str(port)
 
-    def __init__(self, server_name, domain_name, port,
-                   bff_name = None, bff_domain_name = None, bff_port = None):
-        self._server_name = server_name
-        self._server_domain_name = domain_name
-        self._server_port = port
+        self.bff_name = str(bff_name)
+        self.bff_domain_name = str(bff_domain_name)
+        self.bff_port = str(bff_port)
 
-        self._bff_name = bff_name
-        self._bff_domain_name = bff_domain_name
-        self._bff_port = bff_port
+    def set_from_file(self, filename):
+        '''
+        Initialize Config from a file.
 
-    @classmethod
-    def from_filename(cls, filename):
-        "Initialize Config from a file"
+        '''
         config = ConfigParser.ConfigParser({"log-file" : "oand.log"})
         config.readfp(open(filename))
+        if config.has_section("oand"):
+            for option in config.options("oand"):
+                key = option.replace("-", "_")
+                value = config.get("oand", option)
+                self.set_attribute(key, value)
 
-        obj = cls(
-          cls.get_from_config(config, "oand", "server-name"),
-          cls.get_from_config(config, "oand", "server-domain-name"),
-          cls.get_from_config(config, "oand", "server-port"),
-          cls.get_from_config(config, "oand", "bff-name"),
-          cls.get_from_config(config, "oand", "bff-domain-name"),
-          cls.get_from_config(config, "oand", "bff-port")
-        )
+    def set_from_cmd_line(self, options):
+        for key in options.__dict__.keys():
+            value = getattr(options, key)
+            if value:
+                self.set_attribute(key, value)
 
-        obj.set_pid_file(cls.get_from_config(config, "oand", "pid-file"))
-        obj.set_log_file(cls.get_from_config(config, "oand", "log-file"))
-
-        return obj
-
-    @staticmethod
-    def get_from_config(config, section, option):
-        if config.has_section(section) and config.has_option(section, option):
-            return config.get(section, option)
+    def set_attribute(self, key, value):
+        if hasattr(self, key):
+            setattr(self, key, value)
         else:
-            return None
+            raise Exception(
+                "Invalid config with key: " + key + " value: " + value)
 
-    def get_server_name(self):
-        return self._server_name
-
-    def get_server_domain_name(self):
-        return self._server_domain_name
-
-    @property
-    def server_port(self):
-        return self._server_port
-
-    @server_port.setter
-    def server_port(self, value):
-        self._server_port = str(value)
-
-    @server_port.deleter
-    def server_port(self):
-        del self._server_port
-
-    def get_server_port(self):
-        return self.server_port
-
-    def get_bff_name(self):
-        return self._bff_name
-
-    def get_bff_domain_name(self):
-        return self._bff_domain_name
-
-    @property
-    def bff_port(self):
-        return self._bff_port
-
-    @bff_port.setter
-    def bff_port(self, value):
-        self._bff_port = str(value)
-
-    @bff_port.deleter
-    def bff_port(self):
-        del self._bff_port
-
-    def get_bff_port(self):
-        return self.bff_port
-
-    def set_pid_file(self, value):
-        self._pid_file = value
-
-    def get_pid_file(self):
-        return self._pid_file
-
-    def set_log_file(self, value):
-        self._log_file = value
-
-    def get_log_file(self):
-        return self._log_file
+    def print_options(self):
+        if self.verbose == 2:
+            print
+            print "-- Begin ------------------"
+            print "#All configuration attributes"
+            print "[oand]"
+            for key in self.__dict__.keys():
+                value = getattr(self, key)
+                print str(key) + ": " + str(value)
+            print "-- End --------------------"
+            print

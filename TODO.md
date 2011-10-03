@@ -25,6 +25,8 @@ TODO
 
 # Added a local oan network spawner.
 
+* Have a look att github ruby comment thing.
+
 * Add unit test, testing many thousand nodes.
 
 * Look more at this, giving any ideas?
