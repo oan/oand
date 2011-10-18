@@ -134,3 +134,131 @@ This API is based on the same RESTful standard as
 [(github v3)](http://developer.github.com/v3/)
 
 curl -X POST -d 'json={"port": "1338", "last_heartbeat": "2011-09-17T11:37:32Z", "name": "dali-book", "domain_name": "localhost"}' http://localhost:1337/heartbeat
+
+
+NetworkStorageManager
+---------------------
+
+Node-1:/movie/aliens.avi
+Node-2:/movie/aliens.avi
+Node-2:/music/danzig.mp3
+Node-3:/src/oand.py
+
+mount.oand /mnt/oand
+ls /mnt/oand
+movie
+music
+src
+
+ls /mnt/oand/movie
+aliens.avi
+
+
+NetworkStorageManager
+---------------------
+files = [File(), File()]
+
+list_files(path)
+get_file(path, name)
+put_file(path, name, data)
+
+get_filelist()
+send_filelist()
+
+
+File
+---------------------
+path = /movie/
+name = NULL
+nodes = ['node-1', 'node-2', 'node-3']
+data = NULL
+
+File
+---------------------
+path = /movie/
+name = aliens.avi
+nodes = ['node-1', 'node-2']
+data = NULL
+
+
+
+
+
+class data_store_manager
+    resources = Resources()
+
+    def exist(path):
+        resources.exist(path)
+
+    def get(path):
+        resources.get(path)
+
+class Resources:
+    list{'/movies/'} = folder
+    list{'/movies/aliens.avi'} = file
+    list{'/movies/comedy/'} = folder
+    list{'/movies/action/'} = folder('andra filmer')
+    list{'/movies/action/'} = File('RAMBO.AVI')
+
+    def exist(path):
+        if path in self.list:
+            return true
+        else:
+            return false
+
+    get(path)
+        resource = self.list['path']
+        if is_instance(resource, file):
+            return resource.value
+        elif is_instance(resource, folder):
+            return resource.list
+
+class Folder():
+    list = ['comedy/', 'action/', 'aliens.avi']
+
+class File():
+    path = '/movies/'
+    name = 'aliens.avi'
+    value = 'This is the contents of the file.'
+
+
+class Resource
+    path = '/movies/'
+
+    resources = {'action/' = Resource('action/'), 'comedy/', Resource('comedy/')}
+    files = {'aliens.avi' = File('aliens.avi')}
+
+    def __init__(self, path, last_changed):
+
+    def exist(path):
+
+    def get(path):
+
+---------
+folders['/']             = Resource()
+folders['/movie']        = Resource()
+folders['/movie/action'] = Resource()
+
+
+Resource
+--------
+path = '/movie/'
+folder = ['/action', '/comedy'] (Resource())
+file= ['aliens.avi']  (File())
+
+File
+---------------------
+path = /movie/
+name = aliens.avi
+nodes = ['node-1', 'node-2']
+data = NULL
+
+
+
+
+
+
+
+
+
+
