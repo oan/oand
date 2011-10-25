@@ -8,7 +8,7 @@ directory
     Is the full path excluding filename. /movies/comedy/
 
 name
-    Is the name of a file. Folders don't have any name
+    Is the name of a file or folder.
 
 path
     Is directory + name. /movies/comedy/aliens.avi
