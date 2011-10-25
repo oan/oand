@@ -13,11 +13,12 @@ __status__ = "Test"
 
 import unittest
 from resources import *
+from test_heartbeat import TestHeartBeat
 
-class TestConfig(unittest.TestCase):
-
+class TestResources(TestHeartBeat):
     def setUp(self):
         self._res = ResourceRoot()
+        self._res.set(Folder('/movies/'))
         self._res.set(File('/movies/aliens.avi'))
         self._res.set(Folder('/movies/comedy/'))
         self._res.set(Folder('/movies/action/'))
@@ -50,6 +51,27 @@ class TestConfig(unittest.TestCase):
             self.assertEqual(len(resource.name) > 1, True)
             self.assertEqual(len(resource.content) > 1, True)
             self.assertEqual(resource.path, path)
+
+    def test_heartbeat(self):
+        '''
+        Same tests that can be found in test_heartbeat.py
+        '''
+        hb = self._res.get('/').heartbeat
+        TestHeartBeat.test_heartbeat(self, hb)
+
+# class TestResourceManager(unittest.TestCase):
+#     def setup(self):
+#         self._res1 = ResourceRoot()
+#         networkNodeManager = NetworkNodeManager()
+#         self.manager = ResourceManager(self._res1, networkNodeManager)
+
+#     def test_get(self):
+#         self.manager.get('/')
+#         self.manager.get('/music/')
+#         self.manager.get('/music/queen.mp3')
+
+#         self.manager.refresh()
+
 
 if __name__ == '__main__':
     unittest.main()

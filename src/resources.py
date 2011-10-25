@@ -23,6 +23,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+from heartbeat import HeartBeat
+
 class ResourceRoot:
     resources = None
 
@@ -80,6 +82,10 @@ class Resource():
     directory = None
     name = None
     content = None
+    heartbeat = None
+
+    def __init__(self):
+        self.heartbeat = HeartBeat()
 
     def is_folder(self):
         return isinstance(self, Folder)
@@ -93,6 +99,7 @@ class Resource():
 
 class Folder(Resource):
     def __init__(self, path):
+        Resource.__init__(self)
         path = path.rstrip('/')
         parts = path.rpartition('/')
         self.directory = parts[0] + parts[1]
@@ -105,9 +112,9 @@ class Folder(Resource):
 
 class File(Resource):
     def __init__(self, path):
+        Resource.__init__(self)
         parts = path.rpartition('/')
         self.directory = parts[0] + parts[1]
         self.name = parts[2]
 
         self.content = 'This is the contents of the file.'
-

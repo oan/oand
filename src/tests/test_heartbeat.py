@@ -14,10 +14,16 @@ __status__ = "Test"
 import unittest
 from heartbeat import *
 
-class TestResources(unittest.TestCase):
+class TestHeartBeat(unittest.TestCase):
 
-    def test_heartbeat(self):
-        hb = HeartBeat()
+    def test_heartbeat(self, hb = None):
+        '''
+        Also called from test_resources
+
+        '''
+        if hb == None:
+            hb = HeartBeat()
+
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_inactive(), True)
         self.assertEqual(hb.is_dead(), True)
