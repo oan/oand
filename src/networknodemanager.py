@@ -81,11 +81,11 @@ class CircularNetworkNodeManager(NetworkNodeManager):
 
     def check_heartbeat(self):
         for node_id, node in self._nodes.iteritems():
-            if (node.is_node_inactive()):
+            if (node.heartbeat.is_inactive()):
                 self.connect_to_node(node)
                 # Connect to node will check heartbeat on all nodes.
                 return
-            elif (node.is_heartbeat_expired()):
+            elif (node.heartbeat.is_expired()):
                 self.send_heartbeat(node)
 
     def connect_to_node(self, node):
@@ -137,15 +137,15 @@ class CircularNetworkNodeManager(NetworkNodeManager):
             # When the heartbeat is expired, the next once-a-minute-scheduler
             # will ask the new node for it's node list.
             # The new node might know about nodes we are not aware of.
-            node.set_expired_heartbeat()
+            node.heartbeat.set_expired()
             self.add_node(node)
         else:
-            self._nodes[node.get_id()].touch_last_heartbeat()
+            self._nodes[node.get_id()].heartbeat.touch()
 
     def remove_expired_nodes(self):
         nodes_to_remove = []
         for node_id, node in self._nodes.iteritems():
-            if (node.is_node_expired()):
+            if (node.heartbeat.is_dead()):
                 nodes_to_remove.append(node_id)
         for node_id in nodes_to_remove:
             del(self._nodes[node_id])

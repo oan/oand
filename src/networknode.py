@@ -13,6 +13,8 @@ __status__ = "Test"
 
 from datetime import datetime, timedelta
 
+from heartbeat include HeartBeat
+
 class NetworkNode():
     _node_id = None
     _name = None
@@ -29,7 +31,7 @@ class NetworkNode():
         self._domain_name = domain_name
         self._port = port
 
-        self.set_last_heartbeat(last_heartbeat)
+        heartbeat = HeartBeat(last_heartbeat)
 
     @classmethod
     def create_from_dict(cls, args):
@@ -45,7 +47,7 @@ class NetworkNode():
         param['name'] = self.get_name()
         param['domain_name'] = self.get_domain_name()
         param['port'] = self.get_port()
-        param['last_heartbeat'] = self.get_last_heartbeat()
+        param['last_heartbeat'] = self.heartbeat.value
         return param
 
     def get_id(self):
@@ -60,54 +62,8 @@ class NetworkNode():
     def get_port(self):
         return self._port
 
-    def set_last_heartbeat(self, datetime_str):
-        self._last_heartbeat = datetime.strptime(datetime_str,  self._date_fmt)
-
-    def set_expired_heartbeat(self):
-        self._last_heartbeat = (datetime.utcnow() - timedelta(minutes = 60))
-
-    def touch_last_heartbeat(self):
-        self._last_heartbeat = datetime.utcnow()
-        return self.get_last_heartbeat()
-
-    def get_last_heartbeat(self):
-        return self._last_heartbeat.strftime(self._date_fmt)
-
     def get_connection_url(self):
         return self.get_domain_name() + ':' + self.get_port()
-
-    def is_heartbeat_expired(self, min = 5):
-        '''
-        Check if the heartbeat has expired.
-
-        If it has expired we haven't done any heartbeat requests to it during
-        the last 5 minutes.
-
-        min - Number of minutes the heatbeat is valid.
-
-        '''
-        if (self._last_heartbeat):
-            expire_date = datetime.utcnow() - timedelta(minutes = min)
-            if (expire_date < self._last_heartbeat):
-                return False
-
-        return True
-
-    def is_node_inactive(self):
-        '''
-        This node has not answered to any heartbeat requests for 10 minutes.
-
-        The node is probably offline.
-
-        '''
-        return self.is_heartbeat_expired(10)
-
-    def is_node_expired(self):
-        '''
-        This node has not answered to any heartbeat requests for 10 days.
-
-        '''
-        return self.is_heartbeat_expired(525600)
 
     def is_valid(self):
         if (self.get_name() and
