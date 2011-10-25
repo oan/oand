@@ -83,6 +83,8 @@ class CircularNetworkNodeManager(NetworkNodeManager):
         for node_id, node in self._nodes.iteritems():
             if (node.is_node_inactive()):
                 self.connect_to_node(node)
+                # Connect to node will check heartbeat on all nodes.
+                return
             elif (node.is_heartbeat_expired()):
                 self.send_heartbeat(node)
 
@@ -99,6 +101,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
 
             # We just recived data from this node, so it's alive.
             self.touch_last_heartbeat(node)
+            self.check_heartbeat()
             return True
         except IOError as (errno, strerror):
             self._logger.warning(
