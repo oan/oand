@@ -13,32 +13,105 @@ http://pexpect.svn.sourceforge.net/viewvc/pexpect/trunk/pexpect/tools/testall.py
 
 '''
 
-__author__ = "Noah Spurrier"
+__author__ = "Daniel Lindh"
 __maintainer__ = "daniel.lindh@cybercow.se"
 
 import unittest
-import os, os.path
+import os
+import os.path
 import sys
 import trace
+from optparse import OptionParser
+
+def run():
+    setup_env()
+    set_global_options_and_args()
+    remove_cmd_line_arguments()
+
+    if OPTIONS.trace:
+        run_main_with_trace()
+    else:
+        main()
+
+def setup_env():
+    sys.path.insert(1, get_project_home())
+    os.chdir(get_project_home())
 
 def get_project_home():
-    '''Return the path to the root folder of the project.'''
+    '''
+    Return the path to the root folder of the project.
+
+    '''
     project_home = os.path.realpath(__file__)
     project_home = os.path.split(project_home)[0]
     project_home = os.path.split(project_home)[0]
+
     return project_home
 
+def set_global_options_and_args():
+    '''
+    Set cmd line arguments in global vars OPTIONS and ARGS.
+
+    '''
+    global OPTIONS, ARGS
+
+    usage = "usage: %prog [-t] -f filename"
+
+    parser = OptionParser(usage=usage)
+    parser.add_option("-t", "--trace", action="store_true",
+                      help="run with trace.Trace")
+
+    parser.add_option("-f", dest="filename",
+                      help="only run the tests in the file")
+
+    (OPTIONS, ARGS) = parser.parse_args()
+
+def remove_cmd_line_arguments():
+    '''
+    Or unit test classes will try to get the arguments.
+
+    '''
+    del sys.argv[1:]
+
+def run_main_with_trace():
+    cover_dir = sys.path[0] + "/cover/"
+    print "Look in %s for cover files" % cover_dir
+
+    # create a Trace object, telling it what to ignore, and whether to
+    # do tracing or line-counting or both.
+    tracer = trace.Trace(
+        ignoredirs = [sys.prefix, sys.exec_prefix],
+        trace = 0,
+        count = 1,
+        countfuncs = 1,
+        countcallers = 1,
+        infile = cover_dir + "cover.tmp",
+        outfile = cover_dir + "cover.tmp"
+    )
+
+    # run the new command using the given tracer
+    tracer.run('main()')
+
+    # make a report, placing output in /tmp
+    r = tracer.results()
+    r.write_results(show_missing = True, summary = True, coverdir = cover_dir)
+
+def main():
+    unittest.main(defaultTest='suite')
+
 def add_tests_to_list (import_list, dirname, names):
+  global OPTIONS
+
   # Only check directories named 'tests'.
   if os.path.basename(dirname) != 'tests':
     return
+
   # Add any files that start with 'test_' and end with '.py'.
   for f in names:
     filename, ext = os.path.splitext(f)
-    if ext != '.py':
-      continue
-    if filename.find('test_') == 0:
-      import_list.append (os.path.join(dirname, filename))
+    if ext == '.py' and filename.find('test_') == 0:
+        if OPTIONS.filename == None or OPTIONS.filename == filename:
+            import_list.append (os.path.join(dirname, filename))
 
 def find_modules_and_add_paths (root_path):
   import_list = []
@@ -63,36 +136,5 @@ def suite():
 
   return alltests
 
-def main():
-    unittest.main(defaultTest='suite')
-
-def remove_cmd_line_arguments():
-    del sys.argv[1:]
-
-def setup_env():
-    sys.path.insert(1, get_project_home())
-    os.chdir(get_project_home())
-
-def run_main_with_trace():
-    # create a Trace object, telling it what to ignore, and whether to
-    # do tracing or line-counting or both.
-    tracer = trace.Trace(
-        ignoredirs=[sys.prefix, sys.exec_prefix],
-        trace=0,
-        count=1,
-        countfuncs=1,
-        countcallers=1,
-        infile='/tmp/cover.tmp',
-        outfile='/tmp/cover.tmp')
-
-    # run the new command using the given tracer
-    tracer.run('main()')
-
-    # make a report, placing output in /tmp
-    r = tracer.results()
-    r.write_results(show_missing=True, summary=True, coverdir="/tmp")
-
 if __name__ == '__main__':
-    setup_env()
-    remove_cmd_line_arguments()
-    run_main_with_trace()
+    run()
