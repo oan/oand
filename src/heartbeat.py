@@ -49,11 +49,9 @@ class HeartBeat(object):
     def set_dead(self):
         self._value = (datetime.utcnow() - timedelta(minutes = self.DEAD_MIN + 1))
 
-    def _is_expired(self, min):
+    def _is_touched(self, min):
         '''
-        Check if the heartbeat has expired.
-
-        If it has expired we haven't touched it for last MIN minutes.
+        Check if the heartbeat has been touched within MIN minutes.
 
         min - Number of minutes the heatbeat is valid.
 
@@ -71,7 +69,7 @@ class HeartBeat(object):
         The node needs to be verified if it's still alive.
 
         '''
-        return self._is_expired(self.EXPIRE_MIN)
+        return self._is_touched(self.EXPIRE_MIN)
 
     def is_inactive(self):
         '''
@@ -80,7 +78,7 @@ class HeartBeat(object):
         The node is probably offline.
 
         '''
-        return self._is_expired(self.INACTIVE_MIN)
+        return self._is_touched(self.INACTIVE_MIN)
 
     def is_dead(self):
         '''
@@ -89,4 +87,4 @@ class HeartBeat(object):
         The node is probably dead.
 
         '''
-        return self._is_expired(self.DEAD_MIN)
+        return self._is_touched(self.DEAD_MIN)

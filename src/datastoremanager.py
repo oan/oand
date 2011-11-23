@@ -15,34 +15,7 @@ from abc import ABCMeta, abstractmethod
 import pickle
 import os
 
-class ADataStoreManager(object):
-    """
-    Abstract class for managing stored data in the form: path:value
-
-    """
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def exist(self, hashKey):
-        pass
-
-    @abstractmethod
-    def set(self, path, data):
-        pass
-
-    @abstractmethod
-    def get(self, path):
-        pass
-
-    @abstractmethod
-    def delete(self, path):
-        pass
-
-    @abstractmethod
-    def list(self, path):
-        pass
-
-class SimpleDataStoreManager(ADataStoreManager):
+class SimpleDataStoreManager(object):
     """
     Managing stored data in the form: path:value
 

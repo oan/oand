@@ -34,15 +34,18 @@ class Config(object):
     # Name and path of the logfile.
     log_file = "oand.log"
 
+    # This nodes unique id
+    node_uuid = None
+
     # The name of the server oand is running on. This has no connection
     # to the hostname in the OS, it's just for reference.
-    server_name = None
+    node_name = None
 
     # The public ip number or domain name of this oand node.
-    server_domain_name = None
+    node_domain_name = None
 
     # The tcp/ip port that is open for connection.
-    server_port = None
+    node_port = None
 
     # Best Friend Forever Node. The first node to connect to, which will
     # give you access and knowledge to the whole network.
@@ -50,19 +53,21 @@ class Config(object):
     bff_domain_name = None
     bff_port = None
 
-    def __init__(self, server_name = None, domain_name = None, port = None,
+    def __init__(self, node_uuid = None, node_name = None, domain_name = None, port = None,
                  bff_name = None, bff_domain_name = None, bff_port = None):
         '''
         Createing a Config object.
 
         '''
-        self.server_name = str(server_name)
-        self.server_domain_name = str(domain_name)
-        self.server_port = str(port)
+        self.node_uuid = node_uuid
 
-        self.bff_name = str(bff_name)
-        self.bff_domain_name = str(bff_domain_name)
-        self.bff_port = str(bff_port)
+        self.node_name = node_name
+        self.node_domain_name = domain_name
+        self.node_port = port
+
+        self.bff_name = bff_name
+        self.bff_domain_name = bff_domain_name
+        self.bff_port = bff_port
 
     def set_from_file(self, filename):
         '''

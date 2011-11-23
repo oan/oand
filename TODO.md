@@ -1,3 +1,13 @@
+HIGH-LEVEL TODO
+===============
+* Node-awareness
+* File-awareness
+* File transfer
+* Optimize speed/amount-of-data
+* Client
+* Encryption
+* VERSION 0.1
+
 TODO
 ====
 
@@ -24,6 +34,15 @@ TODO
 # Has possibility to specify port and bff-port on command line.
 
 # Added a local oan network spawner.
+
+* Write test_resources and resourcemanager.
+
+* Prefix all our classes with OAN.
+
+* Rename server-* to node-* in oand.cfg
+
+* Use twisted json-rpc??
+  http://stackoverflow.com/questions/4738209/python-twisted-json-rpc
 
 * Have a look att github ruby comment thing.
 

@@ -23,6 +23,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import uuid
+
 from heartbeat import HeartBeat
 
 class ResourceRoot:
@@ -78,11 +80,28 @@ class ResourceRoot:
     def get(self, path):
         return self.resources[path]
 
+    def get_known_parent(self, path):
+        '''
+        Get the first known/existing parent from path.
+
+        If path is /music/metal/danzig/ the function will check if metal exists
+        and then music and the root, until finding an existing resource.
+
+        '''
+        parent_path = path.rpartition('/')[0] + "/"
+
+        if self.exist(parent_path):
+            return self.get(parent_path)
+        else:
+            return self.get_known_parent(parent_path.rstrip("/"))
+
 class Resource():
+    _uuid = None
     directory = None
     name = None
     content = None
     heartbeat = None
+    node_uuids = []
 
     def __init__(self):
         self.heartbeat = HeartBeat()
@@ -94,8 +113,39 @@ class Resource():
         return isinstance(self, File)
 
     @property
+    def uuid(self):
+        if not self._uuid:
+            self._uuid = uuid.uuid5(
+                uuid.NAMESPACE_URL, self.directory + '/' + self.name
+            )
+        return self._uuid
+
+    @property
     def path(self):
         return self.directory + self.name
+
+    @property
+    def type(self):
+        return self.__class__.__name__
+
+    @classmethod
+    def create_from_dict(cls, args):
+        return cls (
+            args['uuid'],
+            args['name'],
+            args['domain_name'],
+            args['port'],
+            args['last_heartbeat']
+        )
+
+    def get_dict(self):
+        param = {}
+        param['uuid'] = str(self.uuid)
+        param['type'] = self.type
+        param['directory'] = self.directory
+        param['name'] = self.name
+        param['content'] = self.content
+        return param
 
 class Folder(Resource):
     def __init__(self, path):

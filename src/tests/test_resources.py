@@ -12,10 +12,15 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import unittest
-from resources import *
-from test_heartbeat import TestHeartBeat
+import logging
 
-class TestResources(TestHeartBeat):
+from resources import *
+from oand import OANDaemon
+from config import Config
+from networknodemanager import CircularNetworkNodeManager, NetworkNode
+from resourcemanager import ResourceManager
+
+class TestResources(unittest.TestCase):
     def setUp(self):
         self._res = ResourceRoot()
         self._res.set(Folder('/movies/'))
@@ -55,23 +60,48 @@ class TestResources(TestHeartBeat):
     def test_heartbeat(self):
         '''
         Same tests that can be found in test_heartbeat.py
+
         '''
         hb = self._res.get('/').heartbeat
-        TestHeartBeat.test_heartbeat(self, hb)
 
-# class TestResourceManager(unittest.TestCase):
-#     def setup(self):
-#         self._res1 = ResourceRoot()
-#         networkNodeManager = NetworkNodeManager()
-#         self.manager = ResourceManager(self._res1, networkNodeManager)
+class TestResourceManager(unittest.TestCase):
 
-#     def test_get(self):
-#         self.manager.get('/')
-#         self.manager.get('/music/')
-#         self.manager.get('/music/queen.mp3')
+    def start_logging(self):
+        # Setup logging
+        ch1 = logging.handlers.RotatingFileHandler(
+            "/tmp/oan-test.log", maxBytes=2000000, backupCount=100)
+        ch1.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s - oand (%(process)d) - %(message)s')
+        ch1.setFormatter(formatter)
+        logging.getLogger().addHandler(ch1)
 
-#         self.manager.refresh()
+    def create_network_node_manager(self):
+        network_node_manager = CircularNetworkNodeManager()
 
+        network_node_manager.set_my_node(NetworkNode(
+            'self-node-1',
+            'self-node',
+            'localhost',
+            '3000'
+        ))
+
+        network_node_manager.connect_to_oan("localhost:4000")
+
+        return network_node_manager
+
+    def setUp(self):
+        self.start_logging()
+        network_node_manager = self.create_network_node_manager()
+
+        self.manager = ResourceManager(network_node_manager)
+
+    def test_all(self):
+        #self.manager.get('/music/rock/queen.mp3')
+        #self.manager.get('/music/')
+        self.manager.get('/')
+
+        #self.manager.refresh()
 
 if __name__ == '__main__':
     unittest.main()

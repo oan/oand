@@ -28,10 +28,15 @@ def run():
     set_global_options_and_args()
     remove_cmd_line_arguments()
 
+    import oantestnetwork
+    oantestnetwork.start_test_network()
+
     if OPTIONS.trace:
         run_main_with_trace()
     else:
         main()
+
+    oantestnetwork.stop_test_network()
 
 def setup_env():
     sys.path.insert(1, get_project_home())
@@ -97,7 +102,7 @@ def run_main_with_trace():
     r.write_results(show_missing = True, summary = True, coverdir = cover_dir)
 
 def main():
-    unittest.main(defaultTest='suite')
+    unittest.TextTestRunner().run(suite())
 
 def add_tests_to_list (import_list, dirname, names):
   global OPTIONS
@@ -133,7 +138,6 @@ def suite():
   alltests = unittest.TestSuite()
   for module in map(__import__, modules_to_test):
     alltests.addTest(unittest.findTestCases(module))
-
   return alltests
 
 if __name__ == '__main__':

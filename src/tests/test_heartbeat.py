@@ -16,13 +16,12 @@ from heartbeat import *
 
 class TestHeartBeat(unittest.TestCase):
 
-    def test_heartbeat(self, hb = None):
+    def test_heartbeat(self):
         '''
         Also called from test_resources
 
         '''
-        if hb == None:
-            hb = HeartBeat()
+        hb = HeartBeat()
 
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_inactive(), True)

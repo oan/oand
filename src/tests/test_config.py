@@ -22,30 +22,33 @@ class TestConfig(unittest.TestCase):
     opts["verbose"] = 5
     opts["config"] = "/tmp/oand.cfg"
     opts["pid_file"] = "/tmp/oand.pid"
-    opts["log_file"] = "/log/oand.log"
+    opts["log_file"] = "/tmp/oand.log"
 
-    opts["server_name"] = "this-is-a-server-name"
-    opts["server_domain_name"] = "www.cybercow.se"
-    opts["server_port"] = "4000"
-    opts["bff_name"] = "LeetServer"
+    opts['node_uuid'] = "1"
+    opts["node_name"] = "this-is-a-node-name"
+    opts["node_domain_name"] = "www.cybercow.se"
+    opts["node_port"] = "4000"
+    opts["bff_name"] = "LeetNode"
     opts["bff_domain_name"] = "node1.cybecow.se"
     opts["bff_port"] = "1337"
 
     def setUp(self):
         self._config = Config(
-          self.opts["server_name"],
-          self.opts["server_domain_name"],
-          self.opts["server_port"],
-          self.opts["bff_name"],
-          self.opts["bff_domain_name"],
-          self.opts["bff_port"]
+            self.opts["node_uuid"],
+            self.opts["node_name"],
+            self.opts["node_domain_name"],
+            self.opts["node_port"],
+            self.opts["bff_name"],
+            self.opts["bff_domain_name"],
+            self.opts["bff_port"]
         )
 
     def test_config(self):
         cnf = self._config
-        self.assertEqual(cnf.server_name, self.opts["server_name"])
-        self.assertEqual(cnf.server_domain_name, self.opts["server_domain_name"])
-        self.assertEqual(cnf.server_port, self.opts["server_port"])
+        self.assertEqual(cnf.node_uuid, self.opts["node_uuid"])
+        self.assertEqual(cnf.node_name, self.opts["node_name"])
+        self.assertEqual(cnf.node_domain_name, self.opts["node_domain_name"])
+        self.assertEqual(cnf.node_port, self.opts["node_port"])
         self.assertEqual(cnf.bff_name, self.opts["bff_name"])
         self.assertEqual(cnf.bff_domain_name, self.opts["bff_domain_name"])
         self.assertEqual(cnf.bff_port, self.opts["bff_port"])

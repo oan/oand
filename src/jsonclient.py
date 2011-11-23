@@ -44,6 +44,7 @@ class JsonClient(Client):
         if result['status'] == "ok":
             for node_id, node in result['nodes'].iteritems():
                 nodes[node_id] = NetworkNode(
+                    node['uuid'],
                     node['name'],
                     node['domain_name'],
                     node['port'],
@@ -52,6 +53,9 @@ class JsonClient(Client):
 
     def send_heartbeat(self, node):
         return self._execute_post("/heartbeat", node.get_dict())
+
+    def get_resource(self, node, path):
+        return self._execute_post("/resource/%s" % path, node.get_dict())
 
     def _execute_post(self, cmd, param):
         '''

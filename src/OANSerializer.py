@@ -8,7 +8,7 @@ c1 = Test("c1", "file 1")
 txt = OANSerializer.encode(c1)
 obj = OANSerializer.decode(txt)
 
-self.assertEqual(obj.get_name(), "c1")
+self.assertEqual(obj.name, "c1")
 self.assertEqual(obj.content, "file 1")
 
 '''
@@ -23,8 +23,9 @@ __status__ = "Test"
 from json import JSONEncoder, JSONDecoder
 
 # Classes that should be possible to encode and decode.
-from resources import Resource
-_cls_list = {'Resource' : Resource}
+from resources import Resource, Folder, File
+from heartbeat import HeartBeat
+_cls_list = {"Resource" : Resource, "Folder" : Folder, "File" : File, "HeartBeat" : HeartBeat}
 
 def add(name, cls):
     _cls_list[name] = cls
