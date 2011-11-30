@@ -1,4 +1,15 @@
 #!/usr/bin/env python
+'''
+Holding all configurations that can be done to oand.
+
+Usually reading contents from a config file (oand.conf) but also possible
+to initialize all data via the constructor and property members.
+
+Domain_name/bff_domain_name should point to the public ip number,
+of the oand computer node. This ip/domain are sent to remote nodes,
+and they will try to connect to it later.
+
+'''
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -9,19 +20,7 @@ __status__ = "Test"
 
 import ConfigParser
 
-class Config(object):
-    '''
-    Holding all configurations that can be done to oand.
-
-    Usually reading contents from a config file (oand.conf) but also possible
-    to initialize all data via the constructor and property members.
-
-    Domain_name/bff_domain_name should point to the public ip number,
-    of the oand computer node. This ip/domain are sent to remote nodes,
-    and they will try to connect to it later.
-
-    '''
-
+class OANConfig(object):
     # The output verbose level 0-2
     verbose = 2 # TODO: During development it's set to 2/debug mode.
 

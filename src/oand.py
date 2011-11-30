@@ -5,7 +5,6 @@ Proof of concept of distributed nosql RESTful database/filesystem.
 # READ MORE
 # http://twistedmatrix.com/documents/current/web/
 
-
 # Test with
 # curl -d "hashKey=key1;body=fulltextbodynoencoding" http://localhost:8082/train
 # Content-Type: application/json
@@ -20,72 +19,66 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from logging import Logger
 import logging
-import sys
 import logging.handlers
-import pickle
-import os
-import sys
-import time
-
+from apscheduler.scheduler import Scheduler
 from optparse import OptionParser, make_option, IndentedHelpFormatter
 from twisted.internet import reactor
 
-from daemon import Daemon
-from config import Config
-from datastoremanager import SimpleDataStoreManager
-from twistedserver import TwistedServer
-from jsonclient import JsonClient
-from networknodemanager import CircularNetworkNodeManager, NetworkNode
-from resourcemanager import ResourceManager
-from apscheduler.scheduler import Scheduler
-
-app = None
+from oan import node_manager, meta_manager, data_manager, set_managers
+from oandaemonbase import OANDaemonBase
+from oannodemanager import OANNodeManager
+from oanmetamanager import OANMetaManager
+from oandatamanager import OANDataManager
+from oanconfig import OANConfig
+from oannetworknode import OANNetworkNode
+from oanserver import OANServer
 
 class OANApplication():
-    _config = None
-    network_node_manager = None
-    _server = None
+    config = None
 
     _sched = Scheduler()
 
     def __init__(self, config):
-        self._config = config
+        self.config = config
 
         self._start_logger(logging.getLogger("apscheduler.scheduler"), logging.WARNING)
         self._start_logger(logging.getLogger(), logging.DEBUG)
 
-    def run(self):
-        logging.info("Starting Open Archive Network (oand) for " +
-                     self._config.node_name)
+    def setup_node_manager(self):
+        '''
+        Prepare nodemanager to connect to OAN network.
 
-        self.network_node_manager = CircularNetworkNodeManager()
-        self.network_node_manager.remove_expired_nodes()
-
-        self.network_node_manager.set_my_node(NetworkNode(
-            self._config.node_uuid,
-            self._config.node_name,
-            self._config.node_domain_name,
-            self._config.node_port
+        '''
+        node_manager().remove_expired_nodes()
+        node_manager().set_my_node(OANNetworkNode(
+            self.config.node_uuid,
+            self.config.node_name,
+            self.config.node_domain_name,
+            self.config.node_port
         ))
 
-        if (self._config.bff_domain_name and self._config.bff_port):
-            url = "%s:%s" % (self._config.bff_domain_name, self._config.bff_port)
+        if (self.config.bff_domain_name and self.config.bff_port):
+            url = "%s:%s" % (self.config.bff_domain_name, self.config.bff_port)
             logging.info("Add bff %s" % url)
-            reactor.callLater(1, self.network_node_manager.connect_to_oan, url)
+            reactor.callLater(1, node_manager().connect_to_oan, url)
+
+    def run(self):
+        logging.info("Starting Open Archive Network (oand) for " +
+                     self.config.node_name)
+
+        set_managers(
+            OANDataManager("../var/data.dat"),
+            OANMetaManager(),
+            OANNodeManager()
+        )
+        self.setup_node_manager()
 
         self._start_scheduler()
 
-        resource_manager = ResourceManager(self.network_node_manager)
-        data_store_manager = SimpleDataStoreManager("../var/data.dat")
-        TwistedServer(
-            self._config,
-            self.network_node_manager,
-            resource_manager,
-            data_store_manager
-        )
+        OANServer(self.config)
         reactor.run()
+
         logging.info("Stopping Open Archive Network (oand)")
 
     def _start_scheduler(self):
@@ -95,14 +88,10 @@ class OANApplication():
         self._sched.start()
 
     def run_every_minute(self):
-        self.network_node_manager.check_heartbeat()
+        node_manager().check_heartbeat()
 
     def run_every_day(self):
-        self.network_node_manager.remove_expired_nodes()
-
-    @property
-    def config(self):
-        return self._config
+        node_manager().remove_expired_nodes()
 
     def _start_logger(self, my_logger, log_level):
         my_logger.setLevel(log_level)
@@ -111,7 +100,7 @@ class OANApplication():
         ch1 = logging.handlers.SysLogHandler()
         ch1.setLevel(log_level)
         ch2 = logging.handlers.RotatingFileHandler(
-            self._config.log_file, maxBytes=2000000, backupCount=100)
+            self.config.log_file, maxBytes=2000000, backupCount=100)
         ch2.setLevel(log_level)
 
         # create formatter
@@ -127,13 +116,15 @@ class OANApplication():
         my_logger.addHandler(ch1)
         my_logger.addHandler(ch2)
 
-class OANDaemon(Daemon):
+class OANDaemon(OANDaemonBase):
+    _app = None
+
     def __init__(self, config):
-        app = OANApplication(config)
+        _app = OANApplication(config)
         Daemon.__init__(self, self._app.config.pid_file)
 
     def run(self):
-        app.run()
+        _app.run()
 
 class OANApplicationStarter():
     '''
@@ -220,7 +211,7 @@ class OANApplicationStarter():
         Handle the positional arguments from the commandline.
 
         '''
-        config = Config()
+        config = OANConfig()
         config.set_from_file(options.config)
         config.set_from_cmd_line(options)
         config.print_options()
@@ -232,8 +223,7 @@ class OANApplicationStarter():
         elif argument == 'restart':
             OANDaemon(config).restart()
         elif argument == 'native':
-            app = OANApplication(config)
-            app.run()
+            OANApplication(config).run()
         else:
             self._parser.print_help()
 

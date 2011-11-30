@@ -12,27 +12,21 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import urllib
-class AppURLopener(urllib.FancyURLopener):
-    version = "OAND/0.1"
-urllib._urlopener = AppURLopener()
-
 import json
 import logging
 
-from abc import ABCMeta, abstractmethod
+from oannetworknode import OANNetworkNode
 
-from networknode import NetworkNode
+class AppURLopener(urllib.FancyURLopener):
+    '''
+    Set user agent for all client requests.
 
-class Client():
-    '''Abstract class for network clients'''
-    __metaclass__ = ABCMeta
+    '''
+    version = "OAND/0.1"
 
-    _logger = None
+urllib._urlopener = AppURLopener()
 
-    def __init__(self):
-        self._logger = logging.getLogger('oand')
-
-class JsonClient(Client):
+class OANClient():
     _url = None
 
     def connect(self, url):
@@ -43,12 +37,13 @@ class JsonClient(Client):
         nodes = {}
         if result['status'] == "ok":
             for node_id, node in result['nodes'].iteritems():
-                nodes[node_id] = NetworkNode(
+                nodes[node_id] = OANNetworkNode(
                     node['uuid'],
                     node['name'],
                     node['domain_name'],
                     node['port'],
-                    node['last_heartbeat'])
+                    node['last_heartbeat']
+                )
         return nodes
 
     def send_heartbeat(self, node):
@@ -66,8 +61,8 @@ class JsonClient(Client):
         json_param = "json=" + json.dumps(param)
 
         url = "http://" + self._url + cmd
-        self._logger.debug("Execute: curl -X POST -d '%s' %s" % (json_param, url))
+        logging.debug("Execute: curl -X POST -d '%s' %s" % (json_param, url))
         f = urllib.urlopen(url, json_param)
         json_data = f.read()
-        self._logger.debug("  Result: %s" % (json_data))
+        logging.debug("  Result: %s" % (json_data))
         return json.loads(json_data)

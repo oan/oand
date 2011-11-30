@@ -12,9 +12,9 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from datetime import datetime, timedelta
-from heartbeat import HeartBeat
+from oanheartbeat import OANHeartBeat
 
-class NetworkNode():
+class OANNetworkNode():
     heartbeat = None
 
     uuid = None
@@ -28,7 +28,7 @@ class NetworkNode():
         self.domain_name = domain_name
         self.port = port
 
-        self.heartbeat = HeartBeat(last_heartbeat)
+        self.heartbeat = OANHeartBeat(last_heartbeat)
 
     @classmethod
     def create_from_dict(cls, args):

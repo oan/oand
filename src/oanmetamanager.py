@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-
+Handles metadata for the filesystem/resources.
 
 '''
 
@@ -11,16 +11,24 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from resources import *
+from oanresource import *
+from oan import node_manager
 
-class ResourceManager():
+class OANMetaManager():
     resourceRoot = None
-    networkNodeManager = None
 
-    def __init__(self, networkNodeManager):
-        self.resourceRoot = ResourceRoot()
-        self.networkNodeManager = networkNodeManager
-        self.resourceRoot.get("/").node_uuids.extend(networkNodeManager.node_uuids)
+    def __init__(self):
+        self.resourceRoot = OANResourceRoot()
+
+    def update_root_node_uuids(self):
+        '''
+        Update node_uuids on resourceRoot with node_manager node_uuids.
+
+        The resourceRoot root folder should have all known node_uuids on the
+        oan network.
+
+        '''
+        self.resourceRoot.get("/").node_uuids.extend(node_manager().node_uuids)
 
     def get(self, path):
         '''
@@ -29,7 +37,7 @@ class ResourceManager():
         '''
         if not self.resourceRoot.exist(path) or self.resourceRoot.get("/").heartbeat.is_expired():
             node_uuids = self.resourceRoot.get_known_parent(path).node_uuids
-            for result in self.networkNodeManager.get_remote_resources(node_uuids, path):
+            for result in node_manager().get_remote_resources(node_uuids, path):
                 pass
                 #self.resourceRoot.set(path, res)
 

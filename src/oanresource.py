@@ -25,14 +25,14 @@ __status__ = "Test"
 
 import uuid
 
-from heartbeat import HeartBeat
+from oanheartbeat import OANHeartBeat
 
-class ResourceRoot:
+class OANResourceRoot:
     resources = None
 
     def __init__(self):
         self.resources = {}
-        self.resources['/'] = Folder('/')
+        self.resources['/'] = OANFolder('/')
 
     def _mkdir(self, directory, name):
         '''
@@ -49,7 +49,7 @@ class ResourceRoot:
         '''
         path = directory + name
         if (not self.exist(path)):
-            self.resources[path] = Folder(path)
+            self.resources[path] = OANFolder(path)
             if (directory):
                 self.get(directory).add(name)
 
@@ -95,7 +95,7 @@ class ResourceRoot:
         else:
             return self.get_known_parent(parent_path.rstrip("/"))
 
-class Resource():
+class OANResource():
     _uuid = None
     directory = None
     name = None
@@ -104,7 +104,7 @@ class Resource():
     node_uuids = []
 
     def __init__(self):
-        self.heartbeat = HeartBeat()
+        self.heartbeat = OANHeartBeat()
 
     def is_folder(self):
         return isinstance(self, Folder)
@@ -147,9 +147,9 @@ class Resource():
         param['content'] = self.content
         return param
 
-class Folder(Resource):
+class OANFolder(OANResource):
     def __init__(self, path):
-        Resource.__init__(self)
+        OANResource.__init__(self)
         path = path.rstrip('/')
         parts = path.rpartition('/')
         self.directory = parts[0] + parts[1]
@@ -160,9 +160,9 @@ class Folder(Resource):
     def add(self, content):
         self.content.append(content)
 
-class File(Resource):
+class OANFile(OANResource):
     def __init__(self, path):
-        Resource.__init__(self)
+        OANResource.__init__(self)
         parts = path.rpartition('/')
         self.directory = parts[0] + parts[1]
         self.name = parts[2]

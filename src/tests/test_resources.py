@@ -79,14 +79,14 @@ class TestResourceManager(unittest.TestCase):
     def create_network_node_manager(self):
         network_node_manager = CircularNetworkNodeManager()
 
-        network_node_manager.set_my_node(NetworkNode(
+        network_node_manager().set_my_node(NetworkNode(
             'self-node-1',
             'self-node',
             'localhost',
             '3000'
         ))
 
-        network_node_manager.connect_to_oan("localhost:4000")
+        network_node_manager().connect_to_oan("localhost:4000")
 
         return network_node_manager
 

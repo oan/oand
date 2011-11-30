@@ -19,47 +19,31 @@ from twisted.web import server, resource, http
 from twisted.internet import reactor
 from twisted.web.static import File
 
-from networknode import NetworkNode
-import oand
+from oannetworknode import OANNetworkNode
+from oan import node_manager, meta_manager, data_manager
 
-class TwistedServer():
+class OANServer():
     '''
     Creating a twisted server.
 
     '''
-    _logger = None
-    _node_port = None
-    _network_nodes_manager = None
-    _resource_manager = None
-    _data_store_manager = None
-
-    def __init__(self, config, network_nodes_manager, resource_manager, data_store_manager):
-        self._logger = logging.getLogger('oand')
-        self._node_port = int(config.node_port)
-        self._network_nodes_manager = oand.app.network_nodes_manager
-        self._resource_manager = resource_manager
-        self._data_store_manager = data_store_manager
+    def __init__(self, config):
         reactor.listenTCP(
-            self._node_port,
+            int(config.node_port),
             server.Site(
-                RootResource(
-                    self._network_nodes_manager,
-                    self._resource_manager,
-                    self._data_store_manager
-                )
+                OANRootHandler()
             )
         )
-        self._logger.debug("Start twisted server on port %d." %
-                           self._node_port)
+        logging.debug("Start twisted server on port %s." % config.node_port)
 
-class RootResource(resource.Resource):
-    def __init__(self, network_nodes_manager, resource_manager, data_store_manager):
+class OANRootHandler(resource.Resource):
+    def __init__(self):
         resource.Resource.__init__(self)
-        self.putChild('nodes', NodeListHandler(network_nodes_manager))
-        self.putChild('heartbeat', HeartbeatHandler(network_nodes_manager))
-        self.putChild('value', ValueHandler(data_store_manager))
-        self.putChild('htmlvalue', HtmlValueHandler(data_store_manager))
-        self.putChild('resource', ResourceHandler(resource_manager))
+        self.putChild('nodes', OANNodeListHandler())
+        self.putChild('heartbeat', OANHeartbeatHandler())
+        self.putChild('value', OANValueHandler())
+        self.putChild('htmlvalue', OANHtmlValueHandler())
+        self.putChild('meta', OANMetaHandler())
         self.putChild('', File(self.get_current_dir() + "html/index.html"))
 
     def getChild(self, path, request):
@@ -68,9 +52,9 @@ class RootResource(resource.Resource):
     def get_current_dir(self):
         return os.path.dirname(__file__) + "/"
 
-class OANHandler(resource.Resource):
+class OANHandlerBase(resource.Resource):
     def __init__(self):
-        self.isLeaf=True
+        self.isLeaf = True
         resource.Resource.__init__(self)
 
     def render_HEAD(self, request):
@@ -103,7 +87,8 @@ class OANHandler(resource.Resource):
             request.URLPath(),
             "/".join(request.postpath),
             request.getHeader("user-agent"),
-            type))
+            type)
+        )
 
     def get_not_supported_resources(self):
         return File(self.get_current_dir() + "html/not-supported.html")
@@ -111,15 +96,9 @@ class OANHandler(resource.Resource):
     def create_node_from_request(self, request):
         json_args = request.args['json'][0]
         args = json.loads(json_args)
-        return NetworkNode.create_from_dict(args)
+        return OANNetworkNode.create_from_dict(args)
 
-class NodeListHandler(OANHandler):
-    _network_nodes_manager = None
-
-    def __init__(self, network_nodes_manager):
-        self._network_nodes_manager = network_nodes_manager
-        OANHandler.__init__(self)
-
+class OANNodeListHandler(OANHandlerBase):
     def render_nodes_result(self, request):
         self.set_json_headers(request)
 
@@ -127,11 +106,11 @@ class NodeListHandler(OANHandler):
         obj["status"] = "ok"
         obj["nodes"] = {}
 
-        node = self._network_nodes_manager.get_my_node()
-        node.heartbeat.touch()
-        obj["nodes"][node.uuid] = node.get_dict()
+        my_node = node_manager().get_my_node()
+        my_node.heartbeat.touch()
+        obj["nodes"][node.uuid] = my_node.get_dict()
 
-        for node in self._network_nodes_manager.get_nodes().itervalues():
+        for node in node_manager().get_nodes().itervalues():
             obj["nodes"][node.uuid] = node.get_dict()
 
         return json.dumps(obj)
@@ -144,33 +123,23 @@ class NodeListHandler(OANHandler):
         self.log(request, "post-nodes")
 
         remote_node = self.create_node_from_request(request)
-        self._network_nodes_manager.touch_last_heartbeat(remote_node)
+        node_manager().touch_last_heartbeat(remote_node)
 
         return self.render_nodes_result(request)
 
-class HeartbeatHandler(OANHandler):
-    _network_nodes_manager = None
-
-    def __init__(self, network_nodes_manager):
-        self._network_nodes_manager = network_nodes_manager
-        OANHandler.__init__(self)
-
+class OANHeartbeatHandler(OANHandlerBase):
     def render_POST(self, request):
         self.log(request, "post-heartbeat")
 
         remote_node = self.create_node_from_request(request)
-        self._network_nodes_manager.touch_last_heartbeat(remote_node)
+        node_manager().touch_last_heartbeat(remote_node)
 
         self.set_json_headers(request)
         obj = {}
         obj["status"] = "ok"
         return json.dumps(obj)
 
-class ValueHandler(OANHandler):
-    def __init__(self, data_store_manager):
-        self._data_store_manager = data_store_manager
-        OANHandler.__init__(self)
-
+class OANValueHandler(OANHandlerBase):
     def _get_key(self, request):
         return "/".join(request.postpath)
 
@@ -181,12 +150,12 @@ class ValueHandler(OANHandler):
         self.set_json_headers(request)
         obj = {}
 
-        if (self._data_store_manager.exist(key)):
+        if (data_manager().exist(key)):
             request.setResponseCode(http.FOUND)
             obj["status"] = "ok"
             obj["type"] = "get-value"
             obj["key"] = key
-            obj["value"] = self._data_store_manager.get(key)
+            obj["value"] = data_manager().get(key)
         else:
             request.setResponseCode(http.NOT_FOUND)
             obj["status"] = "fail"
@@ -201,7 +170,7 @@ class ValueHandler(OANHandler):
         self.log(request, "post-value")
 
         value = request.args['value'][0]
-        self._data_store_manager.set(key, value)
+        data_manager().set(key, value)
 
         self.set_json_headers(request)
         request.setResponseCode(http.FOUND)
@@ -215,8 +184,8 @@ class ValueHandler(OANHandler):
         key = self._get_key(request)
         self.log(request, "delete-value")
 
-        if self._data_store_manager.exist(key):
-            self._data_store_manager.delete(key)
+        if data_manager().exist(key):
+            data_manager().delete(key)
             status =  "ok"
         else:
             status = "fail"
@@ -229,11 +198,7 @@ class ValueHandler(OANHandler):
         obj["value"] = "delete-value"
         return json.dumps(obj)
 
-class HtmlValueHandler(ValueHandler):
-    def __init__(self, data_store_manager):
-        self._data_store_manager = data_store_manager
-        OANHandler.__init__(self)
-
+class OANHtmlValueHandler(OANValueHandler):
     def get_html_file_form(self, resource):
         return """
         <html><body>Use post method for direct insertion or form below<br>
@@ -261,9 +226,9 @@ class HtmlValueHandler(ValueHandler):
 
         self.set_html_headers(request)
 
-        if (self._data_store_manager.exist(key)):
+        if (data_manager().exist(key)):
             request.setResponseCode(http.FOUND)
-            resource = self._data_store_manager.get(key)
+            resource = data_manager().get(key)
         else:
             request.setResponseCode(http.NOT_FOUND)
             resource = Resource(path = key, value="Default")
@@ -282,42 +247,38 @@ class HtmlValueHandler(ValueHandler):
         if ("delete" in request.args):
             self.log(request, "delete-html-value")
             value = "Default"
-            self._data_store_manager.delete(key)
+            data_manager().delete(key)
         else:
             self.log(request, "post-html-value")
             value = request.args['value'][0]
-            self._data_store_manager.set(key, value)
+            data_manager().set(key, value)
 
         return self.get_html_form(key, value)
 
     def render_DELETE(self, request):
         return "Not implemented"
 
-class ResourceHandler(OANHandler):
-    def __init__(self, resource_manager):
-        self._resource_manager = resource_manager
-        OANHandler.__init__(self)
-
+class OANMetaHandler(OANHandlerBase):
     def _get_key(self, request):
         return "/".join(request.postpath)
 
     def render_GET(self, request):
-        self.log(request, "get-resource")
+        self.log(request, "get-meta")
 
         self.set_json_headers(request)
         obj = {}
 
         key = '/' + self._get_key(request)
-        if (self._resource_manager.resourceRoot.exist(key)):
+        if (meta_manager().resourceRoot.exist(key)):
             request.setResponseCode(http.FOUND)
             obj["status"] = "ok"
-            obj["type"] = "get-resource"
+            obj["type"] = "get-meta"
             obj["key"] = key
-            obj["value"] = self._resource_manager.get(key).get_dict()
+            obj["value"] = meta_manager().get(key).get_dict()
         else:
             request.setResponseCode(http.NOT_FOUND)
             obj["status"] = "fail"
-            obj["type"] = "get-resource"
+            obj["type"] = "get-meta"
             obj["key"] = key
             obj["value"]  = ""
 

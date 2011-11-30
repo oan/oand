@@ -11,15 +11,14 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from abc import ABCMeta, abstractmethod
 import pickle
 import os
 
-class SimpleDataStoreManager(object):
-    """
+class OANDataManager(object):
+    '''
     Managing stored data in the form: path:value
 
-    """
+    '''
 
     _data = None
     _filename = None

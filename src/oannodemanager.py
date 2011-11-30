@@ -14,25 +14,9 @@ __status__ = "Test"
 import logging
 import sys
 
-from abc import ABCMeta, abstractmethod
+from oanclient import OANClient
 
-from networknode import NetworkNode
-from jsonclient import JsonClient
-
-class NetworkNodeManager():
-    '''Abstract class for Networknodes'''
-    __metaclass__ = ABCMeta
-
-
-#    @abstractmethod
-#    def join_remote_server(self, remote_node):
-#        pass
-
-#    @abstractmethod
-#    def add_node(self, name, domain_name, port):
-#        pass
-
-class CircularNetworkNodeManager(NetworkNodeManager):
+class OANNodeManager():
     # Info about my own node.
     _my_node = None
 
@@ -113,13 +97,14 @@ class CircularNetworkNodeManager(NetworkNodeManager):
 
     def connect_to_node(self, connection_url):
         try:
-            remote_node = JsonClient()
+            remote_node = OANClient()
             remote_node.connect(connection_url)
             nodes = remote_node.get_nodes(self.get_my_node())
             logging.info("Add %d nodes from %s" % (
                               len(nodes),
                               connection_url))
             self.add_nodes(nodes)
+            meta_manager().update_root_node_uuids()
 
             # We just recived data from this node, so it's alive.
             # TODO:
@@ -139,7 +124,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
     def send_heartbeat(self, node):
         logging.debug("Send heartbeat to: " + node.name)
         try:
-            remote_node = JsonClient()
+            remote_node = OANClient()
             remote_node.connect(node.connection_url)
             response = remote_node.send_heartbeat(self.get_my_node())
             if response['status'] == 'ok':
@@ -174,7 +159,7 @@ class CircularNetworkNodeManager(NetworkNodeManager):
         for node in self.get_node_from_uuids(node_uuids):
             logging.debug("Get resource from %s:%s." % (node_uuids, node.connection_url))
             try:
-                remote = JsonClient()
+                remote = OANClient()
                 remote.connect(node.connection_url)
                 response = remote.get_resource(self.get_my_node(), path)
                 if response['status'] == 'ok':
