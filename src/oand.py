@@ -25,6 +25,7 @@ from apscheduler.scheduler import Scheduler
 from optparse import OptionParser, make_option, IndentedHelpFormatter
 from twisted.internet import reactor
 
+import oan
 from oan import node_manager, meta_manager, data_manager, set_managers
 from oan_daemon_base import OANDaemonBase
 from oan_node_manager import OANNodeManager
@@ -193,7 +194,7 @@ class OANApplicationStarter():
 
             make_option(
                 "--defaults-extra-file", metavar="FILE",
-                dest="config", default="../etc/oand.cfg",
+                dest="config", default = oan.ETC_DIR + "oand.cfg",
                 help="The name of the config file."),
 
             make_option(

@@ -14,7 +14,7 @@ __status__ = "Test"
 import unittest
 from oan_heartbeat import *
 
-class TestHeartBeat(unittest.TestCase):
+class TestOANHeartBeat(unittest.TestCase):
 
     def test_heartbeat(self):
         '''

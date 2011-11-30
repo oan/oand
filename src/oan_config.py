@@ -18,6 +18,7 @@ __license__ = "We pwn it all."
 __version__ = "0.2"
 __status__ = "Test"
 
+import oan
 import ConfigParser
 
 class OANConfig(object):
@@ -25,13 +26,13 @@ class OANConfig(object):
     verbose = 2 # TODO: During development it's set to 2/debug mode.
 
     # Config file
-    config = "oand.cfg"
+    config = oan.ETC_DIR + "oand.cfg"
 
     # Name and path of the pidfile
-    pid_file = "oand.pid"
+    pid_file = oan.VAR_DIR + "run/oand.pid"
 
     # Name and path of the logfile.
-    log_file = "oand.log"
+    log_file = oan.LOG_DIR + "oand.log"
 
     # This nodes unique id
     node_uuid = None
@@ -73,7 +74,7 @@ class OANConfig(object):
         Initialize Config from a file.
 
         '''
-        config = ConfigParser.ConfigParser({"log-file" : "oand.log"})
+        config = ConfigParser.ConfigParser({"log-file" : oan.LOG_DIR + "oand.log"})
         config.readfp(open(filename))
         if config.has_section("oand"):
             for option in config.options("oand"):

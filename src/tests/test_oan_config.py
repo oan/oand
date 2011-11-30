@@ -12,6 +12,8 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import unittest
+
+import oan
 from oan_config import OANConfig
 
 class TestOANConfig(unittest.TestCase):
@@ -62,13 +64,13 @@ class TestOANConfig(unittest.TestCase):
     def test_config_extended(self):
         cnf = self._config
 
-        self.assertEqual(cnf.pid_file, "oand.pid")
-        self.assertEqual(cnf.log_file, "oand.log")
+        self.assertEqual(cnf.pid_file, oan.VAR_DIR + "run/oand.pid")
+        self.assertEqual(cnf.log_file, oan.LOG_DIR + "oand.log")
 
 class TestOANConfigSetFromFile(TestOANConfig):
     def setUp(self):
         self._config = OANConfig()
-        self._config.set_from_file("./tests/oand.cfg")
+        self._config.set_from_file(oan.BASE_DIR + "src/tests/oand.cfg")
 
     def test_config_extended(self):
         cnf = self._config

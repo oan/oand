@@ -11,9 +11,24 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import os
+import sys
+
 _data_manager = None
 _meta_manager = None
 _node_manager = None
+
+# OAN application root folder.
+BASE_DIR = os.path.abspath(__file__ + "/../../") + "/"
+
+# All variable data.
+VAR_DIR = BASE_DIR + "var/"
+
+# Etc (config) files.
+ETC_DIR = BASE_DIR + "etc/"
+
+# Log files
+LOG_DIR = BASE_DIR + "log/"
 
 def set_managers(data, meta, node):
     '''
@@ -48,3 +63,12 @@ def validate():
 
     if (not _node_manager):
         raise Exception("node_manager is not valid.")
+
+if __name__ == '__main__':
+    print "__file__: " + __file__
+    print "BASE_DIR: " + BASE_DIR
+    print "VAR_DIR: "  + VAR_DIR
+    print "ETC_DIR: "  + ETC_DIR
+    print "LOG_DIR: "  + LOG_DIR
+
+

@@ -27,32 +27,26 @@ def run():
     setup_env()
     set_global_options_and_args()
     remove_cmd_line_arguments()
+    setup_trail()
 
     import util_network_simulation
     util_network_simulation.start_test_network()
 
-    if OPTIONS.trace:
-        run_main_with_trace()
-    else:
-        main()
+    trail_run()
 
     util_network_simulation.stop_test_network()
 
 def setup_env():
-    sys.path.insert(1, get_project_home())
-    sys.path.insert(1, get_project_home() + "/tests")
-    os.chdir(get_project_home())
+    sys.path.insert(1, get_base_dir())
+    sys.path.insert(1, get_base_dir() + "/tests")
+    os.chdir(get_base_dir())
 
-def get_project_home():
+def get_base_dir():
     '''
     Return the path to the root folder of the project.
 
     '''
-    project_home = os.path.realpath(__file__)
-    project_home = os.path.split(project_home)[0]
-    project_home = os.path.split(project_home)[0]
-
-    return project_home
+    return os.path.abspath(__file__ + "/../../") + "/"
 
 def set_global_options_and_args():
     '''
@@ -64,8 +58,6 @@ def set_global_options_and_args():
     usage = "usage: %prog [-t] -f filename"
 
     parser = OptionParser(usage=usage)
-    parser.add_option("-t", "--trace", action="store_true",
-                      help="run with trace.Trace")
 
     parser.add_option("-f", dest="filename",
                       help="only run the tests in the file")
@@ -79,85 +71,69 @@ def remove_cmd_line_arguments():
     '''
     del sys.argv[1:]
 
-def run_main_with_trace():
-    cover_dir = sys.path[0] + "/cover/"
-    print "Look in %s for cover files" % cover_dir
+def setup_trail():
+    '''
+    Set command line options for twisted trail.
 
-    # create a Trace object, telling it what to ignore, and whether to
-    # do tracing or line-counting or both.
-    tracer = trace.Trace(
-        ignoredirs = [sys.prefix, sys.exec_prefix],
-        trace = 0,
-        count = 1,
-        countfuncs = 1,
-        countcallers = 1,
-        infile = cover_dir + "cover.tmp",
-        outfile = cover_dir + "cover.tmp"
-    )
+    '''
+    modules_to_test = find_modules_and_add_paths(os.getcwd())
+    sys.argv.extend(modules_to_test)
 
-    # run the new command using the given tracer
-    tracer.run('main()')
+def trail_run():
+    '''
+    Start unit test with twisted trail.
 
-    # make a report, placing output in /tmp
-    r = tracer.results()
-    r.write_results(show_missing = True, summary = True, coverdir = cover_dir)
+    '''
+    import twisted.scripts.trial
 
-def main():
-    unittest.TextTestRunner().run(suite())
+    config = twisted.scripts.trial.Options()
+    try:
+        config.parseOptions()
+    except usage.error, ue:
+        raise SystemExit, "%s: %s" % (sys.argv[0], ue)
+    twisted.scripts.trial._initialDebugSetup(config)
+    trialRunner = twisted.scripts.trial._makeRunner(config)
+    suite = twisted.scripts.trial._getSuite(config)
+    if config['until-failure']:
+        test_result = trialRunner.runUntilFailure(suite)
+    else:
+        test_result = trialRunner.run(suite)
+    if config.tracer:
+        sys.settrace(None)
+        results = config.tracer.results()
+        results.write_results(
+            show_missing=1, summary=False,
+            coverdir=config.coverdir
+        )
 
 def add_tests_to_list (import_list, dirname, names):
-  global OPTIONS
+    global OPTIONS
 
-  # Only check directories named 'tests'.
-  if os.path.basename(dirname) != 'tests':
-    return
+    # Only check directories named 'tests'.
+    if os.path.basename(dirname) != 'tests':
+        return
 
-  # Add any files that start with 'test_' and end with '.py'.
-  for f in names:
-    filename, ext = os.path.splitext(f)
-    if ext == '.py' and filename.find('test_') == 0:
-        if OPTIONS.filename == None or OPTIONS.filename == filename:
-            import_list.append (os.path.join(dirname, filename))
+    # Add any files that start with 'test_' and end with '.py'.
+    for f in names:
+        filename, ext = os.path.splitext(f)
+        if ext == '.py' and filename.find('test_') == 0:
+            if OPTIONS.filename == None or OPTIONS.filename == filename:
+                import_list.append (os.path.join(dirname, filename))
 
 def find_modules_and_add_paths (root_path):
-  import_list = []
-  module_list = []
-  os.path.walk (root_path, add_tests_to_list, import_list)
-  for module_file in import_list:
-    path, module = os.path.split(module_file)
-    module_list.append (module)
-    print 'Adding:', module_file
-    if not path in sys.path:
-      sys.path.append (path)
-    if not os.path.dirname(path) in sys.path:
-      sys.path.append (os.path.dirname(path))
-  module_list.sort()
-  return module_list
-
-def suite():
-  modules_to_test = find_modules_and_add_paths(os.getcwd())
-  alltests = unittest.TestSuite()
-  for module in map(__import__, modules_to_test):
-    alltests.addTest(unittest.findTestCases(module))
-  return alltests
+    import_list = []
+    module_list = []
+    os.path.walk (root_path, add_tests_to_list, import_list)
+    for module_file in import_list:
+        path, module = os.path.split(module_file)
+        module_list.append (module)
+        print 'Adding:', module_file
+        if not path in sys.path:
+            sys.path.append (path)
+        if not os.path.dirname(path) in sys.path:
+            sys.path.append (os.path.dirname(path))
+    module_list.sort()
+    return module_list
 
 if __name__ == '__main__':
     run()
-
-
-# ### Twisted Preamble
-# # This makes sure that users don't have to set up their environment
-# # specially in order to run these programs from bin/.
-# import sys, os, string
-# if string.find(os.path.abspath(sys.argv[0]), os.sep+'Twisted') != -1:
-#     sys.path.insert(0, os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]), os.pardir, os.pardir)))
-# if hasattr(os, "getuid") and os.getuid() != 0:
-#     sys.path.insert(0, os.curdir)
-# ### end of preamble
-
-# # begin chdir armor
-# sys.path[:] = map(os.path.abspath, sys.path)
-# # end chdir armor
-
-# from twisted.scripts.trial import run
-# run()
