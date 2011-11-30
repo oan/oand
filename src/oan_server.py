@@ -19,7 +19,7 @@ from twisted.web import server, resource, http
 from twisted.internet import reactor
 from twisted.web.static import File
 
-from oannetworknode import OANNetworkNode
+from oan_network_node import OANNetworkNode
 from oan import node_manager, meta_manager, data_manager
 
 class OANServer():

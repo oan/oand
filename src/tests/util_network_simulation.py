@@ -14,7 +14,7 @@ __status__ = "Test"
 from time import sleep
 
 from oand import OANDaemon
-from config import Config
+from oan_config import OANConfig
 
 configs = {}
 
@@ -39,14 +39,14 @@ def _create_config(num_of_nodes):
 
     for x in xrange(num_of_nodes):
         if x == 0:
-            configs[x] = Config(
+            configs[x] = OANConfig(
                 "xx:hh:1%s" % x,
                 "server-" + str(x),
                 "localhost",
                 str(4000 + x)
             )
         else:
-            configs[x] = Config(
+            configs[x] = OANConfig(
                 "xx:hh:1%s" % x,
                 "server-" + str(x),
                 "localhost",

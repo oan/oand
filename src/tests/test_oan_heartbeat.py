@@ -12,7 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import unittest
-from heartbeat import *
+from oan_heartbeat import *
 
 class TestHeartBeat(unittest.TestCase):
 
@@ -21,7 +21,7 @@ class TestHeartBeat(unittest.TestCase):
         Also called from test_resources
 
         '''
-        hb = HeartBeat()
+        hb = OANHeartBeat()
 
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_inactive(), True)

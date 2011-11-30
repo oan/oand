@@ -26,13 +26,13 @@ from optparse import OptionParser, make_option, IndentedHelpFormatter
 from twisted.internet import reactor
 
 from oan import node_manager, meta_manager, data_manager, set_managers
-from oandaemonbase import OANDaemonBase
-from oannodemanager import OANNodeManager
-from oanmetamanager import OANMetaManager
-from oandatamanager import OANDataManager
-from oanconfig import OANConfig
-from oannetworknode import OANNetworkNode
-from oanserver import OANServer
+from oan_daemon_base import OANDaemonBase
+from oan_node_manager import OANNodeManager
+from oan_meta_manager import OANMetaManager
+from oan_data_manager import OANDataManager
+from oan_config import OANConfig
+from oan_network_node import OANNetworkNode
+from oan_server import OANServer
 
 class OANApplication():
     config = None
@@ -120,11 +120,11 @@ class OANDaemon(OANDaemonBase):
     _app = None
 
     def __init__(self, config):
-        _app = OANApplication(config)
-        Daemon.__init__(self, self._app.config.pid_file)
+        self._app = OANApplication(config)
+        OANDaemonBase.__init__(self, self._app.config.pid_file)
 
     def run(self):
-        _app.run()
+        self._app.run()
 
 class OANApplicationStarter():
     '''

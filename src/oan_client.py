@@ -15,16 +15,16 @@ import urllib
 import json
 import logging
 
-from oannetworknode import OANNetworkNode
+from oan_network_node import OANNetworkNode
 
-class AppURLopener(urllib.FancyURLopener):
+class OANURLopener(urllib.FancyURLopener):
     '''
     Set user agent for all client requests.
 
     '''
     version = "OAND/0.1"
 
-urllib._urlopener = AppURLopener()
+urllib._urlopener = OANURLopener()
 
 class OANClient():
     _url = None

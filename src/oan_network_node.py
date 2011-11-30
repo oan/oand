@@ -12,7 +12,8 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from datetime import datetime, timedelta
-from oanheartbeat import OANHeartBeat
+
+from oan_heartbeat import OANHeartBeat
 
 class OANNetworkNode():
     heartbeat = None

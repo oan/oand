@@ -25,7 +25,7 @@ __status__ = "Test"
 
 import uuid
 
-from oanheartbeat import OANHeartBeat
+from oan_heartbeat import OANHeartBeat
 
 class OANResourceRoot:
     resources = None
