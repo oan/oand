@@ -12,10 +12,6 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from resources import *
-import OANSerializer
-
-
-
 
 class ResourceManager():
     resourceRoot = None
@@ -34,7 +30,7 @@ class ResourceManager():
         if not self.resourceRoot.exist(path) or self.resourceRoot.get("/").heartbeat.is_expired():
             node_uuids = self.resourceRoot.get_known_parent(path).node_uuids
             for result in self.networkNodeManager.get_remote_resources(node_uuids, path):
-                print OANSerializer.decode(result)
+                pass
                 #self.resourceRoot.set(path, res)
 
         return self.resourceRoot.get(path)

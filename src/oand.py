@@ -39,7 +39,6 @@ from twistedserver import TwistedServer
 from jsonclient import JsonClient
 from networknodemanager import CircularNetworkNodeManager, NetworkNode
 from resourcemanager import ResourceManager
-from objectclientserver import ObjectClient, ObjectServer
 from apscheduler.scheduler import Scheduler
 
 app = None
@@ -79,7 +78,7 @@ class OANApplication():
         self._start_scheduler()
 
         resource_manager = ResourceManager(self.network_node_manager)
-        data_store_manager = SimpleDataStoreManager("data.dat")
+        data_store_manager = SimpleDataStoreManager("../var/data.dat")
         TwistedServer(
             self._config,
             self.network_node_manager,
@@ -203,7 +202,7 @@ class OANApplicationStarter():
 
             make_option(
                 "--defaults-extra-file", metavar="FILE",
-                dest="config", default="oand.cfg",
+                dest="config", default="../etc/oand.cfg",
                 help="The name of the config file."),
 
             make_option(
