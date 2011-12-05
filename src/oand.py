@@ -21,7 +21,6 @@ __status__ = "Test"
 
 import logging
 import logging.handlers
-from apscheduler.scheduler import Scheduler
 from optparse import OptionParser, make_option, IndentedHelpFormatter
 from twisted.internet import reactor
 
@@ -38,12 +37,8 @@ from oan_server import OANServer
 class OANApplication():
     config = None
 
-    _sched = Scheduler()
-
     def __init__(self, config):
         self.config = config
-
-        self._start_logger(logging.getLogger("apscheduler.scheduler"), logging.WARNING)
         self._start_logger(logging.getLogger(), logging.DEBUG)
 
     def setup_node_manager(self):
@@ -84,15 +79,16 @@ class OANApplication():
 
     def _start_scheduler(self):
         logging.debug("Starting scheduler")
-        self._sched.add_interval_job(self.run_every_minute, minutes = 1)
-        self._sched.add_interval_job(self.run_every_day, days = 1)
-        self._sched.start()
+        reactor.callLater(60, self.run_every_minute);
+        reactor.callLater(60 * 60 * 24, self.run_every_day);
 
     def run_every_minute(self):
         node_manager().check_heartbeat()
+        reactor.callLater(60, self.run_every_minute);
 
     def run_every_day(self):
         node_manager().remove_expired_nodes()
+        reactor.callLater(60 * 60 * 24, self.run_every_day);
 
     def _start_logger(self, my_logger, log_level):
         my_logger.setLevel(log_level)
