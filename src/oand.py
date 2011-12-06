@@ -39,7 +39,7 @@ class OANApplication():
 
     def __init__(self, config):
         self.config = config
-        self._start_logger(logging.getLogger(), logging.DEBUG)
+        self._start_logger()
 
     def setup_node_manager(self):
         '''
@@ -79,8 +79,8 @@ class OANApplication():
 
     def _start_scheduler(self):
         logging.debug("Starting scheduler")
-        reactor.callLater(60, self.run_every_minute);
-        reactor.callLater(60 * 60 * 24, self.run_every_day);
+        reactor.callWhenRunning(self.run_every_minute);
+        reactor.callWhenRunning(self.run_every_day);
 
     def run_every_minute(self):
         node_manager().check_heartbeat()
@@ -90,7 +90,10 @@ class OANApplication():
         node_manager().remove_expired_nodes()
         reactor.callLater(60 * 60 * 24, self.run_every_day);
 
-    def _start_logger(self, my_logger, log_level):
+    def _start_logger(self,):
+        my_logger = logging.getLogger()
+        log_level = logging.DEBUG
+
         my_logger.setLevel(log_level)
 
         # create console handler and set level to debug

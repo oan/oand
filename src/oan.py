@@ -70,5 +70,3 @@ if __name__ == '__main__':
     print "VAR_DIR: "  + VAR_DIR
     print "ETC_DIR: "  + ETC_DIR
     print "LOG_DIR: "  + LOG_DIR
-
-
