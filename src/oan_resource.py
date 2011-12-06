@@ -107,10 +107,10 @@ class OANResource():
         self.heartbeat = OANHeartBeat()
 
     def is_folder(self):
-        return isinstance(self, Folder)
+        return isinstance(self, OANFolder)
 
     def is_file(self):
-        return isinstance(self, File)
+        return isinstance(self, OANFile)
 
     @property
     def uuid(self):
