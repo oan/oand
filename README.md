@@ -44,6 +44,15 @@ Requirements
 Optional:
 - ??Epydoc (for building API documentation)
 
+Howto Links
+===========
+
+Twisted Programming
+http://krondo.com/?p=1209
+
+
+
+
 Install
 =======
 
