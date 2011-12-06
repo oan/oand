@@ -44,6 +44,12 @@ Requirements
 Optional:
 - ??Epydoc (for building API documentation)
 
+Howto Links
+===========
+
+Unit testing with twisted
+http://twistedmatrix.com/documents/current/core/howto/trial.html
+
 Install
 =======
 
