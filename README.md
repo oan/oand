@@ -50,6 +50,9 @@ Howto Links
 Unit testing with twisted
 http://twistedmatrix.com/documents/current/core/howto/trial.html
 
+Twisted Programming
+http://krondo.com/?p=1209
+
 Install
 =======
 
