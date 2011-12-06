@@ -50,9 +50,6 @@ Howto Links
 Twisted Programming
 http://krondo.com/?p=1209
 
-
-
-
 Install
 =======
 
