@@ -11,7 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import unittest
+from twisted.trial import unittest
 import logging
 
 from oan_resource import *
@@ -57,13 +57,6 @@ class TestResources(unittest.TestCase):
             self.assertEqual(len(resource.name) > 1, True)
             self.assertEqual(len(resource.content) > 1, True)
             self.assertEqual(resource.path, path)
-
-    def test_heartbeat(self):
-        '''
-        Same tests that can be found in test_heartbeat.py
-
-        '''
-        hb = self._res.get('/').heartbeat
 
 if __name__ == '__main__':
     unittest.main()

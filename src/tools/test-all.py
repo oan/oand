@@ -29,12 +29,13 @@ def run():
     remove_cmd_line_arguments()
     setup_trail()
 
-    import util_network_simulation
-    util_network_simulation.start_test_network()
+    #We might not need to use this, now when we are using twisted unit test.
+    #import util_network_simulation
+    #util_network_simulation.start_test_network()
 
     trail_run()
 
-    util_network_simulation.stop_test_network()
+    #util_network_simulation.stop_test_network()
 
 def setup_env():
     sys.path.insert(1, get_base_dir())

@@ -11,58 +11,34 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import urllib
-import json
-import logging
+from twisted.protocols import basic
+from twisted.internet import defer
 
-from oan_network_node import OANNetworkNode
+from twisted.internet import reactor, defer
+from twisted.internet.protocol import ClientCreator
+from twisted.protocols import amp
 
-class OANURLopener(urllib.FancyURLopener):
-    '''
-    Set user agent for all client requests.
-
-    '''
-    version = "OAND/0.1"
-
-urllib._urlopener = OANURLopener()
+from oan_server import Sum
 
 class OANClient():
-    _url = None
+    pass
+def RemoteOANClientSum():
+    def func1(p):
+        result =  p.callRemote(Sum, a=13, b=81)
+        return result
 
-    def connect(self, url):
-        self._url = url
+    def func2(result):
+        return result['total']
 
-    def get_nodes(self, node):
-        result = self._execute_post("/nodes", node.get_dict())
-        nodes = {}
-        if result['status'] == "ok":
-            for node_id, node in result['nodes'].iteritems():
-                nodes[node_id] = OANNetworkNode(
-                    node['uuid'],
-                    node['name'],
-                    node['domain_name'],
-                    node['port'],
-                    node['last_heartbeat']
-                )
-        return nodes
+    def done(result):
+        print 'Done with math:', result
 
-    def send_heartbeat(self, node):
-        return self._execute_post("/heartbeat", node.get_dict())
+    d1 = ClientCreator(reactor, amp.AMP).connectTCP('127.0.0.1', 8000)
+    d1.addCallback(func1)
+    d1.addCallback(func2)
 
-    def get_resource(self, node, path):
-        return self._execute_post("/resource/%s" % path, node.get_dict())
+    defer.DeferredList([d1]).addCallback(done)
 
-    def _execute_post(self, cmd, param):
-        '''
-        Do a POST request against the remote server, and convert the
-        json result to a python dict.
-
-        '''
-        json_param = "json=" + json.dumps(param)
-
-        url = "http://" + self._url + cmd
-        logging.debug("Execute: curl -X POST -d '%s' %s" % (json_param, url))
-        f = urllib.urlopen(url, json_param)
-        json_data = f.read()
-        logging.debug("  Result: %s" % (json_data))
-        return json.loads(json_data)
+if __name__ == '__main__':
+    RemoteOANClientSum()
+    reactor.run()

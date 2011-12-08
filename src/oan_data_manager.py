@@ -36,6 +36,14 @@ class OANDataManager(object):
     def _save(self):
         pickle.dump(self._data, file(self._filename, 'w+b'))
 
+    def truncate(self):
+        '''
+        Remove all data from database.
+
+        '''
+        self._data = {}
+        self._save()
+
     def exist(self, hashKey):
         return self._data.has_key(hashKey)
 
@@ -44,7 +52,10 @@ class OANDataManager(object):
         self._save()
 
     def get(self, path):
-        return self._data[path]
+        if (self.exist(path)):
+            return self._data[path]
+        else:
+            raise Exception("Path %s doesn't exist." % path)
 
     def delete(self, path):
         if self.exist(path):
@@ -52,7 +63,7 @@ class OANDataManager(object):
 
     def list(self, path):
         fake_list = []
-        fake_list.append(path.strip("/") + "/movies/alien.avi")
-        fake_list.append(path.strip("/") + "/movies/aliens.avi")
-        fake_list.append(path.strip("/") + "/movies/Terminator-2.avi")
+        fake_list.append("alien.avi")
+        fake_list.append("aliens.avi")
+        fake_list.append("Terminator-2.avi")
         return fake_list
