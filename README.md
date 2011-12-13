@@ -35,6 +35,19 @@ Will return a list will all folders and files in the root directory.
 
 Will return the contents of the file "a-file.txt" that exists in "a-folder".
 
+Network Feature List
+--------------------
+* Asyncront message system, no functions should stop the "main-loop".
+* Auto-reconnect.
+* Either client or server could be firewalled, and the other side do the connections.
+  Requires TCP.
+* Limit the number of open sockets. We don't like 1000 connections at the same time.
+* Possible to unit test.
+* Possible to execute io and cpu calls with low priority and don't hang the computer.
+* REST-api
+* Easy to work with.
+* Stable code.
+
 Requirements
 ============
 
