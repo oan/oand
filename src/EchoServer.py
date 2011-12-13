@@ -2,18 +2,43 @@ import asyncore
 import socket
 from Queue import Queue
 
-import json
+#import json
 
-class CommandProxy():
-    def send(self):
-        cmd = {}
-        cmd['name'] = 'add'
-        cmd['param1'] = 1
-        cmd['param2'] = 2
-        return json.dumps(cmd)
+#class CommandProxy():
+#    def send(self):
+#        cmd = {}
+#        cmd['name'] = 'add'
+#        cmd['param1'] = 1
+#        cmd['param2'] = 2
+#        return json.dumps(cmd)
+#
+#    def get(self):
+#        args = json.loads(json_args)
 
-    def get(self):
-        args = json.loads(json_args)
+import thread
+from threading import Thread
+
+class EchoLoop(Thread):
+    _running = False
+
+    def __init__(self):
+        Thread.__init__(self)
+
+    def start(self):
+        if (not self._running):
+            self._running = True
+            Thread.start(self)
+
+    def stop(self):
+        self._running = False
+
+    def run(self):
+        print "Loop started"
+        while(self._running):
+            asyncore.loop(1, False, None, 2)
+            print "check _running"
+
+        print "Loop ended"
 
 class EchoBridge(asyncore.dispatcher):
 
@@ -69,7 +94,6 @@ class EchoBridge(asyncore.dispatcher):
 
 class EchoServer(asyncore.dispatcher):
     bridges = []
-    poller = None
 
     def __init__(self, host, port):
         asyncore.dispatcher.__init__(self)
@@ -85,30 +109,11 @@ class EchoServer(asyncore.dispatcher):
         else:
             sock, addr = pair
             print 'Incoming connection from %s' % repr(addr)
-            #self.bridges.append(EchoBridge(sock, Queue(), Queue()))
+            self.bridges.append( EchoBridge(sock, Queue(), Queue()) )
 
     def handle_close(self):
         print "handle close EchoServer"
         self.close()
 
-    def handle_error(self):
-        print "handle error"
-
-    def start(self):
-        import threading
-        self.poller = threading.Thread(target=asyncore.loop,
-                kwargs={'timeout':2, 'use_poll':True})
-        self.poller.start()
-
-    def stop(self):
-        print "close EchoServer 1"
-        print "before"
-        print self._map
-        for bridge in self.bridges:
-            bridge.close()
-        asyncore.dispatcher.close(self)
-        print "after"
-        print self._map
-        print "close EchoServer 2"
-        self.poller.join()
-        print "close EchoServer 3"
+    #def handle_error(self):
+    #    print "handle error"
