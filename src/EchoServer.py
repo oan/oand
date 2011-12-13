@@ -21,8 +21,9 @@ from threading import Thread
 class EchoLoop(Thread):
     _running = False
 
-    def __init__(self):
+    def __init__(self, server):
         Thread.__init__(self)
+        self.server = server
 
     def start(self):
         if (not self._running):
@@ -39,6 +40,9 @@ class EchoLoop(Thread):
             print "check _running"
 
         print "Loop ended"
+        self.server.shutdown()
+        asyncore.loop()
+        print "Loop done"
 
 class EchoBridge(asyncore.dispatcher):
 
@@ -80,6 +84,12 @@ class EchoBridge(asyncore.dispatcher):
     def handle_write(self):
         if (len(self.out_buffer) == 0):
             data = self.out_queue.get(False)
+            print data
+            if (data == None):
+                print "handle_write: is closing"
+                self.close()
+                return
+
             print "handle_write: (%s)" % data
             if data:
                 self.out_buffer = data + '\n'
@@ -87,6 +97,9 @@ class EchoBridge(asyncore.dispatcher):
         print "handle_write 2: (%s)" % self.out_buffer
         sent = self.send(self.out_buffer)
         self.out_buffer = self.out_buffer[sent:]
+
+    def shutdown(self):
+        self.out_queue.put(None)
 
     def handle_close(self):
         print "handle close"
@@ -114,6 +127,12 @@ class EchoServer(asyncore.dispatcher):
     def handle_close(self):
         print "handle close EchoServer"
         self.close()
+
+    def shutdown(self):
+        self.close()
+        for bridge in self.bridges:
+            bridge.shutdown()
+
 
     #def handle_error(self):
     #    print "handle error"

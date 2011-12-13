@@ -11,8 +11,7 @@ from EchoClient import EchoClient
 server = EchoServer('localhost', 8080)
 client1 = EchoClient('localhost', 8080)
 
-
-loop = EchoLoop()
+loop = EchoLoop(server)
 loop.start()
 
 time.sleep(2)
@@ -22,6 +21,7 @@ if len(server.bridges) > 0:
     server.bridges[0].out_queue.put("my test:")
 
 print "result:" + client1.in_queue.get(True)
+
 loop.stop()
 #server.stop()
 
