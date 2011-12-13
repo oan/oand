@@ -60,11 +60,17 @@ Optional:
 Howto Links
 ===========
 
-Unit testing with twisted
+Twisted Unit testing
 http://twistedmatrix.com/documents/current/core/howto/trial.html
+http://twistedmatrix.com/trac/wiki/TwistedTrial
 
-Twisted Programming
+Twisted Programming beginner to advanced
 http://krondo.com/?p=1209
+
+Twisted deffered
+http://ezyang.com/twisted/defer2.html
+http://twistedmatrix.com/documents/current/core/howto/deferredindepth.html
+
 
 Install
 =======
