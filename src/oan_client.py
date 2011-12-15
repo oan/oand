@@ -1,44 +1,42 @@
 #!/usr/bin/env python
 '''
-Connection managment between nodes.
+RPC client.
 
 '''
 
-__author__ = "daniel.lindh@cybercow.se"
+__author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
-__maintainer__ = "daniel.lindh@cybercow.se"
+__maintainer__ = "martin.palmer.develop@gmail.com"
 __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from twisted.protocols import basic
-from twisted.internet import defer
+import asyncore
+import socket
+from Queue import Queue
 
-from twisted.internet import reactor, defer
-from twisted.internet.protocol import ClientCreator
-from twisted.protocols import amp
+from oan_bridge import OANBridge
+from oan_server import OANLoop
 
-from oan_server import Sum
+class OANClient(OANBridge):
 
-class OANClient():
-    pass
-def RemoteOANClientSum():
-    def func1(p):
-        result =  p.callRemote(Sum, a=13, b=81)
-        return result
+    def __init__(self, host, port):
+        OANBridge.__init__(self, None, Queue(), Queue())
+        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.connect( (host, port) )
 
-    def func2(result):
-        return result['total']
+def main():
+    client = OANClient('localhost', 8080)
+    loop = OANLoop()
+    #loop.on_shutdown += client.shutdown()
+    loop.start()
 
-    def done(result):
-        print 'Done with math:', result
+    client.out_queue.put("from client 1");
+    client.out_queue.put("from client 2");
+    client.out_queue.put("from client 3");
+    client.out_queue.put("from client 4");
+    client.out_queue.put("from client 5");
+    client.out_queue.put("from client 6");
 
-    d1 = ClientCreator(reactor, amp.AMP).connectTCP('127.0.0.1', 8000)
-    d1.addCallback(func1)
-    d1.addCallback(func2)
-
-    defer.DeferredList([d1]).addCallback(done)
-
-if __name__ == '__main__':
-    RemoteOANClientSum()
-    reactor.run()
+if __name__ == "__main__":
+    main()
