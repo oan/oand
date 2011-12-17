@@ -16,6 +16,7 @@ import socket
 import thread
 import sys
 
+from datetime import datetime, timedelta
 from oan_event import OANEvent
 from Queue import Queue
 from threading import Thread
@@ -24,6 +25,7 @@ class OANBridge(asyncore.dispatcher):
 
     server = None
     connected_to = None
+    last_used = None
 
     out_queue = Queue()
     out_buffer = ''
@@ -47,6 +49,7 @@ class OANBridge(asyncore.dispatcher):
         print "OANBridge:handle_read(%s)" % (data)
 
         if data:
+            self.last_used = datetime.now()
             self.in_buffer += data
             pos = self.in_buffer.find('\n')
             if pos > -1:
@@ -62,6 +65,11 @@ class OANBridge(asyncore.dispatcher):
 
     def writable(self):
         #print "OANBridge:writable"
+        if (self.last_used != None):
+            diff = datetime.now() - self.last_used
+            if (diff > timedelta(seconds=3)):
+                self.server.idle_bridge(self)
+
         return not self.out_queue.empty()
 
     def handle_write(self):
@@ -74,6 +82,7 @@ class OANBridge(asyncore.dispatcher):
 
             print "OANBridge:handle_write (%s)" % (data)
             if data:
+                self.last_used = datetime.now()
                 self.out_buffer = data + '\n'
 
         sent = self.send(self.out_buffer)

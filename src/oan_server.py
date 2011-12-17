@@ -22,7 +22,6 @@ from oan_bridge import OANBridge
 from oan_loop import OANLoop
 from oan_event import OANEvent
 
-
 class OANServer(asyncore.dispatcher):
     node_id = None
     bridges = {}
@@ -45,6 +44,17 @@ class OANServer(asyncore.dispatcher):
     '''
     on_bridge_removed = OANEvent()
 
+
+    '''
+        use:
+        def on_bridge_idle(bridge)
+            pass
+
+        loop.on_bridge_idle += (on_bridge_idle, )
+    '''
+    on_bridge_idle = OANEvent()
+
+
     def __init__(self, node_id, host, port):
         asyncore.dispatcher.__init__(self)
         self.node_id = node_id
@@ -64,6 +74,11 @@ class OANServer(asyncore.dispatcher):
         if (bridge.connected_to in self.bridges):
             del self.bridges[bridge.connected_to]
             self.on_bridge_removed(bridge)
+
+    def idle_bridge(self, bridge):
+        print "OanServer:idle_bridge"
+        if (bridge.connected_to in self.bridges):
+            self.on_bridge_idle(bridge)
 
     def connect_to_node(self, host, port):
         bridge = OANBridge(self)
