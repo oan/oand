@@ -14,96 +14,68 @@ __status__ = "Test"
 import asyncore
 import socket
 import time
+import datetime
 import thread
 from Queue import Queue
 from threading import Thread
 from oan_bridge import OANBridge
+from oan_loop import OANLoop
+from oan_event import OANEvent
 
-
-class OANEvent(list):
-    """Event subscription.
-
-    A list of callable objects. Calling an instance of this will cause a
-    call to each item in the list in ascending order by index.
-
-    Example Usage:
-    >>> def f(x):
-    ...     print 'f(%s)' % x
-    >>> def g(x):
-    ...     print 'g(%s)' % x
-    >>> e = Event()
-    >>> e()
-    >>> e.append(f)
-    >>> e(123)
-    f(123)
-    >>> e.remove(f)
-    >>> e()
-    >>> e += (f, g)
-    >>> e(10)
-    f(10)
-    g(10)
-    >>> del e[0]
-    >>> e(2)
-    g(2)
-
-    """
-    def __call__(self, *args, **kwargs):
-        for f in self:
-            f(*args, **kwargs)
-
-    def __repr__(self):
-        return "Event(%s)" % list.__repr__(self)
-
-
-class OANLoop(Thread):
-
-    ''' use: loop.on_start += my_loop_start() '''
-    on_start = OANEvent()
-
-    ''' use: loop.on_shutdown += my_loop_shutdown() '''
-    on_shutdown = OANEvent()
-
-    ''' use: loop.on_stop += my_loop_stop() '''
-    on_stop = OANEvent()
-
-    _running = False
-
-    def __init__(self):
-        Thread.__init__(self)
-
-    def start(self):
-        if (not self._running):
-            self._running = True
-            Thread.start(self)
-
-    def stop(self):
-        self._running = False
-
-    def run(self):
-        print "OANLoop: started"
-        self.on_start()
-        try:
-          while(self._running):
-                asyncore.loop(1, False, None, 2)
-                #print "OANLoop: check if running"
-        except KeyboardInterrupt:
-            self._running = false
-
-        print "OANLoop: shutdown"
-        self.on_shutdown()
-        asyncore.loop()
-        self.on_stop()
-        print "OANLoop stopped"
 
 class OANServer(asyncore.dispatcher):
-    bridges = []
+    node_id = None
+    bridges = {}
 
-    def __init__(self, host, port):
+    '''
+        use:
+        def my_bridge_added(bridge)
+            pass
+
+        loop.on_bridge_added += (my_bridge_added, )
+    '''
+    on_bridge_added = OANEvent()
+
+    '''
+        use:
+        def on_bridge_removed(bridge)
+            pass
+
+        loop.on_bridge_removed += (on_bridge_removed, )
+    '''
+    on_bridge_removed = OANEvent()
+
+    def __init__(self, node_id, host, port):
         asyncore.dispatcher.__init__(self)
+        self.node_id = node_id
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((host, port))
         self.listen(5)
+
+    def add_bridge(self, bridge):
+        print "OanServer:add_bridge"
+        if (bridge.connected_to not in self.bridges):
+            self.bridges[bridge.connected_to] = bridge
+            self.on_bridge_added(bridge)
+
+    def remove_bridge(self, bridge):
+        print "OanServer:remove_bridge"
+        if (bridge.connected_to in self.bridges):
+            del self.bridges[bridge.connected_to]
+            self.on_bridge_removed(bridge)
+
+    def connect_to_node(self, host, port):
+        bridge = OANBridge(self)
+        bridge.server = self
+        bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        bridge.connect( (host, port) )
+
+        print "OanServer:connect_to_node %s:%d" % (host, port)
+
+    def handle_connect(self):
+        print "OanServer:handle_connect"
+        self.handle_connect()
 
     def handle_accept(self):
         print "OanServer:handle_accept"
@@ -113,7 +85,9 @@ class OANServer(asyncore.dispatcher):
         else:
             sock, addr = pair
             print 'OanServer: incoming connection from %s' % repr(addr)
-            self.bridges.append( OANBridge(sock, Queue(), Queue()) )
+            bridge = OANBridge(self, sock)
+            bridge.server = self
+            bridge.handshake()
 
     def handle_close(self):
         print "OanServer:handle_close"
@@ -121,27 +95,41 @@ class OANServer(asyncore.dispatcher):
 
     def shutdown(self):
         self.close()
-        for bridge in self.bridges:
+        for k, bridge in self.bridges.iteritems():
             bridge.shutdown()
 
     def handle_error(self):
         print "OanServer:handle_error"
         asyncore.dispatcher.handle_error(self)
 
+
+def my_bridge_added(bridge):
+    print "my_bridge_added connected to %s" % (bridge.connected_to)
+    if (bridge.connected_to == 'c1'):
+        bridge.out_queue.put("Welcome message from [%s]" % bridge.server.node_id);
+
+def my_bridge_removed(bridge):
+    print "my_bridge_removed"
+
 def main():
-    server = OANServer('localhost', 8080)
+    server = OANServer('s1','localhost', 8002)
+    server.on_bridge_added += (my_bridge_added, )
+
     loop = OANLoop()
-    #loop.on_shutdown += server.shutdown()
+    loop.on_shutdown += (server.shutdown, )
     loop.start()
 
-    time.sleep(10)
+    try:
+        while True:
+            time.sleep(10)
+            if ('c1' in server.bridges):
+                server.bridges['c1'].out_queue.put("clock [%s] from [%s]" % (datetime.datetime.now(), server.node_id))
 
-    server.bridges[0].out_queue.put("from server 1");
-    server.bridges[0].out_queue.put("from server 2");
-    server.bridges[0].out_queue.put("from server 3");
-    server.bridges[0].out_queue.put("from server 4");
-    server.bridges[0].out_queue.put("from server 5");
-    server.bridges[0].out_queue.put("from server 6");
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        loop.stop()
 
 
 if __name__ == "__main__":

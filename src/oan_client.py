@@ -13,30 +13,42 @@ __status__ = "Test"
 
 import asyncore
 import socket
+import time
+import datetime
 from Queue import Queue
 
-from oan_bridge import OANBridge
-from oan_server import OANLoop
+from oan_server import OANServer
+from oan_loop import OANLoop
 
-class OANClient(OANBridge):
+def my_bridge_added(bridge):
+    print "my_bridge_added connected to %s" % (bridge.connected_to)
+    if (bridge.connected_to == 's1'):
+        bridge.out_queue.put("Welcome message from [%s]" % bridge.server.node_id);
 
-    def __init__(self, host, port):
-        OANBridge.__init__(self, None, Queue(), Queue())
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connect( (host, port) )
+def my_bridge_removed(bridge):
+    print "my_bridge_removed"
+
 
 def main():
-    client = OANClient('localhost', 8080)
+    server = OANServer('c1', 'localhost', 8001)
+    server.on_bridge_added += (my_bridge_added, )
+    server.connect_to_node('localhost', 8002)
+
     loop = OANLoop()
-    #loop.on_shutdown += client.shutdown()
+    loop.on_shutdown += (server.shutdown, )
     loop.start()
 
-    client.out_queue.put("from client 1");
-    client.out_queue.put("from client 2");
-    client.out_queue.put("from client 3");
-    client.out_queue.put("from client 4");
-    client.out_queue.put("from client 5");
-    client.out_queue.put("from client 6");
+    try:
+        while True:
+            time.sleep(5)
+            if ('s1' in server.bridges):
+                server.bridges['s1'].out_queue.put("clock [%s] from [%s]" % (datetime.datetime.now(), server.node_id))
+
+    except KeyboardInterrupt:
+        pass
+
+    finally:
+        loop.stop()
 
 if __name__ == "__main__":
     main()
