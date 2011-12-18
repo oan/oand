@@ -37,6 +37,9 @@ TODO
 
 * Write test_resources and resourcemanager.
 
+* Enable tls/ssl
+  http://stackoverflow.com/questions/1085050/how-do-i-use-tls-with-asyncore
+
 * Prefix all our classes with OAN.
 
 * Rename server-* to node-* in oand.cfg

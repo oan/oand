@@ -47,6 +47,7 @@ Network Feature List
 * REST-api
 * Easy to work with.
 * Stable code.
+* SSL/TLS enabled
 
 Requirements
 ============
