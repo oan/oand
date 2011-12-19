@@ -18,10 +18,13 @@ import datetime
 import thread
 from Queue import Queue
 from threading import Thread
+
+import oan
 from oan_bridge import OANBridge
 from oan_loop import OANLoop
 from oan_event import OANEvent
 from oan_simple_node_manager import OANNode, OANNodeManager
+from oan_message import OANMessagePing
 
 class OANServer(asyncore.dispatcher):
     node = None #my own node
@@ -81,13 +84,13 @@ class OANServer(asyncore.dispatcher):
         if (bridge.node.node_id in self.bridges):
             self.on_bridge_idle(bridge)
 
+
     def connect_to_node(self, node):
-        bridge = OANBridge(self, node)
-        bridge.server = self
+        bridge = OANBridge(self)
         bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         bridge.connect( (node.host, node.port) )
-
-        print "OanServer:connect_to_node %s:%d" % (node.host, node.port)
+        print "OanServer:connect_to_node %s:%d:%s" % (node.host, node.port, bridge.connected)
+        return bridge.connected
 
     def handle_connect(self):
         print "OanServer:handle_connect"
@@ -101,8 +104,7 @@ class OANServer(asyncore.dispatcher):
         else:
             sock, addr = pair
             print 'OanServer: incoming connection from %s' % repr(addr)
-            bridge = OANBridge(self, None, sock)
-            bridge.server = self
+            bridge = OANBridge(self, sock)
             bridge.send_handshake()
 
     def handle_close(self):
@@ -121,8 +123,8 @@ class OANServer(asyncore.dispatcher):
 
 def my_bridge_added(bridge):
     print "my_bridge_added connected to %s" % (bridge.node.node_id)
-    if (bridge.node.node_id == 's1'):
-        bridge.out_queue.put("Welcome message from [%s]" % bridge.server.node_id);
+    #if (bridge.node.node_id == 'n2'):
+    #    bridge.out_queue.put("Welcome message from [%s]" % bridge.server.node_id);
 
 def my_bridge_removed(bridge):
     print "my_bridge_removed"
@@ -134,32 +136,33 @@ def my_bridge_idle(bridge):
 
 def main():
 
-    my_node = OANNode('s1', 'localhost', 8001)
-    server = OANServer(my_node)
+    n2_node = OANNode('n2', 'localhost', 8002)
+    n2_server = OANServer(n2_node)
 
-    manager = OANNodeManager(server)
-    manager.add_node(my_node)
-    manager.start()
+    n1_node = OANNode('n1', 'localhost', 8001) # remote
 
-    server.on_bridge_added += (my_bridge_added, )
-    server.on_bridge_removed += (my_bridge_removed, )
-    server.on_bridge_idle += (my_bridge_idle, )
+    manager = OANNodeManager(n2_server)
+    oan.set_managers("None", "None", manager)
+    manager.add_node(n1_node)
+    manager.add_node(n2_node)
+
+    n2_server.on_bridge_added += (my_bridge_added, )
+    n2_server.on_bridge_removed += (my_bridge_removed, )
+    n2_server.on_bridge_idle += (my_bridge_idle, )
 
     loop = OANLoop()
-    loop.on_shutdown += (server.shutdown, )
+    loop.on_shutdown += (n2_server.shutdown, )
     loop.start()
 
     try:
         while True:
+            manager.send('n1', OANMessagePing.create('n1'))
             time.sleep(5)
-            if ('c1' in server.bridges):
-                manager.send('c1', ("clock [%s] from [%s]" % (datetime.datetime.now(), server.node.node_id)))
 
     except KeyboardInterrupt:
         pass
 
     finally:
-        manager.stop()
         loop.stop()
 
 if __name__ == "__main__":

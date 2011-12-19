@@ -12,53 +12,37 @@ class OANNode:
     port = None
     host = None
 
+    last_connect_success = None
+    last_connect_fail = None
+
+    out_queue = Queue()
+    in_queue = Queue()
+
     def __init__(self, node_id, host, port):
         self.node_id = node_id
         self.host = host
         self.port = port
 
-class OANNodeManager(Thread):
-
+class OANNodeManager():
     server = None
     nodes = {}
-    queue = Queue()
-
-    _running = False
 
     def __init__(self, server):
-        Thread.__init__(self)
         self.server = server
-
 
     def add_node(self, node):
         self.nodes[node.node_id] = node
 
+    def exist_node(self, node_id):
+        return (node_id in self.nodes)
+
+    def get_node(self, node_id):
+        return self.nodes[node_id]
+
     def send(self, node_id, message):
-        self.queue.put((node_id, message))
+        if (node_id in self.nodes):
+            node = self.nodes[node_id]
+            node.out_queue.put(message)
 
-    def start(self):
-        if (not self._running):
-            self._running = True
-            Thread.start(self)
-
-    def stop(self):
-        self._running = False
-
-    def run(self):
-        print "OANNodeManager: started"
-        while(self._running):
-            (node_id, message) = self.queue.get() # waiting for a message
-            if (node_id in self.nodes):
-                node = self.nodes[node_id]
-
-                if (node_id in self.server.bridges):
-                    print "OANNodeManager: is connected"
-                    bridge = self.server.bridges[node_id]
-                else:
-                    print "OANNodeManager: not connected"
-                    self.server.connect_to_node(node) # try to reconnect to node
-                    Timer(5, self.send, (node_id, message)).start()
-
-            print "OANNodeManager: check if running"
-
-        print "OANNodeManager stopped"
+        if (node_id not in self.server.bridges):
+            self.server.connect_to_node(node)
