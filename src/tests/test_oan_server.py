@@ -49,8 +49,14 @@ class TestOANServer(unittest.TestCase):
 
     def test_connect(self):
         node_manager().send('n1', OANMessagePing.create('n1'))
-        print "before got in message"
         message = node_manager().get_node('n1').in_queue.get() # max 10 sec wait
-        print "after got in message"
+        self.assertEqual(message.uuid, 'n1')
 
-        self.assertTrue(True)
+
+    def test_message_ping(self):
+        node_manager().send('n1', OANMessagePing.create('n1'))
+        message = node_manager().get_node('n1').in_queue.get() # max 10 sec wait
+        self.assertEqual(message.uuid, 'n1')
+
+
+

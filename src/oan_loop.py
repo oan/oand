@@ -48,7 +48,7 @@ class OANLoop(Thread):
         print "OANLoop: started"
         self.on_start()
         while(self._running):
-            asyncore.loop(0.1, False, None, 2)
+            asyncore.loop(0.3, False, None, 2)
             #print "OANLoop: check if running"
 
         print "OANLoop: shutdown"
