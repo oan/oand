@@ -43,24 +43,23 @@ class OANBridge(asyncore.dispatcher):
 
     def handle_connect(self):
         print "OANBridge:handle_connect"
-        #self.node.last_connect_success = datetime.now()
         self.send_handshake()
 
     def send_handshake(self):
-        print "send_handshake: %s,%s,%s" % (self.server.node.node_id, self.server.node.host, self.server.node.port)
+        print "send_handshake: %s,%s,%s" % (self.server.node.uuid, self.server.node.host, self.server.node.port)
         self.send_message(
-            OANMessageHandshake.create(self.server.node.node_id, self.server.node.host, self.server.node.port)
+            OANMessageHandshake.create(self.server.node.uuid, self.server.node.host, self.server.node.port)
         )
 
     def read_handshake(self, raw_message):
         message = self.read_message(raw_message)
-        print "read_handshake: %s,%s,%s" % (message.node_id, message.host, message.port)
+        print "read_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
         message.execute()
 
-        if (not node_manager().exist_node(message.node_id)):
-            self.node =  node_manager().create_node(message.node_id, message.host, message.port)
+        if (node_manager().exist_node(message.uuid)):
+            self.node = node_manager().get_node(message.uuid)
         else:
-            self.node = node_manager().get_node(message.node_id)
+            self.node = node_manager().create_node(message.uuid, message.host, message.port)
 
         self.out_queue = self.node.out_queue
         self.in_queue = self.node.in_queue
@@ -127,13 +126,12 @@ class OANBridge(asyncore.dispatcher):
         asyncore.dispatcher.handle_close(self)
 
     def handle_error(self):
-        print "OANBridge:handle_error"
-        #self.node.last_connect_fail = datetime.now()
         asyncore.dispatcher.handle_error(self)
-        #exc_type, exc_value, exc_traceback = sys.exc_info()
-        #print exc_value
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        #print "OANBridge:handle_error: %s" % exc_value
 
     def shutdown(self):
+        print "OANBridge:shutdown"
         self.out_queue.put(None)
 
     def touch_last_used(self):

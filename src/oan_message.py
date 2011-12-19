@@ -13,21 +13,23 @@ __status__ = "Test"
 
 import oan_serializer
 
+
+# TODO: maybe have a time_to_live datetime. if node vill be offline och dead etc. clear all queues.
 class OANMessageHandshake():
-    node_id = None
+    uuid = None
     host = None
     port = None
 
     @classmethod
-    def create(cls, node_id, host, port):
+    def create(cls, uuid, host, port):
         obj = cls()
-        obj.node_id = node_id
+        obj.uuid = uuid
         obj.host = host
         obj.port = port
         return obj
 
     def execute(self):
-        print "%s %s %s" % (self.node_id, self.host, self.port)
+        print "%s %s %s" % (self.uuid, self.host, self.port)
 
         #verifiera avsandare
         #satt ready to transmitt
@@ -38,20 +40,20 @@ class OANMessageHandshake():
 from datetime import datetime
 
 class OANMessagePing():
-    node_id = None
+    uuid = None
     time = None
 
     @classmethod
-    def create(cls, node_id):
+    def create(cls, uuid):
         obj = cls()
-        obj.node_id = node_id
+        obj.uuid = uuid
         obj.time = str(datetime.now())
 
         return obj
 
     def execute(self):
-        print "%s %s %s" % (self.node_id, self.host, self.port)
-        print "(clock [%s] from [%s]" % (self.time, self.node_id)
+        print "%s %s %s" % (self.uuid, self.host, self.port)
+        print "(clock [%s] from [%s]" % (self.time, self.uuid)
 
 
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)

@@ -28,24 +28,21 @@ from oan_message import OANMessagePing
 
 
 def my_bridge_added(bridge):
-    print "my_bridge_added connected to %s" % (bridge.node.node_id)
- #   if (bridge.node.node_id == 'n1'):
-  #      bridge.out_queue.put("Welcome message from [%s]" % bridge.server.node.node_id);
+    print "my_bridge_added connected to %s" % (bridge.node.uuid)
 
 def my_bridge_removed(bridge):
     print "my_bridge_removed"
 
 def my_bridge_idle(bridge):
-    pass
-    #print "my_bridge_idle"
+    print "my_bridge_idle"
     #bridge.shutdown()
 
 def main():
 
-    n1_node = OANNode('n1', '192.168.43.229', 8001)
+    n1_node = OANNode('n1', 'localhost', 8001)
     n1_server = OANServer(n1_node)
 
-    n2_node = OANNode('n2', '192.168.43.147', 8002) #remote
+    n2_node = OANNode('n2', 'localhost', 8002) #remote
     manager = OANNodeManager(n1_server)
 
     oan.set_managers("None", "None", manager)
