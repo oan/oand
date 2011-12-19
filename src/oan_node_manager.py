@@ -14,7 +14,7 @@ __status__ = "Test"
 import logging
 import sys
 
-from oan_client import OANClient
+from oan_json_client import OANClient
 
 class OANNodeManager():
     # Info about my own node.

@@ -12,7 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from twisted.internet import defer, protocol
-from twisted.trial import unittest
+import unittest
 
 from twisted.internet import defer
 from twisted.python import failure

@@ -27,13 +27,14 @@ def run():
     setup_env()
     set_global_options_and_args()
     remove_cmd_line_arguments()
-    setup_trail()
 
-    #We might not need to use this, now when we are using twisted unit test.
     #import util_network_simulation
     #util_network_simulation.start_test_network()
 
-    trail_run()
+    if OPTIONS.trace:
+        run_main_with_trace()
+    else:
+        main()
 
     #util_network_simulation.stop_test_network()
 
@@ -59,6 +60,8 @@ def set_global_options_and_args():
     usage = "usage: %prog [-t] -f filename"
 
     parser = OptionParser(usage=usage)
+    parser.add_option("-t", "--trace", action="store_true",
+                      help="run with trace.Trace")
 
     parser.add_option("-f", dest="filename",
                       help="only run the tests in the file")
@@ -72,40 +75,31 @@ def remove_cmd_line_arguments():
     '''
     del sys.argv[1:]
 
-def setup_trail():
-    '''
-    Set command line options for twisted trail.
+def run_main_with_trace():
+    cover_dir = sys.path[0] + "/cover/"
+    print "Look in %s for cover files" % cover_dir
 
-    '''
-    modules_to_test = find_modules_and_add_paths(os.getcwd())
-    sys.argv.extend(modules_to_test)
+    # create a Trace object, telling it what to ignore, and whether to
+    # do tracing or line-counting or both.
+    tracer = trace.Trace(
+        ignoredirs = [sys.prefix, sys.exec_prefix],
+        trace = 0,
+        count = 1,
+        countfuncs = 1,
+        countcallers = 1,
+        infile = cover_dir + "cover.tmp",
+        outfile = cover_dir + "cover.tmp"
+    )
 
-def trail_run():
-    '''
-    Start unit test with twisted trail.
+    # run the new command using the given tracer
+    tracer.run('main()')
 
-    '''
-    import twisted.scripts.trial
+    # make a report, placing output in /tmp
+    r = tracer.results()
+    r.write_results(show_missing = True, summary = True, coverdir = cover_dir)
 
-    config = twisted.scripts.trial.Options()
-    try:
-        config.parseOptions()
-    except usage.error, ue:
-        raise SystemExit, "%s: %s" % (sys.argv[0], ue)
-    twisted.scripts.trial._initialDebugSetup(config)
-    trialRunner = twisted.scripts.trial._makeRunner(config)
-    suite = twisted.scripts.trial._getSuite(config)
-    if config['until-failure']:
-        test_result = trialRunner.runUntilFailure(suite)
-    else:
-        test_result = trialRunner.run(suite)
-    if config.tracer:
-        sys.settrace(None)
-        results = config.tracer.results()
-        results.write_results(
-            show_missing=1, summary=False,
-            coverdir=config.coverdir
-        )
+def main():
+    unittest.TextTestRunner().run(suite())
 
 def add_tests_to_list (import_list, dirname, names):
     global OPTIONS
@@ -135,6 +129,13 @@ def find_modules_and_add_paths (root_path):
             sys.path.append (os.path.dirname(path))
     module_list.sort()
     return module_list
+
+def suite():
+  modules_to_test = find_modules_and_add_paths(os.getcwd())
+  alltests = unittest.TestSuite()
+  for module in map(__import__, modules_to_test):
+    alltests.addTest(unittest.findTestCases(module))
+  return alltests
 
 if __name__ == '__main__':
     run()

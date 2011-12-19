@@ -11,7 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from twisted.trial import unittest
+import unittest
 import logging
 
 from oan_resource import *

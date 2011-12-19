@@ -2,9 +2,6 @@
 '''
 Proof of concept of distributed nosql RESTful database/filesystem.
 
-# READ MORE
-# http://twistedmatrix.com/documents/current/web/
-
 # Test with
 # curl -d "hashKey=key1;body=fulltextbodynoencoding" http://localhost:8082/train
 # Content-Type: application/json
@@ -22,7 +19,6 @@ __status__ = "Test"
 import logging
 import logging.handlers
 from optparse import OptionParser, make_option, IndentedHelpFormatter
-from twisted.internet import reactor
 
 import oan
 from oan import node_manager, meta_manager, data_manager, set_managers
@@ -57,7 +53,7 @@ class OANApplication():
         if (self.config.bff_domain_name and self.config.bff_port):
             url = "%s:%s" % (self.config.bff_domain_name, self.config.bff_port)
             logging.info("Add bff %s" % url)
-            reactor.callLater(1, node_manager().connect_to_oan, url)
+            #reactor.callLater(1, node_manager().connect_to_oan, url)
 
     def run(self):
         logging.info("Starting Open Archive Network (oand) for " +
@@ -73,22 +69,22 @@ class OANApplication():
         self._start_scheduler()
 
         OANServer(self.config)
-        reactor.run()
+        #reactor.run()
 
         logging.info("Stopping Open Archive Network (oand)")
 
     def _start_scheduler(self):
         logging.debug("Starting scheduler")
-        reactor.callWhenRunning(self.run_every_minute);
-        reactor.callWhenRunning(self.run_every_day);
+        #reactor.callWhenRunning(self.run_every_minute);
+        #reactor.callWhenRunning(self.run_every_day);
 
     def run_every_minute(self):
         node_manager().check_heartbeat()
-        reactor.callLater(60, self.run_every_minute);
+        #reactor.callLater(60, self.run_every_minute);
 
     def run_every_day(self):
         node_manager().remove_expired_nodes()
-        reactor.callLater(60 * 60 * 24, self.run_every_day);
+        #reactor.callLater(60 * 60 * 24, self.run_every_day);
 
     def _start_logger(self,):
         my_logger = logging.getLogger()
