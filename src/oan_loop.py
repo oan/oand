@@ -17,7 +17,6 @@ import time
 import thread
 from Queue import Queue
 from threading import Thread
-from oan_bridge import OANBridge
 from oan_event import OANEvent
 
 class OANLoop(Thread):

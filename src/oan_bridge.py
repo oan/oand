@@ -46,9 +46,10 @@ class OANBridge(asyncore.dispatcher):
         self.send_handshake()
 
     def send_handshake(self):
-        print "send_handshake: %s,%s,%s" % (self.server.node.uuid, self.server.node.host, self.server.node.port)
+        my_node = node_manager().get_my_node()
+        print "send_handshake: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
         self.send_message(
-            OANMessageHandshake.create(self.server.node.uuid, self.server.node.host, self.server.node.port)
+            OANMessageHandshake.create(my_node.uuid, my_node.host, my_node.port)
         )
 
     def read_handshake(self, raw_message):
@@ -89,7 +90,6 @@ class OANBridge(asyncore.dispatcher):
                 if (self.node is None):
                     self.read_handshake(cmd)
                 else:
-                    print "put to queue"
                     self.in_queue.put(self.read_message(cmd))
 
                 self.in_buffer = self.in_buffer[pos+1:]
