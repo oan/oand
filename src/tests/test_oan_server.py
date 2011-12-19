@@ -50,6 +50,14 @@ class TestOANServer1(OANTestCase):
 
     def test_connect(self):
         node_manager().send('n1', OANMessagePing.create('n1'))
-        time.sleep(5)
-        #self.assertTrue('n2' in self.server1.bridges)
-        self.assertTrue(True)
+        message = node_manager().get_node('n1').in_queue.get() # max 10 sec wait
+        self.assertEqual(message.uuid, 'n1')
+
+
+    def test_message_ping(self):
+        node_manager().send('n1', OANMessagePing.create('n1'))
+        message = node_manager().get_node('n1').in_queue.get() # max 10 sec wait
+        self.assertEqual(message.uuid, 'n1')
+
+
+
