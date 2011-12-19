@@ -47,6 +47,9 @@ class OANTestCase(unittest.TestCase):
         timeout
             Number of seconds to wait until timeout and return False.
 
+        Example:
+            self.assertTrueWait(lambda : 'n2' in self.server1.bridges)
+
         '''
         self.assertTrue(self.wait(condition, timeout))
 
