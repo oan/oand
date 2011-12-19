@@ -11,10 +11,10 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import unittest
+from oan_unittest import OANUnitTest
 from oan_heartbeat import *
 
-class TestOANHeartBeat(unittest.TestCase):
+class TestOANHeartBeat(OANUnitTest):
 
     def test_heartbeat(self):
         '''

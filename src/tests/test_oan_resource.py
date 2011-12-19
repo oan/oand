@@ -11,7 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import unittest
+from oan_unittest import OANUnitTest
 import logging
 
 from oan_resource import *
@@ -21,7 +21,7 @@ from oan_meta_manager import OANMetaManager
 from oan_node_manager import OANNodeManager
 from oan_network_node import OANNetworkNode
 
-class TestResources(unittest.TestCase):
+class TestResources(OANUnitTest):
     def setUp(self):
         self._res = OANResourceRoot()
         self._res.set(OANFolder('/movies/'))

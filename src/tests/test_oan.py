@@ -11,14 +11,14 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import unittest
+from oan_unittest import OANUnitTest
 
 import oan
 from oan_node_manager import OANNodeManager
 from oan_meta_manager import OANMetaManager
 from oan_data_manager import OANDataManager
 
-class TestOan(unittest.TestCase):
+class TestOan(OANUnitTest):
     def setUp(self):
         pass
 
