@@ -17,8 +17,38 @@ __status__ = "Test"
 
 import sys
 import unittest
+from time import time, sleep
 
 class OANTestCase(unittest.TestCase):
+
+    def wait(self, condition, timeout = 2):
+        '''
+        Wait until the function given by condition returns True.
+
+        timeout
+            Number of seconds to wait until timeout and return False.
+
+        '''
+        endtime = time() + timeout
+        result = None
+        while (True):
+            result = condition()
+            remaining = endtime - time()
+            if remaining <= 0.0 or result:
+                break
+            sleep(0.1)
+
+        return result
+
+    def assertTrueWait(self, condition, timeout = 2):
+        '''
+        Wait until the function given by condtion returns True.
+
+        timeout
+            Number of seconds to wait until timeout and return False.
+
+        '''
+        self.assertTrue(self.wait(condition, timeout))
 
     def run(self, result=None):
         '''
