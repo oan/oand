@@ -11,7 +11,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import unittest
+from oan_unittest import OANUnitTest
+
 import time
 
 import oan
@@ -25,7 +26,7 @@ from oan_event import OANEvent
 from oan_simple_node_manager import OANNode, OANNodeManager
 from oan_message import OANMessagePing
 
-class TestOANServer(unittest.TestCase):
+class TestOANServer1(OANUnitTest):
     loop = None
 
     def setUp(self):

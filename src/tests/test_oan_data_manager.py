@@ -11,11 +11,11 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import unittest
+from oan_unittest import OANUnitTest
 
 from oan_data_manager import OANDataManager
 
-class TestOan(unittest.TestCase):
+class TestOan(OANUnitTest):
     dm = None
 
     def setUp(self):
