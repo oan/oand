@@ -27,7 +27,6 @@ from oan_simple_node_manager import OANNode, OANNodeManager
 from oan_message import OANMessagePing
 
 class OANServer(asyncore.dispatcher):
-    node = None #my own node
     bridges = {} #bridges to other nodes
 
     '''
@@ -59,12 +58,11 @@ class OANServer(asyncore.dispatcher):
     on_bridge_idle = OANEvent()
 
 
-    def __init__(self, node):
+    def __init__(self, host, port):
         asyncore.dispatcher.__init__(self)
-        self.node = node
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
-        self.bind((node.host, node.port))
+        self.bind((host, port))
         self.listen(5)
 
     def add_bridge(self, bridge):
