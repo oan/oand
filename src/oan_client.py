@@ -42,12 +42,12 @@ def my_bridge_idle(bridge):
 
 def main():
 
-    n1_node = OANNode('n1', 'localhost', 8001)
+    n1_node = OANNode('n1', '192.168.43.229', 8001)
     n1_server = OANServer(n1_node)
 
-    n2_node = OANNode('n2', 'localhost', 8002) #remote
-
+    n2_node = OANNode('n2', '192.168.43.147', 8002) #remote
     manager = OANNodeManager(n1_server)
+
     oan.set_managers("None", "None", manager)
     manager.add_node(n1_node)
     manager.add_node(n2_node)
