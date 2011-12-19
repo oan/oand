@@ -24,33 +24,33 @@ class TestOANHeartBeat(unittest.TestCase):
         hb = OANHeartBeat()
 
         self.assertEqual(hb.is_expired(), True)
-        self.assertEqual(hb.is_inactive(), True)
+        self.assertEqual(hb.is_offline(), True)
         self.assertEqual(hb.is_dead(), True)
 
         hb.value = "2106-06-06T06:06:06Z"
         self.assertEqual(hb.is_expired(), False)
-        self.assertEqual(hb.is_inactive(), False)
+        self.assertEqual(hb.is_offline(), False)
         self.assertEqual(hb.is_dead(), False)
         self.assertEqual(hb.value, "2106-06-06T06:06:06Z")
 
         hb.touch()
         self.assertEqual(hb.is_expired(), False)
-        self.assertEqual(hb.is_inactive(), False)
+        self.assertEqual(hb.is_offline(), False)
         self.assertEqual(hb.is_dead(), False)
 
         hb.set_expired()
         self.assertEqual(hb.is_expired(), True)
-        self.assertEqual(hb.is_inactive(), False)
+        self.assertEqual(hb.is_offline(), False)
         self.assertEqual(hb.is_dead(), False)
 
-        hb.set_inactive()
+        hb.set_offline()
         self.assertEqual(hb.is_expired(), True)
-        self.assertEqual(hb.is_inactive(), True)
+        self.assertEqual(hb.is_offline(), True)
         self.assertEqual(hb.is_dead(), False)
 
         hb.set_dead()
         self.assertEqual(hb.is_expired(), True)
-        self.assertEqual(hb.is_inactive(), True)
+        self.assertEqual(hb.is_offline(), True)
         self.assertEqual(hb.is_dead(), True)
 
         self.assertRaises(ValueError, hb.set_value, "NOT-A-VALID-DATE")
