@@ -11,10 +11,10 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from oan_unittest import OANUnitTest
+from oan_unittest import OANTestCase
 from oan_event import *
 
-class TestOANEvent(OANUnitTest):
+class TestOANEvent(OANTestCase):
 
     def f(self, x, args):
         args.append('f(%s)' % x)

@@ -11,12 +11,12 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-#from oan_unittest import OANUnitTest
+#from oan_unittest import OANTestCase
 #from oand import OAND
 #from networknode import CircularNetworkNode
 #from config import Config
 
-#class TestOand(OANUnitTest):
+#class TestOand(OANTestCase):
 #    def test_start_sol_server(self):
 #        self._sol_server = OAND.create_localnetwork_circular_node(
 #            Config('sol-server', "localhost", "4000"))

@@ -17,7 +17,7 @@ __status__ = "Test"
 
 import unittest
 
-class OANUnitTest(unittest.TestCase):
+class OANTestCase(unittest.TestCase):
     def __init__(self, methodName='runTest'):
         '''
         This is an exact copy of the unittest.TestCase.__init__.

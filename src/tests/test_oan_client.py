@@ -11,9 +11,9 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from oan_unittest import OANUnitTest
+from oan_unittest import OANTestCase
 
 #from oan_client import RemoteOANClient
 
-#class TestOANClient(OANUnitTest):
+#class TestOANClient(OANTestCase):
 #    pass
