@@ -30,8 +30,14 @@ class OANNodeManager():
     def __init__(self, server):
         self.server = server
 
+    def create_node(self, node_id, host, port):
+        node = OANNode(node_id, host, port);
+        self.nodes[node_id] = node
+        return node
+
     def add_node(self, node):
         self.nodes[node.node_id] = node
+        return node
 
     def exist_node(self, node_id):
         return (node_id in self.nodes)

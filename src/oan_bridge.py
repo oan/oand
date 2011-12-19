@@ -58,8 +58,7 @@ class OANBridge(asyncore.dispatcher):
         message.execute()
 
         if (not node_manager().exist_node(message.node_id)):
-            self.node = OANNode(message.node_id, message.host, message.port)
-            node_manager().add_node(self.node)
+            self.node =  node_manager().create_node(message.node_id, message.host, message.port)
         else:
             self.node = node_manager().get_node(message.node_id)
 
@@ -108,12 +107,14 @@ class OANBridge(asyncore.dispatcher):
         if (len(self.out_buffer) == 0):
             if self.out_queue is not None and not self.out_queue.empty():
                 message = self.out_queue.get_nowait()
-                self.send_message(message)
 
                 if (message == None):
                     print "OANBridge:handle_write closing"
                     self.close()
                     return
+                else:
+                    self.send_message(message)
+
 
         sent = self.send(self.out_buffer)
         self.out_buffer = self.out_buffer[sent:]
