@@ -49,6 +49,8 @@ class TestOANServer(unittest.TestCase):
 
     def test_connect(self):
         node_manager().send('n1', OANMessagePing.create('n1'))
-        time.sleep(5)
-        #self.assertTrue('n2' in self.server1.bridges)
+        print "before got in message"
+        message = node_manager().get_node('n1').in_queue.get() # max 10 sec wait
+        print "after got in message"
+
         self.assertTrue(True)
