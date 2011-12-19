@@ -11,7 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-# from oan_unittest import OANUnitTest
+# from oan_unittest import OANTestCase
 # import logging
 
 # from oan_resource import *
@@ -21,7 +21,7 @@ __status__ = "Test"
 # from oan_node_manager import OANNodeManager
 # from oan_network_node import OANNetworkNode
 
-# class TestOANMetaManager(OANUnitTest):
+# class TestOANMetaManager(OANTestCase):
 
 #     def start_logging(self):
 #         # Setup logging

@@ -15,23 +15,10 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import sys
 import unittest
 
-class OANUnitTest(unittest.TestCase):
-    def __init__(self, methodName='runTest'):
-        '''
-        This is an exact copy of the unittest.TestCase.__init__.
-
-        It was needed to get the self.__testMethodName to work in run().
-
-        '''
-        try:
-            self.__testMethodName = methodName
-            testMethod = getattr(self, methodName)
-            self.__testMethodDoc = testMethod.__doc__
-        except AttributeError:
-            raise ValueError, "no such test method in %s: %s" % \
-                  (self.__class__, methodName)
+class OANTestCase(unittest.TestCase):
 
     def run(self, result=None):
         '''
@@ -42,14 +29,14 @@ class OANUnitTest(unittest.TestCase):
         '''
         if result is None: result = self.defaultTestResult()
         result.startTest(self)
-        testMethod = getattr(self, self.__testMethodName)
+        testMethod = getattr(self, self._testMethodName)
         try:
             try:
                 self.setUp()
             except KeyboardInterrupt:
                 print "KeyboardInterrupt"
             except:
-                result.addError(self, self.__exc_info())
+                result.addError(self, self._exc_info())
                 return
 
             ok = False
@@ -57,11 +44,11 @@ class OANUnitTest(unittest.TestCase):
                 testMethod()
                 ok = True
             except self.failureException:
-                result.addFailure(self, self.__exc_info())
+                result.addFailure(self, self._exc_info())
             except KeyboardInterrupt:
                 print "KeyboardInterrupt"
             except:
-                result.addError(self, self.__exc_info())
+                result.addError(self, self._exc_info())
 
         finally:
             try:
@@ -69,7 +56,7 @@ class OANUnitTest(unittest.TestCase):
             except KeyboardInterrupt:
                 raise
             except:
-                result.addError(self, self.__exc_info())
+                result.addError(self, self._exc_info())
                 ok = False
             if ok: result.addSuccess(self)
             result.stopTest(self)

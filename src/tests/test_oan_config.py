@@ -11,12 +11,12 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from oan_unittest import OANUnitTest
+from oan_unittest import OANTestCase
 
 import oan
 from oan_config import OANConfig
 
-class TestOANConfig(OANUnitTest):
+class TestOANConfig(OANTestCase):
     _config = None
 
     # Options

@@ -11,11 +11,11 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from oan_unittest import OANUnitTest
+from oan_unittest import OANTestCase
 
 from oan_network_node import OANNetworkNode
 
-class TestOANNetworkNode(OANUnitTest):
+class TestOANNetworkNode(OANTestCase):
     def test_oan_network_node(self):
         nn = OANNetworkNode("uuid", "name", "domain_name", "port")
         self.validate_network_node(nn)
