@@ -17,7 +17,7 @@ class OANHeartBeat(object):
     _value = None
 
     EXPIRE_MIN = 5
-    INACTIVE_MIN = 10
+    OFFLINE_MIN = 10
     DEAD_MIN = 525600
 
     # ISO 8601 format
@@ -43,8 +43,8 @@ class OANHeartBeat(object):
     def set_expired(self):
         self._value = (datetime.utcnow() - timedelta(minutes = self.EXPIRE_MIN + 1))
 
-    def set_inactive(self):
-        self._value = (datetime.utcnow() - timedelta(minutes = self.INACTIVE_MIN + 1))
+    def set_offline(self):
+        self._value = (datetime.utcnow() - timedelta(minutes = self.OFFLINE_MIN + 1))
 
     def set_dead(self):
         self._value = (datetime.utcnow() - timedelta(minutes = self.DEAD_MIN + 1))
@@ -71,14 +71,14 @@ class OANHeartBeat(object):
         '''
         return self._is_touched(self.EXPIRE_MIN)
 
-    def is_inactive(self):
+    def is_offline(self):
         '''
         The heartbeat has not been touched for 10 minutes.
 
         The node is probably offline.
 
         '''
-        return self._is_touched(self.INACTIVE_MIN)
+        return self._is_touched(self.OFFLINE_MIN)
 
     def is_dead(self):
         '''

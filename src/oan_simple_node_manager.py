@@ -8,18 +8,18 @@ from threading import Timer
 from Queue import Queue
 
 class OANNode:
-    node_id = None
+
+    heartbeat = None
+    uuid = None
+    name = None
     port = None
     host = None
-
-    last_connect_success = None
-    last_connect_fail = None
 
     out_queue = Queue()
     in_queue = Queue()
 
-    def __init__(self, node_id, host, port):
-        self.node_id = node_id
+    def __init__(self, uuid, host, port):
+        self.uuid = uuid
         self.host = host
         self.port = port
 
@@ -30,25 +30,26 @@ class OANNodeManager():
     def __init__(self, server):
         self.server = server
 
-    def create_node(self, node_id, host, port):
-        node = OANNode(node_id, host, port);
-        self.nodes[node_id] = node
+    def create_node(self, uuid, host, port):
+        node = OANNode(uuid, host, port);
+        self.nodes[uuid] = node
         return node
 
     def add_node(self, node):
-        self.nodes[node.node_id] = node
+        self.nodes[node.uuid] = node
         return node
 
-    def exist_node(self, node_id):
-        return (node_id in self.nodes)
+    def exist_node(self, uuid):
+        return (uuid in self.nodes)
 
-    def get_node(self, node_id):
-        return self.nodes[node_id]
+    def get_node(self, uuid):
+        return self.nodes[uuid]
 
-    def send(self, node_id, message):
-        if (node_id in self.nodes):
-            node = self.nodes[node_id]
+    def send(self, uuid, message):
+        if (uuid in self.nodes):
+            node = self.nodes[uuid]
             node.out_queue.put(message)
 
-        if (node_id not in self.server.bridges):
+        if (uuid not in self.server.bridges):
             self.server.connect_to_node(node)
+

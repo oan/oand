@@ -69,19 +69,19 @@ class OANServer(asyncore.dispatcher):
 
     def add_bridge(self, bridge):
         print "OanServer:add_bridge"
-        if (bridge.node.node_id not in self.bridges):
-            self.bridges[bridge.node.node_id] = bridge
+        if (bridge.node.uuid not in self.bridges):
+            self.bridges[bridge.node.uuid] = bridge
             self.on_bridge_added(bridge)
 
     def remove_bridge(self, bridge):
         print "OanServer:remove_bridge"
-        if (bridge.node.node_id in self.bridges):
-            del self.bridges[bridge.node.node_id]
+        if (bridge.node.uuid in self.bridges):
+            del self.bridges[bridge.node.uuid]
             self.on_bridge_removed(bridge)
 
     def idle_bridge(self, bridge):
         #print "OanServer:idle_bridge"
-        if (bridge.node.node_id in self.bridges):
+        if (bridge.node.uuid in self.bridges):
             self.on_bridge_idle(bridge)
 
 
@@ -122,16 +122,13 @@ class OANServer(asyncore.dispatcher):
 
 
 def my_bridge_added(bridge):
-    print "my_bridge_added connected to %s" % (bridge.node.node_id)
-    #if (bridge.node.node_id == 'n2'):
-    #    bridge.out_queue.put("Welcome message from [%s]" % bridge.server.node_id);
+    print "my_bridge_added connected to %s" % (bridge.node.uuid)
 
 def my_bridge_removed(bridge):
     print "my_bridge_removed"
 
 def my_bridge_idle(bridge):
-    pass
-    #print "my_bridge_idle"
+    print "my_bridge_idle"
     #bridge.shutdown()
 
 def main():
