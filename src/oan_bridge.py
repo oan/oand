@@ -20,29 +20,41 @@ from datetime import datetime, timedelta
 from oan_event import OANEvent
 from Queue import Queue
 from threading import Thread
+from oan_simple_node_manager import OANNode, OANNodeManager
 
 class OANBridge(asyncore.dispatcher):
 
     server = None
-    connected_to = None
+    node_connected = False
+    node = None # node that the bridge leading to...
     last_used = None
 
-    out_queue = Queue()
+    out_queue = None
     out_buffer = ''
 
-    in_queue = Queue()
+    in_queue = None
     in_buffer = ''
 
-    def __init__(self, server, sock = None):
+    def __init__(self, server, node, sock = None):
         asyncore.dispatcher.__init__(self, sock)
+        self.out_queue = Queue()
+        self.in_queue = Queue()
         self.server = server
+        self.node = node
 
     def handle_connect(self):
         print "OANBridge:handle_connect"
-        self.handshake()
+        self.send_handshake()
 
-    def handshake(self):
-        self.out_queue.put(self.server.node_id)
+    def send_handshake(self):
+        hs = "%s,%s,%s" % (self.server.node.node_id, self.server.node.host, self.server.node.port)
+        self.out_queue.put(hs)
+
+    def read_handshake(self, hs):
+        (remote_id, remote_host, remote_port) = hs.split(',')
+        print "read_handshake: %s,%s,%s" % (remote_id, remote_host, remote_port)
+        self.node = OANNode(remote_id, remote_host, remote_port)
+        self.server.add_bridge(self)
 
     def handle_read(self):
         data = self.recv(1024)
@@ -54,10 +66,9 @@ class OANBridge(asyncore.dispatcher):
             pos = self.in_buffer.find('\n')
             if pos > -1:
                 cmd = self.in_buffer[:pos].strip()
-
-                if (self.connected_to == None):
-                    self.connected_to = cmd
-                    self.server.add_bridge(self)
+                if (not self.node_connected):
+                    self.node_connected = True
+                    self.read_handshake(cmd)
                 else:
                     self.in_queue.put(cmd)
 
@@ -95,9 +106,9 @@ class OANBridge(asyncore.dispatcher):
 
     def handle_error(self):
         print "OANBridge:handle_error"
-        asyncore.dispatcher.handle_error(self)
-        #exc_type, exc_value, exc_traceback = sys.exc_info()
-        #print exc_value
+        #asyncore.dispatcher.handle_error(self)
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        print exc_value
 
     def shutdown(self):
         self.out_queue.put(None)

@@ -21,10 +21,11 @@ from threading import Thread
 from oan_bridge import OANBridge
 from oan_loop import OANLoop
 from oan_event import OANEvent
+from oan_simple_node_manager import OANNode, OANNodeManager
 
 class OANServer(asyncore.dispatcher):
-    node_id = None
-    bridges = {}
+    node = None #my own node
+    bridges = {} #bridges to other nodes
 
     '''
         use:
@@ -55,38 +56,38 @@ class OANServer(asyncore.dispatcher):
     on_bridge_idle = OANEvent()
 
 
-    def __init__(self, node_id, host, port):
+    def __init__(self, node):
         asyncore.dispatcher.__init__(self)
-        self.node_id = node_id
+        self.node = node
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
-        self.bind((host, port))
+        self.bind((node.host, node.port))
         self.listen(5)
 
     def add_bridge(self, bridge):
         print "OanServer:add_bridge"
-        if (bridge.connected_to not in self.bridges):
-            self.bridges[bridge.connected_to] = bridge
+        if (bridge.node.node_id not in self.bridges):
+            self.bridges[bridge.node.node_id] = bridge
             self.on_bridge_added(bridge)
 
     def remove_bridge(self, bridge):
         print "OanServer:remove_bridge"
-        if (bridge.connected_to in self.bridges):
-            del self.bridges[bridge.connected_to]
+        if (bridge.node.node_id in self.bridges):
+            del self.bridges[bridge.node.node_id]
             self.on_bridge_removed(bridge)
 
     def idle_bridge(self, bridge):
-        print "OanServer:idle_bridge"
-        if (bridge.connected_to in self.bridges):
+        #print "OanServer:idle_bridge"
+        if (bridge.node.node_id in self.bridges):
             self.on_bridge_idle(bridge)
 
-    def connect_to_node(self, host, port):
-        bridge = OANBridge(self)
+    def connect_to_node(self, node):
+        bridge = OANBridge(self, node)
         bridge.server = self
         bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        bridge.connect( (host, port) )
+        bridge.connect( (node.host, node.port) )
 
-        print "OanServer:connect_to_node %s:%d" % (host, port)
+        print "OanServer:connect_to_node %s:%d" % (node.host, node.port)
 
     def handle_connect(self):
         print "OanServer:handle_connect"
@@ -100,9 +101,9 @@ class OANServer(asyncore.dispatcher):
         else:
             sock, addr = pair
             print 'OanServer: incoming connection from %s' % repr(addr)
-            bridge = OANBridge(self, sock)
+            bridge = OANBridge(self, None, sock)
             bridge.server = self
-            bridge.handshake()
+            bridge.send_handshake()
 
     def handle_close(self):
         print "OanServer:handle_close"
@@ -119,16 +120,30 @@ class OANServer(asyncore.dispatcher):
 
 
 def my_bridge_added(bridge):
-    print "my_bridge_added connected to %s" % (bridge.connected_to)
-    if (bridge.connected_to == 'c1'):
+    print "my_bridge_added connected to %s" % (bridge.node.node_id)
+    if (bridge.node.node_id == 's1'):
         bridge.out_queue.put("Welcome message from [%s]" % bridge.server.node_id);
 
 def my_bridge_removed(bridge):
     print "my_bridge_removed"
 
+def my_bridge_idle(bridge):
+    pass
+    #print "my_bridge_idle"
+    #bridge.shutdown()
+
 def main():
-    server = OANServer('s1','localhost', 8002)
+
+    my_node = OANNode('s1', 'localhost', 8001)
+    server = OANServer(my_node)
+
+    manager = OANNodeManager(server)
+    manager.add_node(my_node)
+    manager.start()
+
     server.on_bridge_added += (my_bridge_added, )
+    server.on_bridge_removed += (my_bridge_removed, )
+    server.on_bridge_idle += (my_bridge_idle, )
 
     loop = OANLoop()
     loop.on_shutdown += (server.shutdown, )
@@ -136,16 +151,17 @@ def main():
 
     try:
         while True:
-            time.sleep(10)
+            time.sleep(5)
             if ('c1' in server.bridges):
-                server.bridges['c1'].out_queue.put("clock [%s] from [%s]" % (datetime.datetime.now(), server.node_id))
+                manager.send('c1', ("clock [%s] from [%s]" % (datetime.datetime.now(), server.node.node_id)))
 
     except KeyboardInterrupt:
         pass
 
     finally:
+        manager.stop()
         loop.stop()
-
 
 if __name__ == "__main__":
     main()
+
