@@ -53,4 +53,3 @@ class TestOANServer1(OANUnitTest):
         time.sleep(5)
         #self.assertTrue('n2' in self.server1.bridges)
         self.assertTrue(True)
-

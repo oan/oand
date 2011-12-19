@@ -89,6 +89,7 @@ class OANBridge(asyncore.dispatcher):
                 if (self.node is None):
                     self.read_handshake(cmd)
                 else:
+                    print "put to queue"
                     self.in_queue.put(self.read_message(cmd))
 
                 self.in_buffer = self.in_buffer[pos+1:]
