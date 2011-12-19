@@ -22,18 +22,21 @@ from oan_event import OANEvent
 class OANLoop(Thread):
 
     ''' use: loop.on_start += my_loop_start() '''
-    on_start = OANEvent()
+    on_start = None
 
     ''' use: loop.on_shutdown += my_loop_shutdown() '''
-    on_shutdown = OANEvent()
+    on_shutdown = None
 
     ''' use: loop.on_stop += my_loop_stop() '''
-    on_stop = OANEvent()
+    on_stop = None
 
     _running = False
 
     def __init__(self):
         Thread.__init__(self)
+        self.on_start = OANEvent()
+        self.on_shutdown = OANEvent()
+        self.on_stop = OANEvent()
 
     def start(self):
         if (not self._running):

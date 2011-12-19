@@ -43,6 +43,7 @@ class TestOANServer1(OANTestCase):
     def stop_loop(self):
         self.loop.stop()
         self.loop.join()
+        self.loop = None
 
     def create_node(self):
         node = OANNode('n1', 'localhost', 8001)
@@ -53,7 +54,6 @@ class TestOANServer1(OANTestCase):
         node_manager().send('n1', OANMessagePing.create('n1'))
         message = node_manager().get_node('n1').in_queue.get() # max 10 sec wait
         self.assertEqual(message.uuid, 'n1')
-
 
     def test_message_ping(self):
         node_manager().send('n1', OANMessagePing.create('n1'))
