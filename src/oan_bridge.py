@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from oan_event import OANEvent
 from Queue import Queue
 from threading import Thread
-from oan_simple_node_manager import OANNode, OANNodeManager
+from oan_node_manager import OANNode, OANNodeManager
 from oan_message import OANMessageHandshake
 import oan_serializer
 
@@ -42,7 +42,7 @@ class OANBridge(asyncore.dispatcher):
         self.server = server
 
     def handle_connect(self):
-        print "OANBridge:handle_connect"
+        #print "OANBridge:handle_connect"
         self.send_handshake()
 
     def send_handshake(self):
@@ -63,23 +63,23 @@ class OANBridge(asyncore.dispatcher):
             self.node = node_manager().create_node(message.uuid, message.host, message.port)
 
         self.out_queue = self.node.out_queue
-        self.in_queue = self.node.in_queue
+        self.in_queue = node_manager().dispatcher.queue
         self.server.add_bridge(self)
 
     def send_message(self, message):
         raw_message = oan_serializer.encode(message)
-        print "send_message: %s" % (message.__class__.__name__)
+        #print "send_message: %s" % (message.__class__.__name__)
         self.touch_last_used()
         self.out_buffer = raw_message + '\n'
 
     def read_message(self, raw_message):
         message = oan_serializer.decode(raw_message)
-        print "read_message: %s" % (message.__class__.__name__)
+        #print "read_message: %s" % (message.__class__.__name__)
         return message
 
     def handle_read(self):
         data = self.recv(1024)
-        print "OANBridge:handle_read(%s)" % (data)
+        #print "OANBridge:handle_read(%s)" % (data)
 
         if data:
             self.touch_last_used()
@@ -109,7 +109,7 @@ class OANBridge(asyncore.dispatcher):
                 message = self.out_queue.get_nowait()
 
                 if (message == None):
-                    print "OANBridge:handle_write closing"
+                    #print "OANBridge:handle_write closing"
                     self.close()
                     return
                 else:

@@ -7,19 +7,20 @@ from threading import Thread
 from threading import Timer
 from Queue import Queue
 
+from oan_heartbeat import OANHeartbeat
+from oan_message import OANMessageDispatcher
 
 class OANNode:
-
-    heartbeat = None
+    heartbeat = OANHeartbeat()
     uuid = None
     name = None
     port = None
     host = None
 
-    out_queue = Queue()
-    in_queue = Queue()
+    out_queue = None
 
     def __init__(self, uuid, host, port):
+        self.out_queue = Queue()
         self.uuid = uuid
         self.host = host
         self.port = port
@@ -27,6 +28,7 @@ class OANNode:
 class OANNodeManager():
     # Node server to connect and send message to other node servers
     _server = None
+    dispatcher = None
 
     # Info about my own node.
     _my_node = None
@@ -42,8 +44,12 @@ class OANNodeManager():
     def set_my_node(self, node):
         from oan_server import OANServer
 
+        self.dispatcher = OANMessageDispatcher()
+        self.dispatcher.start()
+
         self._my_node = node
         self._server = OANServer(node.host, node.port)
+
 
     def get_my_node(self):
         return self._my_node
@@ -69,4 +75,6 @@ class OANNodeManager():
 
     def shutdown(self):
         self._server.shutdown()
+        self.dispatcher.stop()
+
 

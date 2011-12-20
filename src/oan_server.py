@@ -23,7 +23,7 @@ import oan
 from oan_bridge import OANBridge
 from oan_loop import OANLoop
 from oan_event import OANEvent
-from oan_simple_node_manager import OANNode, OANNodeManager
+from oan_node_manager import OANNode, OANNodeManager
 from oan_message import OANMessagePing
 
 class OANServer(asyncore.dispatcher):
@@ -64,6 +64,7 @@ class OANServer(asyncore.dispatcher):
         self.set_reuse_addr()
         self.bind((host, port))
         self.listen(5)
+
 
     def add_bridge(self, bridge):
         print "OanServer:add_bridge"
