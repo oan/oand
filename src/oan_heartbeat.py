@@ -13,7 +13,7 @@ __status__ = "Test"
 
 from datetime import datetime, timedelta
 
-class OANHeartBeat(object):
+class OANHeartbeat(object):
     _value = None
 
     EXPIRE_MIN = 5

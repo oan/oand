@@ -14,14 +14,14 @@ __status__ = "Test"
 from oan_unittest import OANTestCase
 from oan_heartbeat import *
 
-class TestOANHeartBeat(OANTestCase):
+class TestOANHeartbeat(OANTestCase):
 
     def test_heartbeat(self):
         '''
         Also called from test_resources
 
         '''
-        hb = OANHeartBeat()
+        hb = OANHeartbeat()
 
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_offline(), True)

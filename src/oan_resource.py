@@ -25,7 +25,7 @@ __status__ = "Test"
 
 import uuid
 
-from oan_heartbeat import OANHeartBeat
+from oan_heartbeat import OANHeartbeat
 
 class OANResourceRoot:
     resources = None
@@ -104,7 +104,7 @@ class OANResource():
     node_uuids = []
 
     def __init__(self):
-        self.heartbeat = OANHeartBeat()
+        self.heartbeat = OANHeartbeat()
 
     def is_folder(self):
         return isinstance(self, OANFolder)
