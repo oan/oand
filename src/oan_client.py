@@ -21,7 +21,9 @@ from threading import Timer
 from Queue import Queue
 
 import oan
-from oan_simple_node_manager import OANNode, OANNodeManager
+from oan import node_manager
+
+from oan_node_manager import OANNode, OANNodeManager
 from oan_server import OANServer
 from oan_loop import OANLoop
 from oan_message import OANMessagePing
@@ -37,29 +39,28 @@ def my_bridge_idle(bridge):
     print "my_bridge_idle"
     #bridge.shutdown()
 
+def got_message(message):
+    print "got message"
+    node_manager().send('n1', message)
+    #self.queue.put(message)
+
+def create_watcher():
+    node_manager().dispatcher.on_message += [got_message]
+
 def main():
 
-    n1_node = OANNode('n1', 'localhost', 8001)
-    n1_server = OANServer(n1_node)
-
-    n2_node = OANNode('n2', 'localhost', 8002) #remote
-    manager = OANNodeManager(n1_server)
-
+    n2_node = OANNode('n2', 'localhost', 8002)
+    manager = OANNodeManager()
     oan.set_managers("None", "None", manager)
-    manager.add_node(n1_node)
-    manager.add_node(n2_node)
-
-    n1_server.on_bridge_added += (my_bridge_added, )
-    n1_server.on_bridge_removed += (my_bridge_removed, )
-    n1_server.on_bridge_idle += (my_bridge_idle, )
+    manager.set_my_node(n2_node)
+    node_manager().dispatcher.start()
+    create_watcher()
 
     loop = OANLoop()
-    loop.on_shutdown += (n1_server.shutdown, )
     loop.start()
 
     try:
         while True:
-            manager.send('n2', OANMessagePing.create('n2'))
             time.sleep(10)
 
     except KeyboardInterrupt:

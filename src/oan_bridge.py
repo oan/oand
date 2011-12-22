@@ -42,26 +42,26 @@ class OANBridge(asyncore.dispatcher):
         self.server = server
 
     def handle_connect(self):
-        #print "OANBridge:handle_connect"
+        print "OANBridge:handle_connect"
+        self.send_handshake()
+
+    def handle_accept(self):
+        print "OANBridge:handle_accept"
         self.send_handshake()
 
     def send_handshake(self):
         my_node = node_manager().get_my_node()
-        print "send_handshake: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
-        self.send_message(
+        print "OANBridge:send_handshake: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
+        self.out_buffer = self.send_message(
             OANMessageHandshake.create(my_node.uuid, my_node.host, my_node.port)
         )
 
     def read_handshake(self, raw_message):
         message = self.read_message(raw_message)
-        print "read_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
+        print "OANBridge:read_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
         message.execute()
 
-        if (node_manager().exist_node(message.uuid)):
-            self.node = node_manager().get_node(message.uuid)
-        else:
-            self.node = node_manager().create_node(message.uuid, message.host, message.port)
-
+        self.node = node_manager().create_node(message.uuid, message.host, message.port)
         self.out_queue = self.node.out_queue
         self.in_queue = node_manager().dispatcher.queue
         self.server.add_bridge(self)
@@ -70,29 +70,34 @@ class OANBridge(asyncore.dispatcher):
         raw_message = oan_serializer.encode(message)
         #print "send_message: %s" % (message.__class__.__name__)
         self.touch_last_used()
-        self.out_buffer = raw_message + '\n'
+        return raw_message + '\n'
 
     def read_message(self, raw_message):
-        message = oan_serializer.decode(raw_message)
+        message = oan_serializer.decode(raw_message.strip())
         #print "read_message: %s" % (message.__class__.__name__)
         return message
 
     def handle_read(self):
         data = self.recv(1024)
-        #print "OANBridge:handle_read(%s)" % (data)
+        #if self.node is not None:
+           # print "IN[%s][%s]" % (self.node.uuid, data)
 
         if data:
             self.touch_last_used()
             self.in_buffer += data
+
             pos = self.in_buffer.find('\n')
-            if pos > -1:
-                cmd = self.in_buffer[:pos].strip()
+            while pos > -1:
+                cmd = self.in_buffer[:pos]
+                self.in_buffer = self.in_buffer[pos+1:]
+
+                #print "CMD[%s]" % cmd
                 if (self.node is None):
                     self.read_handshake(cmd)
                 else:
                     self.in_queue.put(self.read_message(cmd))
 
-                self.in_buffer = self.in_buffer[pos+1:]
+                pos = self.in_buffer.find('\n')
 
     def writable(self):
         #print "OANBridge:writable"
@@ -103,25 +108,30 @@ class OANBridge(asyncore.dispatcher):
 
         return ((len(self.out_buffer) > 0) or (self.out_queue is not None and not self.out_queue.empty()))
 
+    def readable(self):
+        #print "OANBridge:readable"
+        return True
+
     def handle_write(self):
         if (len(self.out_buffer) == 0):
             if self.out_queue is not None and not self.out_queue.empty():
-                message = self.out_queue.get_nowait()
+                message = self.out_queue.get()
 
                 if (message == None):
-                    #print "OANBridge:handle_write closing"
+                    print "OANBridge:handle_write closing"
                     self.close()
                     return
                 else:
-                    self.send_message(message)
-
+                    self.out_buffer = self.send_message(message)
 
         sent = self.send(self.out_buffer)
+        #if self.node is not None:
+            #print "OUT[%s][%s]" % (self.node.uuid, self.out_buffer[:sent])
         self.out_buffer = self.out_buffer[sent:]
 
     def handle_close(self):
         print "OANBridge:handle_close"
-        if (self.node is not None):
+        if self.node is not None:
             self.server.remove_bridge(self)
 
         asyncore.dispatcher.handle_close(self)

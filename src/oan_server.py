@@ -23,10 +23,12 @@ import oan
 from oan_bridge import OANBridge
 from oan_loop import OANLoop
 from oan_event import OANEvent
-from oan_node_manager import OANNode, OANNodeManager
+from oan_node_manager import OANNode, OANNodeState, OANNodeManager
 from oan_message import OANMessagePing
 
+# make OANServer.connect_to_node thread safe alternative OANNodeManager
 class OANServer(asyncore.dispatcher):
+
     bridges = {} #bridges to other nodes
 
     '''
@@ -60,6 +62,7 @@ class OANServer(asyncore.dispatcher):
 
     def __init__(self, host, port):
         asyncore.dispatcher.__init__(self)
+        queue = Queue()
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((host, port))
@@ -68,13 +71,14 @@ class OANServer(asyncore.dispatcher):
 
     def add_bridge(self, bridge):
         print "OanServer:add_bridge"
-        if (bridge.node.uuid not in self.bridges):
-            self.bridges[bridge.node.uuid] = bridge
-            self.on_bridge_added(bridge)
+        bridge.node.state = OANNodeState.connected
+        self.bridges[bridge.node.uuid] = bridge
+        self.on_bridge_added(bridge)
 
     def remove_bridge(self, bridge):
         print "OanServer:remove_bridge"
         if (bridge.node.uuid in self.bridges):
+            bridge.node.state = OANNodeState.disconnected
             del self.bridges[bridge.node.uuid]
             self.on_bridge_removed(bridge)
 
@@ -83,17 +87,17 @@ class OANServer(asyncore.dispatcher):
         if (bridge.node.uuid in self.bridges):
             self.on_bridge_idle(bridge)
 
-
     def connect_to_node(self, node):
-        bridge = OANBridge(self)
-        bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        bridge.connect( (node.host, node.port) )
-        print "OanServer:connect_to_node %s:%d:%s" % (node.host, node.port, bridge.connected)
-        return bridge.connected
 
-    def handle_connect(self):
-        print "OanServer:handle_connect"
-        self.handle_connect()
+        # lock
+        if node.state == OANNodeState.disconnected:
+            node.state = OANNodeState.connecting
+            bridge = OANBridge(self)
+            bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+            bridge.connect( (node.host, node.port) )
+            print "OanServer:connect_to_node %s:%d:%s" % (node.host, node.port, bridge.connected)
+        # ----
+
 
     def handle_accept(self):
         print "OanServer:handle_accept"
@@ -102,9 +106,9 @@ class OANServer(asyncore.dispatcher):
             pass
         else:
             sock, addr = pair
-            print 'OanServer: incoming connection from %s' % repr(addr)
+            print 'OanServer: accepting connection from %s' % repr(addr)
             bridge = OANBridge(self, sock)
-            bridge.send_handshake()
+            bridge.handle_accept()
 
     def handle_close(self):
         print "OanServer:handle_close"
@@ -112,7 +116,7 @@ class OANServer(asyncore.dispatcher):
 
     def shutdown(self):
         self.close()
-        for k, bridge in self.bridges.iteritems():
+        for k, bridge in self._map.iteritems():
             bridge.shutdown()
 
     def handle_error(self):
@@ -131,35 +135,7 @@ def my_bridge_idle(bridge):
     #bridge.shutdown()
 
 def main():
-
-    n2_node = OANNode('n2', 'localhost', 8002)
-    n2_server = OANServer(n2_node)
-
-    n1_node = OANNode('n1', 'localhost', 8001) # remote
-
-    manager = OANNodeManager(n2_server)
-    oan.set_managers("None", "None", manager)
-    manager.add_node(n1_node)
-    manager.add_node(n2_node)
-
-    n2_server.on_bridge_added += (my_bridge_added, )
-    n2_server.on_bridge_removed += (my_bridge_removed, )
-    n2_server.on_bridge_idle += (my_bridge_idle, )
-
-    loop = OANLoop()
-    loop.on_shutdown += (n2_server.shutdown, )
-    loop.start()
-
-    try:
-        while True:
-            manager.send('n1', OANMessagePing.create('n1'))
-            time.sleep(5)
-
-    except KeyboardInterrupt:
-        pass
-
-    finally:
-        loop.stop()
+    pass
 
 if __name__ == "__main__":
     main()

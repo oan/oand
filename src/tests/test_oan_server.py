@@ -21,7 +21,7 @@ from oan_loop import OANLoop
 from oan_event import OANEvent
 
 from oan_node_manager import OANNode, OANNodeManager
-from oan_message import OANMessagePing
+from oan_message import OANMessagePing, OANMessageHeartbeat
 
 from Queue import Queue
 
@@ -43,7 +43,7 @@ class TestOANServer(unittest.TestCase):
 
     def start_loop(self):
         self.loop = OANLoop()
-        self.loop.on_shutdown += (node_manager().shutdown, )
+        self.loop.on_shutdown += [node_manager().shutdown]
         self.loop.start()
 
     def stop_loop(self):
@@ -52,23 +52,37 @@ class TestOANServer(unittest.TestCase):
         self.loop = None
 
     def got_message(self, message):
-        print "got message"
+        #print "got message"
         self.queue.put(message)
 
     def create_watcher(self):
-        node_manager().dispatcher.on_message_after += [self.got_message]
+        node_manager().dispatcher.on_message += [self.got_message]
 
     def create_node(self):
-        node = OANNode('n1', 'localhost', 8001)
+        node = node_manager().create_node('n1', 'localhost', 8001)
+        node_manager().create_node('n2', 'localhost', 8002)
         node_manager().set_my_node(node)
-        node_manager().add_node(node)
 
-    def test_connect(self):
-        node_manager().send('n1', OANMessagePing.create('n1'))
-        message = self.queue.get() # max 10 sec wait
-        self.assertEqual(message.uuid, 'n1')
+    #def atest_connect(self):
+    #    node_manager().send('n1', OANMessagePing.create('n1', 1))
+    #    message = self.queue.get(True, 10) # max 10 sec wait
+    #    self.assertEqual(message.uuid, 'n1')
 
     def test_message_ping(self):
-        node_manager().send('n1', OANMessagePing.create('n1'))
-        message = self.queue.get() # max 10 sec wait
-        self.assertEqual(message.uuid, 'n1')
+        node_manager().dispatcher.start()
+
+        for i in xrange(100000):
+           node_manager().send('n1', OANMessagePing.create('n1', i))
+
+        counter = 0
+        for i in xrange(100000):
+            message = self.queue.get()
+            counter += 1
+
+        self.assertEqual(counter, 100000)
+
+    #def atest_message_heartbeat(self):
+    #    node_manager().send('n1', OANMessageHeartbeat.create(node_manager().get_my_node()))
+    #    message = self.queue.get(True, 10) # max 10 sec wait
+    #    self.assertEqual(message.uuid, 'n1')
+

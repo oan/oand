@@ -10,16 +10,22 @@ from Queue import Queue
 from oan_heartbeat import OANHeartbeat
 from oan_message import OANMessageDispatcher
 
+class OANNodeState:
+    connecting, connected, disconnected = range(1, 4)
+
 class OANNode:
-    heartbeat = OANHeartbeat()
+    heartbeat = None
     uuid = None
     name = None
     port = None
     host = None
+    state = None
 
     out_queue = None
 
     def __init__(self, uuid, host, port):
+        self.state = OANNodeState.disconnected
+        self.heartbeat = OANHeartbeat()
         self.out_queue = Queue()
         self.uuid = uuid
         self.host = host
@@ -33,23 +39,28 @@ class OANNodeManager():
     # Info about my own node.
     _my_node = None
 
-    # An dictionary with all nodes in the OAN.
+    # A dictionary with all nodes in the OAN.
     _nodes = {}
 
     def create_node(self, uuid, host, port):
-        node = OANNode(uuid, host, port);
-        self._nodes[uuid] = node
+        if self.exist_node(uuid):
+            node = self._nodes[uuid]
+            node.host = host
+            node.port = port
+        else:
+            node = OANNode(uuid, host, port);
+            self._nodes[uuid] = node
+
+        node.heartbeat.touch()
         return node
 
     def set_my_node(self, node):
         from oan_server import OANServer
-
         self.dispatcher = OANMessageDispatcher()
-        self.dispatcher.start()
+        #self.dispatcher.start()
 
         self._my_node = node
         self._server = OANServer(node.host, node.port)
-
 
     def get_my_node(self):
         return self._my_node
@@ -68,10 +79,12 @@ class OANNodeManager():
         if (uuid in self._nodes):
             node = self._nodes[uuid]
             node.out_queue.put(message)
+        else:
+            print "OANNodeManager:Error node is missing %s" % uuid
 
-        if (uuid not in self._server.bridges):
+        # it will only try if the bridge is not open
+        if (node.state == OANNodeState.disconnected):
             self._server.connect_to_node(node)
-
 
     def shutdown(self):
         self._server.shutdown()

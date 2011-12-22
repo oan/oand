@@ -19,13 +19,18 @@ from Queue import Queue
 from oan_event import OANEvent
 class OANMessageDispatcher(Thread):
 
-    ''' use: loop.on_shutdown += my_loop_shutdown() '''
+    ''' use: dispatcher.on_shutdown += my_loop_shutdown() '''
     on_shutdown = None
 
-    ''' use: loop.on_stop += my_loop_stop() '''
-    on_message_before = None
+    '''
+        use:
 
-    on_message_after = None
+        def got_message(self, message):
+            print "got message"
+
+        dispatcher.on_message += [got_message]
+    '''
+    on_message = None
 
     queue = None
 
@@ -33,14 +38,12 @@ class OANMessageDispatcher(Thread):
         Thread.__init__(self)
         self.queue = Queue()
         self.on_shutdown = OANEvent()
-        self.on_message_before = OANEvent()
-        self.on_message_after = OANEvent()
+        self.on_message = OANEvent()
 
     def start(self):
             Thread.start(self)
 
     def stop(self):
-        print "OANMessageDispatcher: try stop"
         self.queue.put(None)
 
     def run(self):
@@ -50,9 +53,8 @@ class OANMessageDispatcher(Thread):
             if message is None:
                 break
 
-            self.on_message_before(message)
             message.execute()
-            self.on_message_after(message)
+            self.on_message(message)
 
         print "OANMessageDispatcher: shutdown"
         self.on_shutdown()
@@ -82,11 +84,11 @@ class OANMessageHeartbeat():
     port = None
 
     @classmethod
-    def create(cls, uuid, host, port):
+    def create(cls, node):
         obj = cls()
-        obj.uuid = uuid
-        obj.host = host
-        obj.port = port
+        obj.uuid = node.uuid
+        obj.host = node.host
+        obj.port = node.port
         return obj
 
     def execute(self):
@@ -100,19 +102,23 @@ from datetime import datetime
 
 class OANMessagePing():
     uuid = None
+    nr = None
     time = None
 
     @classmethod
-    def create(cls, uuid):
+    def create(cls, uuid, nr):
         obj = cls()
         obj.uuid = uuid
+        obj.nr = nr
         obj.time = str(datetime.now())
 
         return obj
 
     def execute(self):
-        print "Ping [%s] from [%s]" % (self.time, self.uuid)
+        if ((self.nr%1000) == 0):
+            print "Ping [%d][%s] from [%s]" % (self.nr, self.time, self.uuid)
 
 
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
+oan_serializer.add("OANMessageHeartbeat", OANMessageHeartbeat)
 oan_serializer.add("OANMessagePing", OANMessagePing)

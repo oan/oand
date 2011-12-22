@@ -23,8 +23,11 @@ class OANHeartbeat(object):
     # ISO 8601 format
     _date_fmt = "%Y-%m-%dT%H:%M:%SZ"
 
-    def __init__(self,  last_heartbeat = "2006-06-06T06:06:06Z"):
-        self.set_value(last_heartbeat)
+    def __init__(self,  last_heartbeat = None):
+        if (last_heartbeat is None):
+            self.set_offline()
+        else:
+            self.set_value(last_heartbeat)
 
     def get_value(self):
         return self._value.strftime(self._date_fmt)
