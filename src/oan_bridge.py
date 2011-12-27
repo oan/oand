@@ -120,7 +120,7 @@ class OANBridge(asyncore.dispatcher):
                 pos = self.in_buffer.find('\n')
 
     def writable(self):
-        print "OANBridge:writable"
+        #print "OANBridge:writable"
         if self.node is not None:
             if self.node.heartbeat.is_idle():
                 self.send_close() # should be moved to oan_loop

@@ -71,15 +71,15 @@ class TestOANServer(unittest.TestCase):
     def test_message_ping(self):
         node_manager().dispatcher.start()
 
-        for i in xrange(1000000):
+        for i in xrange(5000):
            node_manager().send('n1', OANMessagePing.create('n1', i))
 
         counter = 0
-        for i in xrange(1000000):
+        for i in xrange(5000):
             message = self.queue.get()
             counter += 1
 
-        self.assertEqual(counter, 1000000)
+        self.assertEqual(counter, 5000)
 
     #def atest_message_heartbeat(self):
     #    node_manager().send('n1', OANMessageHeartbeat.create(node_manager().get_my_node()))
