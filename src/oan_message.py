@@ -77,6 +77,18 @@ class OANMessageHandshake():
         print "OANMessageHandshake: %s %s %s" % (self.uuid, self.host, self.port)
 
 
+class OANMessageClose():
+    uuid = None
+
+    @classmethod
+    def create(cls, uuid):
+        obj = cls()
+        obj.uuid = uuid
+        return obj
+
+    def execute(self):
+        print "OANMessageClose: %s" % (self.uuid)
+
 # TODO: maybe have a time_to_live datetime. if node vill be offline och dead etc. clear all queues.
 class OANMessageHeartbeat():
     uuid = None
@@ -120,5 +132,6 @@ class OANMessagePing():
 
 
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
+oan_serializer.add("OANMessageClose", OANMessageClose)
 oan_serializer.add("OANMessageHeartbeat", OANMessageHeartbeat)
 oan_serializer.add("OANMessagePing", OANMessagePing)

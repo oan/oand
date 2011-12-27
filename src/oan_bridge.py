@@ -22,14 +22,13 @@ from oan_event import OANEvent
 from Queue import Queue
 from threading import Thread
 from oan_node_manager import OANNode, OANNodeManager
-from oan_message import OANMessageHandshake
+from oan_message import OANMessageHandshake, OANMessageClose
 import oan_serializer
 
 class OANBridge(asyncore.dispatcher):
 
     server = None
     node = None # node that the bridge leading to... is None to handshake is done.
-    last_used = None
 
     out_queue = None
     out_buffer = ''
@@ -56,24 +55,43 @@ class OANBridge(asyncore.dispatcher):
             OANMessageHandshake.create(my_node.uuid, my_node.host, my_node.port)
         )
 
-    def read_handshake(self, raw_message):
-        message = self.read_message(raw_message)
+    def send_close(self):
+        my_node = node_manager().get_my_node()
+        print "OANBridge:send_close: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
+        self.out_buffer = self.send_message(
+            OANMessageClose.create(my_node.uuid)
+        )
+
+    def got_close(self, message):
+        print "OANBridge:got_close: %s" % (message.uuid)
+        self.in_queue.put(message)
+        if not self.writable():
+            self.close()
+
+    def got_handshake(self, message):
         print "OANBridge:read_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
-        message.execute()
 
         self.node = node_manager().create_node(message.uuid, message.host, message.port)
         self.out_queue = self.node.out_queue
         self.in_queue = node_manager().dispatcher.queue
+
+        self.in_queue.put(message)
         self.server.add_bridge(self)
 
     def send_message(self, message):
         raw_message = oan_serializer.encode(message)
         #print "send_message: %s" % (message.__class__.__name__)
-        self.touch_last_used()
+        if self.node is not None:
+            self.node.heartbeat.touch()
+
         return raw_message + '\n'
 
     def read_message(self, raw_message):
         message = oan_serializer.decode(raw_message.strip())
+
+        if self.node is not None:
+            self.node.heartbeat.touch()
+
         #print "read_message: %s" % (message.__class__.__name__)
         return message
 
@@ -83,7 +101,6 @@ class OANBridge(asyncore.dispatcher):
            # print "IN[%s][%s]" % (self.node.uuid, data)
 
         if data:
-            self.touch_last_used()
             self.in_buffer += data
 
             pos = self.in_buffer.find('\n')
@@ -92,18 +109,21 @@ class OANBridge(asyncore.dispatcher):
                 self.in_buffer = self.in_buffer[pos+1:]
 
                 #print "CMD[%s]" % cmd
-                if (self.node is None):
-                    self.read_handshake(cmd)
+                message = self.read_message(cmd)
+                if isinstance(message, OANMessageHandshake):
+                    self.got_handshake(message)
+                elif isinstance(message, OANMessageClose):
+                    self.got_close(message)
                 else:
-                    self.in_queue.put(self.read_message(cmd))
+                    self.in_queue.put(message)
 
                 pos = self.in_buffer.find('\n')
 
     def writable(self):
-        #print "OANBridge:writable"
-        if (self.last_used != None):
-            diff = datetime.now() - self.last_used
-            if (diff > timedelta(seconds=3)):
+        print "OANBridge:writable"
+        if self.node is not None:
+            if self.node.heartbeat.is_idle():
+                self.send_close() # should be moved to oan_loop
                 self.server.idle_bridge(self)
 
         return ((len(self.out_buffer) > 0) or (self.out_queue is not None and not self.out_queue.empty()))
@@ -145,5 +165,3 @@ class OANBridge(asyncore.dispatcher):
         print "OANBridge:shutdown"
         self.out_queue.put(None)
 
-    def touch_last_used(self):
-        self.last_used = datetime.now()

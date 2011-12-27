@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 class OANHeartbeat(object):
     _value = None
 
+    IDLE_MIN = 0.1
     EXPIRE_MIN = 5
     OFFLINE_MIN = 10
     DEAD_MIN = 525600
@@ -51,6 +52,9 @@ class OANHeartbeat(object):
 
     def set_dead(self):
         self._value = (datetime.utcnow() - timedelta(minutes = self.DEAD_MIN + 1))
+
+    def set_idle(self):
+        self._value = (datetime.utcnow() - timedelta(minutes = self.IDLE_MIN + 1))
 
     def _is_touched(self, min):
         '''
@@ -91,3 +95,15 @@ class OANHeartbeat(object):
 
         '''
         return self._is_touched(self.DEAD_MIN)
+
+
+    def is_idle(self):
+        '''
+        The heartbeat has not been touched for 1 minute.
+
+        The node is probably dead.
+
+        '''
+        return self._is_touched(self.IDLE_MIN)
+
+
