@@ -23,32 +23,44 @@ class TestOANHeartbeat(OANTestCase):
         '''
         hb = OANHeartbeat()
 
+        self.assertEqual(hb.is_idle(), True)
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_offline(), True)
-        self.assertEqual(hb.is_dead(), True)
+        self.assertEqual(hb.is_dead(), False)
 
         hb.value = "2106-06-06T06:06:06Z"
+        self.assertEqual(hb.is_idle(), False)
         self.assertEqual(hb.is_expired(), False)
         self.assertEqual(hb.is_offline(), False)
         self.assertEqual(hb.is_dead(), False)
         self.assertEqual(hb.value, "2106-06-06T06:06:06Z")
 
         hb.touch()
+        self.assertEqual(hb.is_idle(), False)
+        self.assertEqual(hb.is_expired(), False)
+        self.assertEqual(hb.is_offline(), False)
+        self.assertEqual(hb.is_dead(), False)
+
+        hb.set_idle()
+        self.assertEqual(hb.is_idle(), True)
         self.assertEqual(hb.is_expired(), False)
         self.assertEqual(hb.is_offline(), False)
         self.assertEqual(hb.is_dead(), False)
 
         hb.set_expired()
+        self.assertEqual(hb.is_idle(), True)
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_offline(), False)
         self.assertEqual(hb.is_dead(), False)
 
         hb.set_offline()
+        self.assertEqual(hb.is_idle(), True)
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_offline(), True)
         self.assertEqual(hb.is_dead(), False)
 
         hb.set_dead()
+        self.assertEqual(hb.is_idle(), True)
         self.assertEqual(hb.is_expired(), True)
         self.assertEqual(hb.is_offline(), True)
         self.assertEqual(hb.is_dead(), True)

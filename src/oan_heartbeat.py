@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Representaion a heartbeat "timestamp".
+Representing a heartbeat "timestamp".
 
 '''
 
@@ -44,6 +44,9 @@ class OANHeartbeat(object):
         self._value = datetime.utcnow()
         return self.get_value()
 
+    def set_idle(self):
+        self._value = (datetime.utcnow() - timedelta(minutes = self.IDLE_MIN + 1))
+
     def set_expired(self):
         self._value = (datetime.utcnow() - timedelta(minutes = self.EXPIRE_MIN + 1))
 
@@ -52,9 +55,6 @@ class OANHeartbeat(object):
 
     def set_dead(self):
         self._value = (datetime.utcnow() - timedelta(minutes = self.DEAD_MIN + 1))
-
-    def set_idle(self):
-        self._value = (datetime.utcnow() - timedelta(minutes = self.IDLE_MIN + 1))
 
     def _is_touched(self, min):
         '''
@@ -68,6 +68,14 @@ class OANHeartbeat(object):
             return False
 
         return True
+
+
+    def is_idle(self):
+        '''
+        The heartbeat has not been touched for 1 minute.
+
+        '''
+        return self._is_touched(self.IDLE_MIN)
 
     def is_expired(self):
         '''
@@ -95,15 +103,3 @@ class OANHeartbeat(object):
 
         '''
         return self._is_touched(self.DEAD_MIN)
-
-
-    def is_idle(self):
-        '''
-        The heartbeat has not been touched for 1 minute.
-
-        The node is probably dead.
-
-        '''
-        return self._is_touched(self.IDLE_MIN)
-
-

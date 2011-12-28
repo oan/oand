@@ -35,6 +35,31 @@ TODO
 
 # Added a local oan network spawner.
 
+* Create UML
+  http://yuml.me/1555afce
+
+  # Help
+
+  http://yuml.me/diagram/scruffy/class/samples
+
+  # Code
+
+  [note: You can stick notes on diagrams too!{bg:cornsilk}]
+  [OAN]++-1>[OANDataManager]
+  [OAN]++-1>[OANMetaManager]
+  [OAN]++-1>[OANNodeManager]
+  [OANNodeManager]++-0..*>[OANNode]
+  [OANNode]++-1>[OANHeartBeat]
+  [OANApp]++-1>[OANConfig]
+  [OANApp]++-1>[OANServer]
+  [OANApp]++-1>[OANLoop]
+
+  # Generate new diagram
+
+  http://yuml.me/diagram/scruffy/class/draw2
+
+
+
 * Write test_resources and resourcemanager.
 
 * Enable tls/ssl
