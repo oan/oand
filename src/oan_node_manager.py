@@ -33,7 +33,7 @@ class OANNetworkNode:
 
 class OANNodeManager():
     # Node server to connect and send message to other node servers
-    _server = None
+    server = None
     dispatcher = None
 
     # Info about my own node.
@@ -55,12 +55,15 @@ class OANNodeManager():
         return node
 
     def set_my_node(self, node):
-        from oan_server import OANServer
-        self.dispatcher = OANMessageDispatcher()
-        self.dispatcher.start()
+        if self._my_node is None:
+            from oan_server import OANServer
+            self.dispatcher = OANMessageDispatcher()
+            self.dispatcher.start()
+            self.server = OANServer(node.host, node.port)
 
-        self._my_node = node
-        self._server = OANServer(node.host, node.port)
+            self._my_node = node
+        else:
+            print "OANNodeManager:Error my node is already set"
 
     def get_my_node(self):
         return self._my_node
@@ -84,10 +87,10 @@ class OANNodeManager():
 
         # it will only try if the bridge is not open
         if (node.state == OANNetworkNodeState.disconnected):
-            self._server.connect_to_node(node)
+            self.server.connect_to_node(node)
 
     def shutdown(self):
-        self._server.shutdown()
+        self.server.shutdown()
         self.dispatcher.stop()
 
 

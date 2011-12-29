@@ -20,58 +20,58 @@ from oan import node_manager
 from oan_loop import OANLoop
 from oan_event import OANEvent
 
+from oand import OANApplication
+from oan_config import OANConfig
 from oan_node_manager import OANNetworkNode, OANNodeManager
 from oan_message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OANMessageHandshake
 
 from Queue import Queue
 
 class TestOANMessage(OANTestCase):
-    loop = None
     queue = None
+    app = None
 
     def setUp(self):
         self.queue = Queue()
-        oan.set_managers("None", "None", OANNodeManager())
-        self.start_loop()
+
+        self.app = OANApplication(OANConfig(
+            "tt:tt:10",
+            "TestOANMessage",
+            "localhost",
+            str(8000)
+        ))
+
+        self.app.run()
         self.create_node()
-        self.create_watcher()
+        node_manager().server.on_bridge_added.append(self.bridge_added)
+        node_manager().server.on_bridge_removed.append(self.bridge_removed)
 
     def tearDown(self):
-        self.stop_loop()
-        oan.set_managers("None", "None", "None")
+        node_manager().server.on_bridge_added.remove(self.bridge_added)
+        node_manager().server.on_bridge_removed.remove(self.bridge_removed)
         self.queue = None
+        self.app.stop()
 
-    def start_loop(self):
-        self.loop = OANLoop()
-        self.loop.on_shutdown += [node_manager().shutdown]
-        self.loop.start()
+    def bridge_added(self, bridge):
+        print "got_connection"
+        self.queue.put("got_connection")
 
-    def stop_loop(self):
-        self.loop.stop()
-        self.loop.join()
-        self.loop = None
-
-    def got_message(self, message):
-        self.queue.put(message)
-
-    def create_watcher(self):
-        node_manager().dispatcher.on_message += [self.got_message]
+    def bridge_removed(self, bridge):
+        print "got_close"
+        self.queue.put("got_close")
 
     def create_node(self):
-        node = node_manager().create_node('n1', 'localhost', 8001)
-        node_manager().create_node('n2', 'localhost', 8002)
-        node_manager().set_my_node(node)
+        node_manager().create_node('xx:hh:10', 'localhost', 4000)
 
+    # test close message wait for idle.
     def test_message_close(self):
-        # open a connection to server.
-        node_manager().send('n1', OANMessageHeartbeat.create(node_manager().get_my_node()))
+        for i in xrange(2):
+            # open a connection to server.
+            node_manager().send('xx:hh:10', OANMessageHeartbeat.create(node_manager().get_my_node()))
 
-        # Wait for close mesage
-        message = self.queue.get(True, 10)
-        self.assertTrue(isinstance(message, OANMessageHandshake))
-        message = self.queue.get(True, 10)
-        self.assertTrue(isinstance(message, OANMessageHandshake))
-        message = self.queue.get(True, 10)
-        self.assertTrue(isinstance(message, OANMessageHeartbeat))
-        message = self.queue.get(True, 10)
-        self.assertTrue(isinstance(message, OANMessageClose))
+            # Wait for close mesage
+            called = self.queue.get(True, 10)
+            self.assertEqual(called, "got_connection")
+
+            called = self.queue.get(True, 10)
+            self.assertEqual(called, "got_close")

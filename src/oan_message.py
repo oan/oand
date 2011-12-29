@@ -43,7 +43,7 @@ class OANMessageDispatcher(Thread):
         self.on_message = OANEvent()
 
     def start(self):
-            Thread.start(self)
+        Thread.start(self)
 
     def stop(self):
         self.queue.put(None)
@@ -136,7 +136,7 @@ class OANMessagePing():
         return obj
 
     def execute(self):
-        if self.ping_counter == 0:
+        if self.ping_counter == 1:
             print "Ping [%s][%d] from [%s] %s - %s" % (
                 self.ping_id,
                 self.ping_counter,
@@ -145,7 +145,7 @@ class OANMessagePing():
                 self.ping_end_time
             )
 
-        if self.ping_counter > 0:
+        if self.ping_counter > 1:
             node_manager().send(
                 self.node_uuid,
                 OANMessagePing.create(self.ping_id, self.ping_counter-1, self.ping_begin_time)

@@ -64,9 +64,8 @@ class OANBridge(asyncore.dispatcher):
 
     def got_close(self, message):
         print "OANBridge:got_close: %s" % (message.uuid)
-        self.in_queue.put(message)
         if not self.writable():
-            self.close()
+            self.handle_close()
 
     def got_handshake(self, message):
         #print "OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
@@ -74,8 +73,6 @@ class OANBridge(asyncore.dispatcher):
         self.node = node_manager().create_node(message.uuid, message.host, message.port)
         self.out_queue = self.node.out_queue
         self.in_queue = node_manager().dispatcher.queue
-
-        self.in_queue.put(message)
         self.server.add_bridge(self)
 
     def send_message(self, message):
@@ -138,8 +135,8 @@ class OANBridge(asyncore.dispatcher):
                 message = self.out_queue.get()
 
                 if (message == None):
-                    print "OANBridge:handle_write closing"
-                    self.close()
+                    #print "OANBridge:handle_write closing"
+                    self.handle_close()
                     return
                 else:
                     self.out_buffer = self.send_message(message)
@@ -154,9 +151,10 @@ class OANBridge(asyncore.dispatcher):
         if self.node is not None:
             self.server.remove_bridge(self)
 
-        asyncore.dispatcher.handle_close(self)
+        asyncore.dispatcher.close(self)
 
     def handle_error(self):
+        print "OANBridge:handle_error"
         asyncore.dispatcher.handle_error(self)
         exc_type, exc_value, exc_traceback = sys.exc_info()
         #print "OANBridge:handle_error: %s" % exc_value

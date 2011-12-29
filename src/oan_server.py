@@ -70,13 +70,13 @@ class OANServer(asyncore.dispatcher):
 
 
     def add_bridge(self, bridge):
-        print "OanServer:add_bridge"
+        #print "OanServer:add_bridge"
         bridge.node.state = OANNetworkNodeState.connected
         self.bridges[bridge.node.uuid] = bridge
         self.on_bridge_added(bridge)
 
     def remove_bridge(self, bridge):
-        print "OanServer:remove_bridge"
+        #print "OanServer:remove_bridge"
         if (bridge.node.uuid in self.bridges):
             bridge.node.state = OANNetworkNodeState.disconnected
             del self.bridges[bridge.node.uuid]
@@ -100,7 +100,7 @@ class OANServer(asyncore.dispatcher):
 
 
     def handle_accept(self):
-        print "OanServer:handle_accept"
+        #print "OanServer:handle_accept"
         pair = self.accept()
         if pair is None:
             pass
@@ -122,21 +122,3 @@ class OANServer(asyncore.dispatcher):
     def handle_error(self):
         print "OanServer:handle_error"
         asyncore.dispatcher.handle_error(self)
-
-
-def my_bridge_added(bridge):
-    print "my_bridge_added connected to %s" % (bridge.node.uuid)
-
-def my_bridge_removed(bridge):
-    print "my_bridge_removed"
-
-def my_bridge_idle(bridge):
-    print "my_bridge_idle"
-    #bridge.shutdown()
-
-def main():
-    pass
-
-if __name__ == "__main__":
-    main()
-

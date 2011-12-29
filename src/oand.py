@@ -39,7 +39,32 @@ class OANApplication():
         self.config = config
         self._start_logger()
 
-    def setup_node_manager(self):
+    def run(self):
+        logging.info("Starting Open Archive Network (oand) for " +
+                     self.config.node_name)
+
+        set_managers(
+            "None", #OANDataManager("../var/data.dat"),
+            "None", #OANMetaManager(),
+            OANNodeManager()
+        )
+
+        self._setup_node_manager()
+        #self._start_scheduler()
+        self._start_loop()
+
+        logging.info("Stopping Open Archive Network (oand)")
+
+    # is it possible to catch the SIG when killing a deamon and call this function.
+    def stop(self):
+        self._stop_loop()
+
+    #def _start_scheduler(self):
+        #logging.debug("Starting scheduler")
+        #reactor.callWhenRunning(self.run_every_minute);
+        #reactor.callWhenRunning(self.run_every_day);
+
+    def _setup_node_manager(self):
         '''
         Prepare nodemanager to connect to OAN network.
 
@@ -60,47 +85,22 @@ class OANApplication():
             #reactor.callLater(1, node_manager().connect_to_oan, url)
 
 
-    def start_loop(self):
+    def _start_loop(self):
         self.loop = OANLoop()
         self.loop.on_shutdown += [node_manager().shutdown]
         self.loop.start()
 
-    def stop_loop(self):
+    def _stop_loop(self):
         self.loop.stop()
         self.loop.join()
         self.loop = None
 
-    def run(self):
-        logging.info("Starting Open Archive Network (oand) for " +
-                     self.config.node_name)
-
-        set_managers(
-            "None", #OANDataManager("../var/data.dat"),
-            "None", #OANMetaManager(),
-            OANNodeManager()
-        )
-
-        self.setup_node_manager()
-
-        self._start_scheduler()
-        self.start_loop()
-        #OANServer(self.config)
-        #reactor.run()
-
-        logging.info("Stopping Open Archive Network (oand)")
-
-
-    def _start_scheduler(self):
-        logging.debug("Starting scheduler")
-        #reactor.callWhenRunning(self.run_every_minute);
-        #reactor.callWhenRunning(self.run_every_day);
-
-    def run_every_minute(self):
-        node_manager().check_heartbeat()
+    #def run_every_minute(self):
+        #node_manager().check_heartbeat()
         #reactor.callLater(60, self.run_every_minute);
 
-    def run_every_day(self):
-        node_manager().remove_expired_nodes()
+    #def run_every_day(self):
+        #node_manager().remove_expired_nodes()
         #reactor.callLater(60 * 60 * 24, self.run_every_day);
 
     def _start_logger(self,):
@@ -134,7 +134,13 @@ class OANDaemon(OANDaemonBase):
 
     def __init__(self, config):
         self._app = OANApplication(config)
-        OANDaemonBase.__init__(self, self._app.config.pid_file)
+        OANDaemonBase.__init__(
+            self,
+            self._app.config.pid_file,
+            '/dev/null',
+            "%s.stdout" % self._app.config.pid_file,
+            "%s.stderr" % self._app.config.pid_file
+        )
 
     def run(self):
         self._app.run()
