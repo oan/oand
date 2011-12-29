@@ -59,15 +59,9 @@ class OANServer(asyncore.dispatcher):
     '''
     on_bridge_idle = OANEvent()
 
-
-    def __init__(self, host, port):
+    def __init__(self):
         asyncore.dispatcher.__init__(self)
         queue = Queue()
-        self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.set_reuse_addr()
-        self.bind((host, port))
-        self.listen(5)
-
 
     def add_bridge(self, bridge):
         #print "OanServer:add_bridge"
@@ -86,6 +80,13 @@ class OANServer(asyncore.dispatcher):
         #print "OanServer:idle_bridge"
         if (bridge.node.uuid in self.bridges):
             self.on_bridge_idle(bridge)
+
+    def start_listen(self, node):
+        if not node.blocked:
+            self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.set_reuse_addr()
+            self.bind((node.host, node.port))
+            self.listen(5)
 
     def connect_to_node(self, node):
 

@@ -91,7 +91,6 @@ class OANMessageClose():
     def execute(self):
         print "OANMessageClose: %s" % (self.uuid)
 
-# TODO: maybe have a time_to_live datetime. if node vill be offline och dead etc. clear all queues.
 class OANMessageHeartbeat():
     uuid = None
     host = None
@@ -108,7 +107,27 @@ class OANMessageHeartbeat():
     def execute(self):
         print "OANMessageHeartbeat: %s %s %s" % (self.uuid, self.host, self.port)
 
+#####
 
+class OANMessageNodeList():
+    node_list = None
+
+    @classmethod
+    def create(cls, nodes):
+        obj = cls()
+        obj.node_list = []
+
+        # need to create this message in node_manager thread. or copy the nodes dict before calling this
+        # function.
+        for node in nodes.values():
+            obj.node_list.append([node.uuid, node.host, node.port])
+
+        print obj.node_list
+        return obj
+
+    def execute(self):
+        for n in self.node_list:
+            node_manager().create_node(n[0], n[1], n[2])
 
 #######
 
@@ -154,4 +173,5 @@ class OANMessagePing():
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
 oan_serializer.add("OANMessageClose", OANMessageClose)
 oan_serializer.add("OANMessageHeartbeat", OANMessageHeartbeat)
+oan_serializer.add("OANMessageNodeList", OANMessageNodeList)
 oan_serializer.add("OANMessagePing", OANMessagePing)

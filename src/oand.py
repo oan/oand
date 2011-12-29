@@ -27,13 +27,14 @@ from oan_node_manager import OANNodeManager
 from oan_meta_manager import OANMetaManager
 from oan_data_manager import OANDataManager
 from oan_config import OANConfig
-from oan_loop import OANLoop
+from oan_loop import OANLoop, OANTimer
 
 #from oan_network_node import OANNetworkNode
 #from oan_server import OANServer
 
 class OANApplication():
     config = None
+    loop = None
 
     def __init__(self, config):
         self.config = config
@@ -50,7 +51,6 @@ class OANApplication():
         )
 
         self._setup_node_manager()
-        #self._start_scheduler()
         self._start_loop()
 
         logging.info("Stopping Open Archive Network (oand)")
@@ -58,11 +58,6 @@ class OANApplication():
     # is it possible to catch the SIG when killing a deamon and call this function.
     def stop(self):
         self._stop_loop()
-
-    #def _start_scheduler(self):
-        #logging.debug("Starting scheduler")
-        #reactor.callWhenRunning(self.run_every_minute);
-        #reactor.callWhenRunning(self.run_every_day);
 
     def _setup_node_manager(self):
         '''
@@ -87,6 +82,8 @@ class OANApplication():
 
     def _start_loop(self):
         self.loop = OANLoop()
+        self.loop.add_timer(OANTimer(2, self.run_every_minute))   #60
+        self.loop.add_timer(OANTimer(5, self.run_every_day)) #60 * 60 * 24
         self.loop.on_shutdown += [node_manager().shutdown]
         self.loop.start()
 
@@ -95,11 +92,12 @@ class OANApplication():
         self.loop.join()
         self.loop = None
 
-    #def run_every_minute(self):
-        #node_manager().check_heartbeat()
-        #reactor.callLater(60, self.run_every_minute);
+    def run_every_minute(self):
+        print "run_every_minute"
+        node_manager().send_heartbeat()
 
-    #def run_every_day(self):
+    def run_every_day(self):
+        print "run_every_day"
         #node_manager().remove_expired_nodes()
         #reactor.callLater(60 * 60 * 24, self.run_every_day);
 

@@ -15,9 +15,35 @@ import asyncore
 import socket
 import time
 import thread
+from datetime import datetime, timedelta
 from Queue import Queue
 from threading import Thread
 from oan_event import OANEvent
+
+
+
+class OANTimer(object):
+    checked = None
+    expires = None
+    callback = None
+    interval = None
+
+    def __init__(self, sec, callback, *args, **kwargs):
+        self.callback = callback
+        self.interval = sec
+        self.later(self.interval)
+
+    def later(self, sec):
+        self.expires = datetime.utcnow() + timedelta(seconds = sec)
+
+    def check(self):
+        self.checked = datetime.utcnow()
+        if (self.expires < self.checked):
+            self.callback()
+            self.later(self.interval)
+            return True
+
+        return False
 
 class OANLoop(Thread):
 
@@ -32,11 +58,14 @@ class OANLoop(Thread):
 
     _running = False
 
+    _timers = None
+
     def __init__(self):
         Thread.__init__(self)
         self.on_start = OANEvent()
         self.on_shutdown = OANEvent()
         self.on_stop = OANEvent()
+        self._timers = []
 
     def start(self):
         if (not self._running):
@@ -46,12 +75,16 @@ class OANLoop(Thread):
     def stop(self):
         self._running = False
 
+    def add_timer(self, timer):
+        self._timers.append(timer)
+
     def run(self):
         print "OANLoop: started"
         self.on_start()
         while(self._running):
             asyncore.loop(0.1, False, None, 10)
-            #print "OANLoop: check if running"
+            for timer in self._timers:
+                timer.check()
 
         print "OANLoop: shutdown"
         self.on_shutdown()

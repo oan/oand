@@ -21,7 +21,7 @@ from oan_loop import OANLoop
 from oan_event import OANEvent
 
 from oan_node_manager import OANNodeManager
-from oan_message import OANMessagePing, OANMessageHeartbeat
+from oan_message import OANMessagePing, OANMessageHeartbeat, OANMessageNodeList
 from oand import OANApplication
 from oan_config import OANConfig
 
@@ -63,6 +63,11 @@ class TestOAN(OANTestCase):
         node_manager().create_node('xx:hh:12', 'localhost', 4002)
         node_manager().create_node('xx:hh:13', 'localhost', 4003)
 
+
+    def test_message_nodelist(self):
+        node_manager().send('xx:hh:10', OANMessageNodeList.create(node_manager()._nodes))
+        message = self.queue.get()
+
     def test_message_ping(self):
         for n in xrange(10, 14):
             for i in xrange(5):
@@ -73,3 +78,6 @@ class TestOAN(OANTestCase):
         for i in xrange(20):
             message = self.queue.get()
             counter += 1
+
+        self.assertEqual(counter, 20)  # 4 * 5
+

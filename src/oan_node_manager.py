@@ -8,7 +8,7 @@ from threading import Timer
 from Queue import Queue
 
 from oan_heartbeat import OANHeartbeat
-from oan_message import OANMessageDispatcher
+from oan_message import OANMessageDispatcher, OANMessageHeartbeat
 
 class OANNetworkNodeState:
     connecting, connected, disconnected = range(1, 4)
@@ -20,10 +20,12 @@ class OANNetworkNode:
     port = None
     host = None
     state = None
+    blocked = None # if server is listen or its blocked by router or firewall.
 
     out_queue = None
 
     def __init__(self, uuid, host, port):
+        self.blocked = False
         self.state = OANNetworkNodeState.disconnected
         self.heartbeat = OANHeartbeat()
         self.out_queue = Queue()
@@ -59,8 +61,8 @@ class OANNodeManager():
             from oan_server import OANServer
             self.dispatcher = OANMessageDispatcher()
             self.dispatcher.start()
-            self.server = OANServer(node.host, node.port)
-
+            self.server = OANServer()
+            self.server.start_listen(node)
             self._my_node = node
         else:
             print "OANNodeManager:Error my node is already set"
@@ -77,6 +79,12 @@ class OANNodeManager():
 
     def get_node(self, uuid):
         return self._nodes[uuid]
+
+    def send_heartbeat(self):
+        heartbeat = OANMessageHeartbeat.create(self._my_node)
+        for n in self._nodes.values():
+            if n.uuid != heartbeat.uuid:
+                self.send(n.uuid, heartbeat)
 
     def send(self, uuid, message):
         if (uuid in self._nodes):
