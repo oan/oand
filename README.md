@@ -1,6 +1,6 @@
 README
 ======
-This is a small research project about a distibuted nosql database/filesystem.
+This is a small research project about a distibuted nosql database/filesystem..
 
 /etc/oand.conf
 --------------
