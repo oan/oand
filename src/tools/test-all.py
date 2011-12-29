@@ -28,15 +28,15 @@ def run():
     set_global_options_and_args()
     remove_cmd_line_arguments()
 
-    #import util_network_simulation
-    #util_network_simulation.start_test_network()
+    import util_network_simulation
+    util_network_simulation.start_test_network()
 
     if OPTIONS.trace:
         run_main_with_trace()
     else:
         main()
 
-    #util_network_simulation.stop_test_network()
+    util_network_simulation.stop_test_network()
 
 def setup_env():
     sys.path.insert(1, get_base_dir())

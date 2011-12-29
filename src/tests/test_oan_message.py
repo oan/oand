@@ -11,7 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-#from oan_unittest import OANTestCase
+from oan_unittest import OANTestCase
 import unittest
 import time
 import oan
@@ -25,7 +25,7 @@ from oan_message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OA
 
 from Queue import Queue
 
-class TestOANMessage(unittest.TestCase):
+class TestOANMessage(OANTestCase):
     loop = None
     queue = None
 
@@ -52,8 +52,6 @@ class TestOANMessage(unittest.TestCase):
         self.loop = None
 
     def got_message(self, message):
-        print "got message"
-        print message
         self.queue.put(message)
 
     def create_watcher(self):
@@ -65,8 +63,6 @@ class TestOANMessage(unittest.TestCase):
         node_manager().set_my_node(node)
 
     def test_message_close(self):
-        node_manager().dispatcher.start()
-
         # open a connection to server.
         node_manager().send('n1', OANMessageHeartbeat.create(node_manager().get_my_node()))
 
@@ -79,12 +75,3 @@ class TestOANMessage(unittest.TestCase):
         self.assertTrue(isinstance(message, OANMessageHeartbeat))
         message = self.queue.get(True, 10)
         self.assertTrue(isinstance(message, OANMessageClose))
-
-
-        #self.assertEqual(counter, 1000000)
-
-    #def atest_message_heartbeat(self):
-    #    node_manager().send('n1', OANMessageHeartbeat.create(node_manager().get_my_node()))
-    #    message = self.queue.get(True, 10) # max 10 sec wait
-    #    self.assertEqual(message.uuid, 'n1')
-

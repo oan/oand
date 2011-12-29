@@ -20,18 +20,17 @@ configs = {}
 
 def start_test_network():
     global configs
-    _create_config(2)
+    _create_config(10)
 
     for config in configs.itervalues():
-        print "Start deamon %s on port %s." % (config.node_name, config.node_port)
+        print "Start node %s[%s] on port %s." % (config.node_name, config.node_uuid, config.node_port)
         OANDaemon(config).start()
-        sleep(2)
 
 def stop_test_network():
     global configs
 
     for config in configs.itervalues():
-        print "Stop deamon %s on port %s." % (config.node_name, config.node_port)
+        print "Stop node %s[%s] on port %s." % (config.node_name, config.node_uuid, config.node_port)
         OANDaemon(config).stop()
 
 def _create_config(num_of_nodes):

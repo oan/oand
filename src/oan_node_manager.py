@@ -46,9 +46,9 @@ class OANNodeManager():
         if self.exist_node(uuid):
             node = self._nodes[uuid]
             node.host = host
-            node.port = port
+            node.port = int(port)
         else:
-            node = OANNode(uuid, host, port);
+            node = OANNode(uuid, host, int(port));
             self._nodes[uuid] = node
 
         node.heartbeat.touch()
@@ -57,7 +57,7 @@ class OANNodeManager():
     def set_my_node(self, node):
         from oan_server import OANServer
         self.dispatcher = OANMessageDispatcher()
-        #self.dispatcher.start()
+        self.dispatcher.start()
 
         self._my_node = node
         self._server = OANServer(node.host, node.port)

@@ -17,6 +17,8 @@ import oan_serializer
 from threading import Thread
 from Queue import Queue
 from oan_event import OANEvent
+from oan import node_manager
+
 class OANMessageDispatcher(Thread):
 
     ''' use: dispatcher.on_shutdown += my_loop_shutdown() '''
@@ -113,23 +115,41 @@ class OANMessageHeartbeat():
 from datetime import datetime
 
 class OANMessagePing():
-    uuid = None
-    nr = None
-    time = None
+    node_uuid = None
+    ping_id = None
+    ping_begin_time = None
+    ping_end_time = None
+    ping_counter = None
 
     @classmethod
-    def create(cls, uuid, nr):
+    def create(cls, ping_id, ping_counter = 1, ping_begin_time = None):
         obj = cls()
-        obj.uuid = uuid
-        obj.nr = nr
-        obj.time = str(datetime.now())
+        obj.node_uuid = node_manager().get_my_node().uuid
+        obj.ping_id = ping_id
+        obj.ping_counter = ping_counter
+        obj.ping_begin_time = ping_begin_time
+        obj.ping_end_time = str(datetime.now())
+
+        if obj.ping_begin_time is None:
+            obj.ping_begin_time = obj.ping_end_time
 
         return obj
 
     def execute(self):
-        if ((self.nr%1000) == 0):
-            print "Ping [%d][%s] from [%s]" % (self.nr, self.time, self.uuid)
+        if self.ping_counter == 0:
+            print "Ping [%s][%d] from [%s] %s - %s" % (
+                self.ping_id,
+                self.ping_counter,
+                self.node_uuid,
+                self.ping_begin_time,
+                self.ping_end_time
+            )
 
+        if self.ping_counter > 0:
+            node_manager().send(
+                self.node_uuid,
+                OANMessagePing.create(self.ping_id, self.ping_counter-1, self.ping_begin_time)
+            )
 
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
 oan_serializer.add("OANMessageClose", OANMessageClose)

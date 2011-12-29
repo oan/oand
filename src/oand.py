@@ -27,8 +27,10 @@ from oan_node_manager import OANNodeManager
 from oan_meta_manager import OANMetaManager
 from oan_data_manager import OANDataManager
 from oan_config import OANConfig
-from oan_network_node import OANNetworkNode
-from oan_server import OANServer
+from oan_loop import OANLoop
+
+#from oan_network_node import OANNetworkNode
+#from oan_server import OANServer
 
 class OANApplication():
     config = None
@@ -42,36 +44,51 @@ class OANApplication():
         Prepare nodemanager to connect to OAN network.
 
         '''
-        node_manager().remove_expired_nodes()
-        node_manager().set_my_node(OANNetworkNode(
+
+        my_node = node_manager().create_node(
             self.config.node_uuid,
-            self.config.node_name,
             self.config.node_domain_name,
             self.config.node_port
-        ))
+        )
+
+        node_manager().set_my_node(my_node)
+        #node_manager().remove_expired_nodes()
 
         if (self.config.bff_domain_name and self.config.bff_port):
             url = "%s:%s" % (self.config.bff_domain_name, self.config.bff_port)
             logging.info("Add bff %s" % url)
             #reactor.callLater(1, node_manager().connect_to_oan, url)
 
+
+    def start_loop(self):
+        self.loop = OANLoop()
+        self.loop.on_shutdown += [node_manager().shutdown]
+        self.loop.start()
+
+    def stop_loop(self):
+        self.loop.stop()
+        self.loop.join()
+        self.loop = None
+
     def run(self):
         logging.info("Starting Open Archive Network (oand) for " +
                      self.config.node_name)
 
         set_managers(
-            OANDataManager("../var/data.dat"),
-            OANMetaManager(),
+            "None", #OANDataManager("../var/data.dat"),
+            "None", #OANMetaManager(),
             OANNodeManager()
         )
+
         self.setup_node_manager()
 
         self._start_scheduler()
-
-        OANServer(self.config)
+        self.start_loop()
+        #OANServer(self.config)
         #reactor.run()
 
         logging.info("Stopping Open Archive Network (oand)")
+
 
     def _start_scheduler(self):
         logging.debug("Starting scheduler")
