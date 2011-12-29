@@ -21,7 +21,7 @@ from datetime import datetime, timedelta
 from oan_event import OANEvent
 from Queue import Queue
 from threading import Thread
-from oan_node_manager import OANNode, OANNodeManager
+from oan_node_manager import OANNetworkNode, OANNodeManager
 from oan_message import OANMessageHandshake, OANMessageClose
 import oan_serializer
 

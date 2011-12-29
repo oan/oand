@@ -10,10 +10,10 @@ from Queue import Queue
 from oan_heartbeat import OANHeartbeat
 from oan_message import OANMessageDispatcher
 
-class OANNodeState:
+class OANNetworkNodeState:
     connecting, connected, disconnected = range(1, 4)
 
-class OANNode:
+class OANNetworkNode:
     heartbeat = None
     uuid = None
     name = None
@@ -24,7 +24,7 @@ class OANNode:
     out_queue = None
 
     def __init__(self, uuid, host, port):
-        self.state = OANNodeState.disconnected
+        self.state = OANNetworkNodeState.disconnected
         self.heartbeat = OANHeartbeat()
         self.out_queue = Queue()
         self.uuid = uuid
@@ -48,7 +48,7 @@ class OANNodeManager():
             node.host = host
             node.port = int(port)
         else:
-            node = OANNode(uuid, host, int(port));
+            node = OANNetworkNode(uuid, host, int(port));
             self._nodes[uuid] = node
 
         node.heartbeat.touch()
@@ -83,7 +83,7 @@ class OANNodeManager():
             print "OANNodeManager:Error node is missing %s" % uuid
 
         # it will only try if the bridge is not open
-        if (node.state == OANNodeState.disconnected):
+        if (node.state == OANNetworkNodeState.disconnected):
             self._server.connect_to_node(node)
 
     def shutdown(self):

@@ -23,7 +23,7 @@ import oan
 from oan_bridge import OANBridge
 from oan_loop import OANLoop
 from oan_event import OANEvent
-from oan_node_manager import OANNode, OANNodeState, OANNodeManager
+from oan_node_manager import OANNetworkNode, OANNetworkNodeState, OANNodeManager
 from oan_message import OANMessagePing
 
 # make OANServer.connect_to_node thread safe alternative OANNodeManager
@@ -71,14 +71,14 @@ class OANServer(asyncore.dispatcher):
 
     def add_bridge(self, bridge):
         print "OanServer:add_bridge"
-        bridge.node.state = OANNodeState.connected
+        bridge.node.state = OANNetworkNodeState.connected
         self.bridges[bridge.node.uuid] = bridge
         self.on_bridge_added(bridge)
 
     def remove_bridge(self, bridge):
         print "OanServer:remove_bridge"
         if (bridge.node.uuid in self.bridges):
-            bridge.node.state = OANNodeState.disconnected
+            bridge.node.state = OANNetworkNodeState.disconnected
             del self.bridges[bridge.node.uuid]
             self.on_bridge_removed(bridge)
 
@@ -90,8 +90,8 @@ class OANServer(asyncore.dispatcher):
     def connect_to_node(self, node):
 
         # lock
-        if node.state == OANNodeState.disconnected:
-            node.state = OANNodeState.connecting
+        if node.state == OANNetworkNodeState.disconnected:
+            node.state = OANNetworkNodeState.connecting
             bridge = OANBridge(self)
             bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
             bridge.connect( (node.host, node.port) )

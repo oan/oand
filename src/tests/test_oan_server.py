@@ -20,7 +20,7 @@ from oan import node_manager
 from oan_loop import OANLoop
 from oan_event import OANEvent
 
-from oan_node_manager import OANNode, OANNodeManager
+from oan_node_manager import OANNodeManager
 from oan_message import OANMessagePing, OANMessageHeartbeat
 
 from Queue import Queue
