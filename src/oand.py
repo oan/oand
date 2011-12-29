@@ -83,7 +83,7 @@ class OANApplication():
     def _start_loop(self):
         self.loop = OANLoop()
         self.loop.add_timer(OANTimer(2, self.run_every_minute))   #60
-        self.loop.add_timer(OANTimer(5, self.run_every_day)) #60 * 60 * 24
+        self.loop.add_timer(OANTimer(20, self.run_every_day)) #60 * 60 * 24
         self.loop.on_shutdown += [node_manager().shutdown]
         self.loop.start()
 
@@ -98,8 +98,8 @@ class OANApplication():
 
     def run_every_day(self):
         print "run_every_day"
+        node_manager().send_node_sync()
         #node_manager().remove_expired_nodes()
-        #reactor.callLater(60 * 60 * 24, self.run_every_day);
 
     def _start_logger(self,):
         my_logger = logging.getLogger()

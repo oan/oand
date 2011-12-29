@@ -17,7 +17,7 @@ class OANHeartbeat(object):
     _value = None
 
     IDLE_MIN = 0.1
-    EXPIRE_MIN = 5
+    EXPIRE_MIN = 0.2
     OFFLINE_MIN = 10
     DEAD_MIN = 525600
 

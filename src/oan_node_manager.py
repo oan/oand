@@ -8,7 +8,7 @@ from threading import Timer
 from Queue import Queue
 
 from oan_heartbeat import OANHeartbeat
-from oan_message import OANMessageDispatcher, OANMessageHeartbeat
+from oan_message import OANMessageDispatcher, OANMessageNodeSync, OANMessageHeartbeat
 
 class OANNetworkNodeState:
     connecting, connected, disconnected = range(1, 4)
@@ -84,7 +84,14 @@ class OANNodeManager():
         heartbeat = OANMessageHeartbeat.create(self._my_node)
         for n in self._nodes.values():
             if n.uuid != heartbeat.uuid:
-                self.send(n.uuid, heartbeat)
+                if n.heartbeat.is_expired():
+                    self.send(n.uuid, heartbeat)
+
+    def send_node_sync(self):
+        node_sync = OANMessageNodeSync.create()
+        for n in self._nodes.values():
+            if n.uuid != node_sync.node_uuid:
+                self.send(n.uuid, node_sync)
 
     def send(self, uuid, message):
         if (uuid in self._nodes):

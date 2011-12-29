@@ -109,23 +109,34 @@ class OANMessageHeartbeat():
 
 #####
 
-class OANMessageNodeList():
+# remove expired nodes, sync with lastest info.
+class OANMessageNodeSync():
+    node_uuid = None
     node_list = None
+    send_back = False
 
     @classmethod
-    def create(cls, nodes):
+    def create(cls, send_back = True):
         obj = cls()
         obj.node_list = []
+        obj.node_uuid = node_manager().get_my_node().uuid
 
         # need to create this message in node_manager thread. or copy the nodes dict before calling this
         # function.
-        for node in nodes.values():
+        for node in node_manager()._nodes.values():
             obj.node_list.append([node.uuid, node.host, node.port])
 
-        print obj.node_list
         return obj
 
     def execute(self):
+        print self.node_list
+
+        if self.send_back:
+            node_manager().send(
+                self.node_uuid,
+                OANMessageNodeSync.create(False)
+            )
+
         for n in self.node_list:
             node_manager().create_node(n[0], n[1], n[2])
 
@@ -173,5 +184,5 @@ class OANMessagePing():
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
 oan_serializer.add("OANMessageClose", OANMessageClose)
 oan_serializer.add("OANMessageHeartbeat", OANMessageHeartbeat)
-oan_serializer.add("OANMessageNodeList", OANMessageNodeList)
+oan_serializer.add("OANMessageNodeSync", OANMessageNodeSync)
 oan_serializer.add("OANMessagePing", OANMessagePing)

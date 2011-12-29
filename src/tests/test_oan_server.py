@@ -21,12 +21,14 @@ from oan_loop import OANLoop
 from oan_event import OANEvent
 
 from oan_node_manager import OANNodeManager
-from oan_message import OANMessagePing, OANMessageHeartbeat, OANMessageNodeList
+from oan_message import OANMessagePing, OANMessageHeartbeat, OANMessageNodeSync
 from oand import OANApplication
 from oan_config import OANConfig
 
 from Queue import Queue
 
+
+# test and see what happends if n1 connects to n2 at same time as n2 connect to n1.
 class TestOAN(OANTestCase):
     queue = None
     app = None
@@ -65,8 +67,8 @@ class TestOAN(OANTestCase):
 
 
     def test_message_nodelist(self):
-        node_manager().send('xx:hh:10', OANMessageNodeList.create(node_manager()._nodes))
-        message = self.queue.get()
+        node_manager().send('xx:hh:10', OANMessageNodeSync.create())
+        message = self.queue.get() # wait forever
 
     def test_message_ping(self):
         for n in xrange(10, 14):
