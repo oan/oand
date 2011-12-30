@@ -66,17 +66,19 @@ class OANMessageHandshake():
     uuid = None
     host = None
     port = None
+    blocked = None
 
     @classmethod
-    def create(cls, uuid, host, port):
+    def create(cls, uuid, host, port, blocked):
         obj = cls()
         obj.uuid = uuid
         obj.host = host
         obj.port = port
+        obj.blocked = blocked
         return obj
 
     def execute(self):
-        print "OANMessageHandshake: %s %s %s" % (self.uuid, self.host, self.port)
+        print "OANMessageHandshake: %s %s %s blocked:%s" % (self.uuid, self.host, self.port, self.blocked)
 
 
 class OANMessageClose():
@@ -110,35 +112,74 @@ class OANMessageHeartbeat():
 #####
 
 # remove expired nodes, sync with lastest info.
+# maybe need to create this message in node_manager thread. or copy the nodes dict before calling this
+# function.
+
 class OANMessageNodeSync():
     node_uuid = None
     node_list = None
-    send_back = False
+    node_list_hash = None
+    step = None
 
     @classmethod
-    def create(cls, send_back = True):
+    def create(cls, step = 1, l = None):
         obj = cls()
+        obj.step = step
         obj.node_list = []
         obj.node_uuid = node_manager().get_my_node().uuid
 
-        # need to create this message in node_manager thread. or copy the nodes dict before calling this
-        # function.
-        for node in node_manager()._nodes.values():
-            obj.node_list.append([node.uuid, node.host, node.port])
+        if l is None:
+            l = obj.create_list()
+
+        print "----- My List"
+        print l[0]
+        print l[1]
+        print "----------------------"
+
+        if step == 1:
+            obj.node_list_hash = l[0]
+            obj.node_list = None
+        elif step == 2:
+            obj.node_list_hash = l[0]
+            obj.node_list = l[1]
 
         return obj
 
+    def create_list(self):
+        valuelist = []
+        hashlist = []
+        for node in node_manager()._nodes.values():
+            valuelist.append((node.uuid, node.host, node.port))
+
+        valuelist.sort()
+
+        for value in valuelist:
+            hashlist.append(hash(value))
+
+        return (hash(tuple(hashlist)), valuelist)
+
+    def create_hash(self):
+        return
+
     def execute(self):
+        print "----- List from %s " % self.node_uuid
+        print self.node_list_hash
         print self.node_list
+        print "----------------------"
 
-        if self.send_back:
-            node_manager().send(
-                self.node_uuid,
-                OANMessageNodeSync.create(False)
-            )
+        if self.step == 1:
+            my_l = self.create_list()
 
-        for n in self.node_list:
-            node_manager().create_node(n[0], n[1], n[2])
+            # if hash is diffrent continue to step 2, send over the list.
+            if self.node_list_hash != my_l[0]:
+                node_manager().send(
+                    self.node_uuid,
+                    OANMessageNodeSync.create(2, my_l)
+                )
+
+        if self.step == 2:
+            for n in self.node_list:
+                node_manager().create_node(n[0], n[1], n[2])
 
 #######
 

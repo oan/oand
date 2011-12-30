@@ -53,8 +53,11 @@ class OANConfig(object):
     bff_domain_name = None
     bff_port = None
 
+     # if node will act as blocked node, if True the server vill not listen to incomming connetion.
+    blocked = None
+
     def __init__(self, node_uuid = None, node_name = None, domain_name = None, port = None,
-                 bff_name = None, bff_domain_name = None, bff_port = None):
+                 bff_name = None, bff_domain_name = None, bff_port = None, blocked = False):
         '''
         Createing a Config object.
 
@@ -68,6 +71,8 @@ class OANConfig(object):
         self.bff_name = bff_name
         self.bff_domain_name = bff_domain_name
         self.bff_port = bff_port
+
+        self.blocked = blocked
 
     def set_from_file(self, filename):
         '''

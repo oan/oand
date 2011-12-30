@@ -29,7 +29,7 @@ from Queue import Queue
 
 
 # test and see what happends if n1 connects to n2 at same time as n2 connect to n1.
-class TestOAN(OANTestCase):
+class TestOANBlocked(OANTestCase):
     queue = None
     app = None
 
@@ -60,14 +60,14 @@ class TestOAN(OANTestCase):
         node_manager().dispatcher.on_message += [self.got_message]
 
     def create_node(self):
-        node_manager().create_node('oo:hh:10', 'localhost', 4000)
-        node_manager().create_node('oo:hh:11', 'localhost', 4001)
-        node_manager().create_node('oo:hh:12', 'localhost', 4002)
-        node_manager().create_node('oo:hh:13', 'localhost', 4003)
+        node_manager().create_node('xx:hh:10', 'localhost', 4000)
+        node_manager().create_node('xx:hh:11', 'localhost', 4001)
+        node_manager().create_node('xx:hh:12', 'localhost', 4002)
+        node_manager().create_node('xx:hh:13', 'localhost', 4003)
 
 
     def test_message_nodelist(self):
-        node_manager().send('oo:hh:10', OANMessageNodeSync.create())
+        node_manager().send('xx:hh:10', OANMessageNodeSync.create())
         message = self.queue.get() # wait forever
 
     def test_message_ping(self):

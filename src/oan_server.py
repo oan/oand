@@ -96,9 +96,14 @@ class OANServer(asyncore.dispatcher):
             bridge = OANBridge(self)
             bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
             bridge.connect( (node.host, node.port) )
-            #print "OanServer:connect_to_node %s:%d:%s" % (node.host, node.port, bridge.connected)
+            #print "OanServer:connect_to_node %s:%d" % (node.host, node.port)
         # ----
 
+    def connect_to_oan(self, host, port):
+        bridge = OANBridge(self)
+        bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
+        bridge.connect( (host, port) )
+        print "OanServer:connect_to_oan %s:%d" % (host, port)
 
     def handle_accept(self):
         #print "OanServer:handle_accept"

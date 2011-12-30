@@ -72,13 +72,12 @@ class OANApplication():
         )
 
         node_manager().set_my_node(my_node)
-        #node_manager().remove_expired_nodes()
+        node_manager().remove_dead_nodes()
 
+        print
         if (self.config.bff_domain_name and self.config.bff_port):
-            url = "%s:%s" % (self.config.bff_domain_name, self.config.bff_port)
-            logging.info("Add bff %s" % url)
-            #reactor.callLater(1, node_manager().connect_to_oan, url)
-
+            node_manager().connect_to_oan(self.config.bff_domain_name, int(self.config.bff_port))
+            logging.info("Add bff %s:%s" % (self.config.bff_domain_name, self.config.bff_port) )
 
     def _start_loop(self):
         self.loop = OANLoop()
@@ -99,7 +98,7 @@ class OANApplication():
     def run_every_day(self):
         print "run_every_day"
         node_manager().send_node_sync()
-        #node_manager().remove_expired_nodes()
+        node_manager().remove_dead_nodes()
 
     def _start_logger(self,):
         my_logger = logging.getLogger()

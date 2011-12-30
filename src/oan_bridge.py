@@ -52,7 +52,7 @@ class OANBridge(asyncore.dispatcher):
         my_node = node_manager().get_my_node()
         #print "OANBridge:send_handshake: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
         self.out_buffer = self.send_message(
-            OANMessageHandshake.create(my_node.uuid, my_node.host, my_node.port)
+            OANMessageHandshake.create(my_node.uuid, my_node.host, my_node.port, my_node.blocked)
         )
 
     def send_close(self):
@@ -64,15 +64,21 @@ class OANBridge(asyncore.dispatcher):
 
     def got_close(self, message):
         print "OANBridge:got_close: %s" % (message.uuid)
+        message.execute()
+
         if not self.writable():
             self.handle_close()
 
     def got_handshake(self, message):
         #print "OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
+        message.execute()
 
         self.node = node_manager().create_node(message.uuid, message.host, message.port)
+        self.node.blocked = message.blocked
+
         self.out_queue = self.node.out_queue
         self.in_queue = node_manager().dispatcher.queue
+
         self.server.add_bridge(self)
 
     def send_message(self, message):

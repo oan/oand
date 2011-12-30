@@ -38,11 +38,11 @@ class OANNodeManager():
     server = None
     dispatcher = None
 
-    # Info about my own node.
-    _my_node = None
-
     # A dictionary with all nodes in the OAN.
     _nodes = {}
+
+    # Info about my own node.
+    _my_node = None
 
     def create_node(self, uuid, host, port):
         if self.exist_node(uuid):
@@ -62,7 +62,9 @@ class OANNodeManager():
             self.dispatcher = OANMessageDispatcher()
             self.dispatcher.start()
             self.server = OANServer()
-            self.server.start_listen(node)
+            if not node.blocked:
+                self.server.start_listen(node)
+
             self._my_node = node
         else:
             print "OANNodeManager:Error my node is already set"
@@ -79,6 +81,11 @@ class OANNodeManager():
 
     def get_node(self, uuid):
         return self._nodes[uuid]
+
+    def remove_dead_nodes(self):
+        for n in self._nodes.values():
+            if n.heartbeat.is_dead():
+                del _nodes[n.uuid]
 
     def send_heartbeat(self):
         heartbeat = OANMessageHeartbeat.create(self._my_node)
@@ -103,6 +110,10 @@ class OANNodeManager():
         # it will only try if the bridge is not open
         if (node.state == OANNetworkNodeState.disconnected):
             self.server.connect_to_node(node)
+
+    # maybe choose from nodelist if bff fails. or if nodes list is empty.
+    def connect_to_oan(self, host, port):
+        self.server.connect_to_oan(host, port)
 
     def shutdown(self):
         self.server.shutdown()
