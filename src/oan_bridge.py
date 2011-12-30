@@ -73,8 +73,7 @@ class OANBridge(asyncore.dispatcher):
         #print "OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
         message.execute()
 
-        self.node = node_manager().create_node(message.uuid, message.host, message.port)
-        self.node.blocked = message.blocked
+        self.node = node_manager().create_node(message.uuid, message.host, message.port, message.blocked)
 
         self.out_queue = self.node.out_queue
         self.in_queue = node_manager().dispatcher.queue
@@ -83,8 +82,8 @@ class OANBridge(asyncore.dispatcher):
 
     def send_message(self, message):
         raw_message = oan_serializer.encode(message)
-        #print "send_message: %s" % (message.__class__.__name__)
         if self.node is not None:
+            #print "send_message: %s to %s" % (message.__class__.__name__, self.node.uuid)
             self.node.heartbeat.touch()
 
         return raw_message + '\n'
@@ -94,8 +93,8 @@ class OANBridge(asyncore.dispatcher):
 
         if self.node is not None:
             self.node.heartbeat.touch()
+            #print "read_message: %s from %s" % (message.__class__.__name__, self.node.uuid)
 
-        #print "read_message: %s" % (message.__class__.__name__)
         return message
 
     def handle_read(self):

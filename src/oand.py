@@ -52,6 +52,7 @@ class OANApplication():
 
         self._setup_node_manager()
         self._start_loop()
+        self._connect_to_oan()
 
         logging.info("Stopping Open Archive Network (oand)")
 
@@ -68,21 +69,22 @@ class OANApplication():
         my_node = node_manager().create_node(
             self.config.node_uuid,
             self.config.node_domain_name,
-            self.config.node_port
+            self.config.node_port,
+            self.config.blocked
         )
 
         node_manager().set_my_node(my_node)
         node_manager().remove_dead_nodes()
 
-        print
+    def _connect_to_oan(self):
         if (self.config.bff_domain_name and self.config.bff_port):
             node_manager().connect_to_oan(self.config.bff_domain_name, int(self.config.bff_port))
             logging.info("Add bff %s:%s" % (self.config.bff_domain_name, self.config.bff_port) )
 
     def _start_loop(self):
         self.loop = OANLoop()
-        self.loop.add_timer(OANTimer(2, self.run_every_minute))   #60
-        self.loop.add_timer(OANTimer(20, self.run_every_day)) #60 * 60 * 24
+        self.loop.add_timer(OANTimer(20, self.run_every_minute))   #60
+        self.loop.add_timer(OANTimer(10, self.run_every_day)) #60 * 60 * 24
         self.loop.on_shutdown += [node_manager().shutdown]
         self.loop.start()
 
@@ -92,11 +94,11 @@ class OANApplication():
         self.loop = None
 
     def run_every_minute(self):
-        print "run_every_minute"
+        #print "run_every_minute"
         node_manager().send_heartbeat()
 
     def run_every_day(self):
-        print "run_every_day"
+        #print "run_every_day"
         node_manager().send_node_sync()
         node_manager().remove_dead_nodes()
 

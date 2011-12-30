@@ -93,6 +93,27 @@ class OANMessageClose():
     def execute(self):
         print "OANMessageClose: %s" % (self.uuid)
 
+class OANMessageRelay():
+    uuid = None
+    destination_uuid = None
+    message = None
+
+    @classmethod
+    def create(cls, uuid, destination_uuid, message):
+        obj = cls()
+        obj.uuid = uuid
+        obj.destination_uuid = destination_uuid
+        obj.message = message
+        return obj
+
+    def execute(self):
+        print "OANMessageRelay: %s %s" % (self.destination_uuid, self.message)
+        node_manager().send(
+            self.destination_uuid,
+            self.message
+        )
+
+
 class OANMessageHeartbeat():
     uuid = None
     host = None
@@ -131,10 +152,10 @@ class OANMessageNodeSync():
         if l is None:
             l = obj.create_list()
 
-        print "----- My List"
-        print l[0]
-        print l[1]
-        print "----------------------"
+        #print "----- My List"
+        #print l[0]
+        #print l[1]
+        #print "----------------------"
 
         if step == 1:
             obj.node_list_hash = l[0]
@@ -149,7 +170,7 @@ class OANMessageNodeSync():
         valuelist = []
         hashlist = []
         for node in node_manager()._nodes.values():
-            valuelist.append((node.uuid, node.host, node.port))
+            valuelist.append((node.uuid, node.host, node.port, node.blocked))
 
         valuelist.sort()
 
@@ -162,10 +183,10 @@ class OANMessageNodeSync():
         return
 
     def execute(self):
-        print "----- List from %s " % self.node_uuid
-        print self.node_list_hash
-        print self.node_list
-        print "----------------------"
+        #print "----- List from %s " % self.node_uuid
+        #print self.node_list_hash
+        #print self.node_list
+        #print "----------------------"
 
         if self.step == 1:
             my_l = self.create_list()
@@ -179,7 +200,7 @@ class OANMessageNodeSync():
 
         if self.step == 2:
             for n in self.node_list:
-                node_manager().create_node(n[0], n[1], n[2])
+                node_manager().create_node(n[0], n[1], n[2], n[3])
 
 #######
 
@@ -207,14 +228,14 @@ class OANMessagePing():
         return obj
 
     def execute(self):
-        if self.ping_counter == 1:
-            print "Ping [%s][%d] from [%s] %s - %s" % (
-                self.ping_id,
-                self.ping_counter,
-                self.node_uuid,
-                self.ping_begin_time,
-                self.ping_end_time
-            )
+        #if self.ping_counter == 1:
+        print "Ping [%s][%d] from [%s] %s - %s" % (
+            self.ping_id,
+            self.ping_counter,
+            self.node_uuid,
+            self.ping_begin_time,
+            self.ping_end_time
+        )
 
         if self.ping_counter > 1:
             node_manager().send(
@@ -226,4 +247,5 @@ oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
 oan_serializer.add("OANMessageClose", OANMessageClose)
 oan_serializer.add("OANMessageHeartbeat", OANMessageHeartbeat)
 oan_serializer.add("OANMessageNodeSync", OANMessageNodeSync)
+oan_serializer.add("OANMessageRelay", OANMessageRelay)
 oan_serializer.add("OANMessagePing", OANMessagePing)

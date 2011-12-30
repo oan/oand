@@ -27,8 +27,6 @@ from oan_config import OANConfig
 
 from Queue import Queue
 
-
-# test and see what happends if n1 connects to n2 at same time as n2 connect to n1.
 class TestOANBlocked(OANTestCase):
     queue = None
     app = None
@@ -36,11 +34,16 @@ class TestOANBlocked(OANTestCase):
     def setUp(self):
         self.queue = Queue()
 
+        # create a blocked node
         self.app = OANApplication(OANConfig(
-            "tt:tt:10",
-            "TestOAN",
+            "bb:tt:10",
+            "TestOANBlocked",
             "localhost",
-            str(8000)
+            str(8001),
+            "Server-03",
+            'localhost',
+            str(4003),
+            True
         ))
 
         self.app.run()
@@ -52,34 +55,27 @@ class TestOANBlocked(OANTestCase):
         self.queue = None
 
     def got_message(self, message):
-        if isinstance(message, OANMessagePing):
-            if message.ping_counter == 1:
-                self.queue.put(message)
+        pass
+        #if isinstance(message, OANMessagePing):
+        #    if message.ping_counter == 1:
+        #        self.queue.put(message)
 
     def create_watcher(self):
         node_manager().dispatcher.on_message += [self.got_message]
 
     def create_node(self):
-        node_manager().create_node('xx:hh:10', 'localhost', 4000)
-        node_manager().create_node('xx:hh:11', 'localhost', 4001)
-        node_manager().create_node('xx:hh:12', 'localhost', 4002)
-        node_manager().create_node('xx:hh:13', 'localhost', 4003)
+        pass
+        #node_manager().create_node('oo:hh:18', 'localhost', 4008)
 
+    def test_message_relay(self):
+        # send a ping to a blocked node
 
-    def test_message_nodelist(self):
-        node_manager().send('xx:hh:10', OANMessageNodeSync.create())
-        message = self.queue.get() # wait forever
+        while True:
+            time.sleep(10)
+            if node_manager().exist_node('bb:hh:18'):
+                node_manager().send('bb:hh:18', OANMessagePing.create( "my relay ping", 2)) # send ping back and forward (2)
 
-    def test_message_ping(self):
-        for n in xrange(10, 14):
-            for i in xrange(5):
-                node_manager().send('xx:hh:%d' % n, OANMessagePing.create( "N%dP%d" % (n, i), 10 ))
-                # the ping will be transfered 10 times
-
-        counter = 0
-        for i in xrange(20):
-            message = self.queue.get()
-            counter += 1
+        self.queue.get() # wait for ever
 
         self.assertEqual(counter, 20)  # 4 * 5
 
