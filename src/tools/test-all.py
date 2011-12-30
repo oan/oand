@@ -40,7 +40,8 @@ def run():
 
 def setup_env():
     sys.path.insert(1, get_base_dir())
-    sys.path.insert(1, get_base_dir() + "/tests")
+    sys.path.insert(1, get_base_dir() + "src")
+    sys.path.insert(1, get_base_dir() + "src/tests")
     os.chdir(get_base_dir())
 
 def get_base_dir():
