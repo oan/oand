@@ -1,6 +1,7 @@
 README
 ======
-This is a small research project about a distibuted nosql database/filesystem..
+
+This is a small research project about a distibuted nosql database/filesystem.
 
 /etc/oand.conf
 --------------
@@ -35,20 +36,6 @@ Will return a list will all folders and files in the root directory.
 
 Will return the contents of the file "a-file.txt" that exists in "a-folder".
 
-Network Feature List
---------------------
-* Asyncront message system, no functions should stop the "main-loop".
-* Auto-reconnect.
-* Either client or server could be firewalled, and the other side do the connections.
-  Requires TCP.
-* Limit the number of open sockets. We don't like 1000 connections at the same time.
-* Possible to unit test.
-* Possible to execute io and cpu calls with low priority and don't hang the computer.
-* REST-api
-* Easy to work with.
-* Stable code.
-* SSL/TLS enabled
-
 Requirements
 ============
 
@@ -58,21 +45,6 @@ Requirements
 Optional:
 - ??Epydoc (for building API documentation)
 
-Howto Links
-===========
-
-Twisted Unit testing
-http://twistedmatrix.com/documents/current/core/howto/trial.html
-http://twistedmatrix.com/trac/wiki/TwistedTrial
-
-Twisted Programming beginner to advanced
-http://krondo.com/?p=1209
-
-Twisted deffered
-http://ezyang.com/twisted/defer2.html
-http://twistedmatrix.com/documents/current/core/howto/deferredindepth.html
-
-
 Install
 =======
 
@@ -80,7 +52,7 @@ Ubuntu 10.10
 ------------
 
         sudo apt-get install python-setuptools
-        sudo easy_install apscheduler
+        sudo easy_install s
         mkdir /usr/local/oand
         cd /usr/local/oand
         git clone git://github.com/oan/oand.git
@@ -163,131 +135,3 @@ This API is based on the same RESTful standard as
 [(github v3)](http://developer.github.com/v3/)
 
 curl -X POST -d 'json={"port": "1338", "last_heartbeat": "2011-09-17T11:37:32Z", "name": "dali-book", "domain_name": "localhost"}' http://localhost:1337/heartbeat
-
-
-NetworkStorageManager
----------------------
-
-Node-1:/movie/aliens.avi
-Node-2:/movie/aliens.avi
-Node-2:/music/danzig.mp3
-Node-3:/src/oand.py
-
-mount.oand /mnt/oand
-ls /mnt/oand
-movie
-music
-src
-
-ls /mnt/oand/movie
-aliens.avi
-
-
-NetworkStorageManager
----------------------
-files = [File(), File()]
-
-list_files(path)
-get_file(path, name)
-put_file(path, name, data)
-
-get_filelist()
-send_filelist()
-
-
-File
----------------------
-path = /movie/
-name = NULL
-nodes = ['node-1', 'node-2', 'node-3']
-data = NULL
-
-File
----------------------
-path = /movie/
-name = aliens.avi
-nodes = ['node-1', 'node-2']
-data = NULL
-
-
-
-
-
-class data_store_manager
-    resources = Resources()
-
-    def exist(path):
-        resources.exist(path)
-
-    def get(path):
-        resources.get(path)
-
-class Resources:
-    list{'/movies/'} = folder
-    list{'/movies/aliens.avi'} = file
-    list{'/movies/comedy/'} = folder
-    list{'/movies/action/'} = folder('andra filmer')
-    list{'/movies/action/'} = File('RAMBO.AVI')
-
-    def exist(path):
-        if path in self.list:
-            return true
-        else:
-            return false
-
-    get(path)
-        resource = self.list['path']
-        if is_instance(resource, file):
-            return resource.value
-        elif is_instance(resource, folder):
-            return resource.list
-
-class Folder():
-    list = ['comedy/', 'action/', 'aliens.avi']
-
-class File():
-    path = '/movies/'
-    name = 'aliens.avi'
-    value = 'This is the contents of the file.'
-
-
-class Resource
-    path = '/movies/'
-
-    resources = {'action/' = Resource('action/'), 'comedy/', Resource('comedy/')}
-    files = {'aliens.avi' = File('aliens.avi')}
-
-    def __init__(self, path, last_changed):
-
-    def exist(path):
-
-    def get(path):
-
----------
-folders['/']             = Resource()
-folders['/movie']        = Resource()
-folders['/movie/action'] = Resource()
-
-
-Resource
---------
-path = '/movie/'
-folder = ['/action', '/comedy'] (Resource())
-file= ['aliens.avi']  (File())
-
-File
----------------------
-path = /movie/
-name = aliens.avi
-nodes = ['node-1', 'node-2']
-data = NULL
-
-
-
-
-
-
-
-
-
-

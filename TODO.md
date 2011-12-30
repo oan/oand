@@ -8,32 +8,22 @@ HIGH-LEVEL TODO
 * Encryption
 * VERSION 0.1
 
+Network Feature List
+--------------------
+* Asyncront message system, no functions should stop the "main-loop".
+* Auto-reconnect.
+* Either client or server could be firewalled, and the other side do the connections.
+  Requires TCP.
+* Limit the number of open sockets. We don't like 1000 connections at the same time.
+* Possible to unit test.
+* Possible to execute io and cpu calls with low priority and don't hang the computer.
+* REST-api
+* Easy to work with.
+* Stable code.
+* SSL/TLS enabled
+
 TODO
 ====
-
-# Every node has a list with all other nodes, both online and offline.
-  Attributes: node_id, ip, port, last_heartbeat
-
-# When a connection to the OAN is done, a connection to the BFF or other known
-  node are performed, and a list of all nodes are requested.
-
-# If the last heartbeat is done 5-10 minutes ago, do a new heartbeat/ping
-  to that node.
-
-# If the last succeded heartbeat to any node is done 10 minutes ago, assume
-  we are or has been an inactive node and perform a new connection.
-
-# Offline nodes are deleted from the list when they have been inaccessiable
-  for more than 365 days.
-
-# When node a connects to node b, node b needs to ask node a for it's node-list.
-
-# When touch_last_heartbeat is executed by an unknown node, do a connect
-  to that node and retrive a list of nodes.
-
-# Has possibility to specify port and bff-port on command line.
-
-# Added a local oan network spawner.
 
 * Create UML
   http://yuml.me/1555afce
