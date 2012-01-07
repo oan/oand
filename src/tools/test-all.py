@@ -49,7 +49,9 @@ def get_base_dir():
     Return the path to the root folder of the project.
 
     '''
-    return os.path.abspath(__file__ + "/../../") + "/"
+
+    return os.path.abspath(__file__ + "/../../../") + "/" # MPA I need this to get down to base_dir
+    # return os.path.abspath(__file__ + "/../../") + "/"
 
 def set_global_options_and_args():
     '''
