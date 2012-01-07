@@ -49,14 +49,14 @@ def _create_open_config(num_of_nodes):
     for x in xrange(size, size+num_of_nodes):
         if x == 0:
             configs[x] = OANConfig(
-                "oo:hh:1%s" % x,
+                "00000000-0000-0000-%s-000000000000" % (4000 + x),
                 "server-" + str(x),
                 "localhost",
                 str(4000 + x)
             )
         else:
             configs[x] = OANConfig(
-                "oo:hh:1%s" % x,
+                "00000000-0000-0000-%s-000000000000" % (4000 + x),
                 "server-" + str(x),
                 "localhost",
                 str(4000 + x),
@@ -75,7 +75,7 @@ def _create_blocked_config(num_of_nodes):
     size = len(configs)
     for x in xrange(size, size+num_of_nodes):
         configs[x] = OANConfig(
-            "bb:hh:1%s" % x,
+            "00000000-0000-bbbb-%s-000000000000" % (4000 + x),
             "server-" + str(x),
             "localhost",
             str(4000 + x),

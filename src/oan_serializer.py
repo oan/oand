@@ -48,4 +48,5 @@ def _decode_hook(value):
     obj = _cls_list[value['class_name']]()
     for key, val in value.iteritems():
         setattr(obj, key, val)
+
     return obj

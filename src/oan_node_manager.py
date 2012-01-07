@@ -1,14 +1,33 @@
+#!/usr/bin/env python
+'''
+
+
+'''
+
+__author__ = "martin.palmer.develop@gmail.com"
+__copyright__ = "Copyright 2011, Amivono AB"
+__maintainer__ = "martin.palmer.develop@gmail.com"
+__license__ = "We pwn it all."
+__version__ = "0.1"
+__status__ = "Test"
+
 import asyncore
 import socket
 import time
+import os
 import datetime
 import thread
+import oan
+import uuid
+
 from threading import Thread
 from threading import Timer
 from Queue import Queue
 
 from oan_heartbeat import OANHeartbeat
 from oan_message import OANMessageDispatcher, OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay, OANMessagePing
+from oan_statistic import OANNetworkNodeStatistic
+from oan_database import OANDatabase
 
 class OANNetworkNodeState:
     connecting, connected, disconnected = range(1, 4)
@@ -21,23 +40,38 @@ class OANNetworkNode:
     host = None
     state = None
     blocked = None # if server is listen or its blocked by router or firewall.
+    statistic = None
 
     out_queue = None
 
-    def __init__(self, uuid, host, port, blocked):
-        self.blocked = False
+    def __init__(self, uuid):
         self.state = OANNetworkNodeState.disconnected
         self.heartbeat = OANHeartbeat()
         self.out_queue = Queue()
         self.uuid = uuid
-        self.host = host
-        self.port = port
-        self.blocked = blocked
+
+    @classmethod
+    def create(cls, uuid, host, port, blocked):
+        obj = cls(uuid)
+        obj.host, obj.port, obj.blocked = host, port, blocked
+        obj.statistic = OANNetworkNodeStatistic()
+        return obj
+
+    def unserialize(self, data):
+        self.host, self.port, self.blocked, subdata = data
+        self.statistic = OANNetworkNodeStatistic()
+        self.unserialize(subdata)
+
+    def serialize(self):
+        return(self.host, self.port, self.blocked, statistic.serialize())
+
+    def __str__(self):
+        return 'OANNetworkNode(%s, %s, %s)' % (self.uuid, self.host, self.port)
 
 class OANNodeManager():
     # Node server to connect and send message to other node servers
     server = None
-    dispatcher = None
+    in_queue = None
 
     # A dictionary with all nodes in the OAN.
     _nodes = {}
@@ -45,14 +79,32 @@ class OANNodeManager():
     # Info about my own node.
     _my_node = None
 
+    def __init__(self):
+        self.in_queue = Queue()
+
+    # load all nodes in to memory, later on load only the best 1000 nodes.
+    def load(self, database):
+        for node in database.select_all(OANNetworkNode):
+            self._nodes[node.uuid] = node
+
+        print self._nodes;
+
+    # store all nodes in to database
+    def store(self, database):
+        database.replace_all(self._nodes.values())
+        print "stored nodes in database"
+
     def create_node(self, uuid, host, port, blocked):
+        #if not isinstance(uuid, UUID):
+         #    print "OANNodeManager:Error uuid must be UUID instance"
+
         if self.exist_node(uuid):
             node = self._nodes[uuid]
             node.host = host
             node.port = int(port)
             node.blocked = blocked
         else:
-            node = OANNetworkNode(uuid, host, int(port), blocked);
+            node = OANNetworkNode.create(uuid, host, int(port), blocked)
             self._nodes[uuid] = node
 
         node.heartbeat.touch()
@@ -61,8 +113,6 @@ class OANNodeManager():
     def set_my_node(self, node):
         if self._my_node is None:
             from oan_server import OANServer
-            self.dispatcher = OANMessageDispatcher()
-            self.dispatcher.start()
             self.server = OANServer()
             if not node.blocked:
                 self.server.start_listen(node)
@@ -84,6 +134,7 @@ class OANNodeManager():
     def get_node(self, uuid):
         return self._nodes[uuid]
 
+    #TODO: remove dead nodes in database
     def remove_dead_nodes(self):
         for n in self._nodes.values():
             if n.heartbeat.is_dead():
@@ -104,6 +155,7 @@ class OANNodeManager():
 
     #TODO: not all message should be relay
     def send(self, uuid, message):
+
         if (uuid in self._nodes):
             node = self._nodes[uuid]
             if node.blocked and self._my_node.blocked:
@@ -115,6 +167,7 @@ class OANNodeManager():
                     self.server.connect_to_node(node)
         else:
             print "OANNodeManager:Error node is missing %s" % uuid
+            print self._nodes
 
 
     #TODO: find good relay nodes.
@@ -149,5 +202,6 @@ class OANNodeManager():
     def shutdown(self):
         self.server.shutdown()
         self.dispatcher.stop()
+        self.store()
 
 

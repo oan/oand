@@ -15,6 +15,7 @@ from oan_unittest import OANTestCase
 import unittest
 import time
 import oan
+import uuid
 from oan import node_manager
 
 from oan_loop import OANLoop
@@ -36,7 +37,7 @@ class TestOANBlocked(OANTestCase):
 
         # create a blocked node
         self.app = OANApplication(OANConfig(
-            "bb:tt:10",
+            '00000000-0000-bbbb-8001-000000000000',
             "TestOANBlocked",
             "localhost",
             str(8001),
@@ -61,7 +62,7 @@ class TestOANBlocked(OANTestCase):
         #        self.queue.put(message)
 
     def create_watcher(self):
-        node_manager().dispatcher.on_message += [self.got_message]
+        self.app.dispatcher.on_message += [self.got_message]
 
     def create_node(self):
         pass
@@ -72,8 +73,10 @@ class TestOANBlocked(OANTestCase):
 
         while True:
             time.sleep(10)
-            if node_manager().exist_node('bb:hh:18'):
-                node_manager().send('bb:hh:18', OANMessagePing.create( "my relay ping", 2)) # send ping back and forward (2)
+            if node_manager().exist_node(uuid.UUID('00000000-0000-bbbb-4008-000000000000')):
+                node_manager().send(uuid.UUID('00000000-0000-bbbb-4008-000000000000'),
+                                              OANMessagePing.create( "my relay ping", 2))
+                                               # send ping back and forward (2)
 
         self.queue.get() # wait for ever
 

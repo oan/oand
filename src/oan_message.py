@@ -12,14 +12,19 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import oan_serializer
+import uuid
+import oan
 
 #####
 from threading import Thread
 from Queue import Queue
 from oan_event import OANEvent
 from oan import node_manager
+from oan_database import OANDatabase
 
 class OANMessageDispatcher(Thread):
+
+    database = None
 
     ''' use: dispatcher.on_shutdown += my_loop_shutdown() '''
     on_shutdown = None
@@ -36,9 +41,9 @@ class OANMessageDispatcher(Thread):
 
     queue = None
 
-    def __init__(self):
+    def __init__(self, queue):
         Thread.__init__(self)
-        self.queue = Queue()
+        self.queue = queue
         self.on_shutdown = OANEvent()
         self.on_message = OANEvent()
 
@@ -50,12 +55,14 @@ class OANMessageDispatcher(Thread):
 
     def run(self):
         print "OANMessageDispatcher: started"
+        self.database = OANDatabase(node_manager().get_my_node())
+        print "OANMessageDispatcher: database connected"
         while(True):
             message = self.queue.get()
             if message is None:
                 break
 
-            message.execute()
+            message.execute(self)
             self.on_message(message)
 
         print "OANMessageDispatcher: shutdown"
@@ -71,13 +78,13 @@ class OANMessageHandshake():
     @classmethod
     def create(cls, uuid, host, port, blocked):
         obj = cls()
-        obj.uuid = uuid
+        obj.uuid = str(uuid)
         obj.host = host
         obj.port = port
         obj.blocked = blocked
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageHandshake: %s %s %s blocked:%s" % (self.uuid, self.host, self.port, self.blocked)
 
 
@@ -87,10 +94,10 @@ class OANMessageClose():
     @classmethod
     def create(cls, uuid):
         obj = cls()
-        obj.uuid = uuid
+        obj.uuid = str(uuid)
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageClose: %s" % (self.uuid)
 
 class OANMessageRelay():
@@ -101,15 +108,15 @@ class OANMessageRelay():
     @classmethod
     def create(cls, uuid, destination_uuid, message):
         obj = cls()
-        obj.uuid = uuid
-        obj.destination_uuid = destination_uuid
+        obj.uuid = str(uuid)
+        obj.destination_uuid = str(destination_uuid)
         obj.message = message
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageRelay: %s %s" % (self.destination_uuid, self.message)
         node_manager().send(
-            self.destination_uuid,
+            uuid.UUID(self.destination_uuid),
             self.message
         )
 
@@ -122,12 +129,12 @@ class OANMessageHeartbeat():
     @classmethod
     def create(cls, node):
         obj = cls()
-        obj.uuid = node.uuid
+        obj.uuid = str(node.uuid)
         obj.host = node.host
         obj.port = node.port
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageHeartbeat: %s %s %s" % (self.uuid, self.host, self.port)
 
 #####
@@ -147,7 +154,7 @@ class OANMessageNodeSync():
         obj = cls()
         obj.step = step
         obj.node_list = []
-        obj.node_uuid = node_manager().get_my_node().uuid
+        obj.node_uuid = str(node_manager().get_my_node().uuid)
 
         if l is None:
             l = obj.create_list()
@@ -170,7 +177,7 @@ class OANMessageNodeSync():
         valuelist = []
         hashlist = []
         for node in node_manager()._nodes.values():
-            valuelist.append((node.uuid, node.host, node.port, node.blocked))
+            valuelist.append((str(node.uuid), node.host, node.port, node.blocked))
 
         valuelist.sort()
 
@@ -182,7 +189,7 @@ class OANMessageNodeSync():
     def create_hash(self):
         return
 
-    def execute(self):
+    def execute(self, dispatcher):
         #print "----- List from %s " % self.node_uuid
         #print self.node_list_hash
         #print self.node_list
@@ -194,13 +201,13 @@ class OANMessageNodeSync():
             # if hash is diffrent continue to step 2, send over the list.
             if self.node_list_hash != my_l[0]:
                 node_manager().send(
-                    self.node_uuid,
+                    uuid.UUID(self.node_uuid),
                     OANMessageNodeSync.create(2, my_l)
                 )
 
         if self.step == 2:
             for n in self.node_list:
-                node_manager().create_node(n[0], n[1], n[2], n[3])
+                node_manager().create_node(uuid.UUID(n[0]), n[1], n[2], n[3])
 
 #######
 
@@ -216,7 +223,7 @@ class OANMessagePing():
     @classmethod
     def create(cls, ping_id, ping_counter = 1, ping_begin_time = None):
         obj = cls()
-        obj.node_uuid = node_manager().get_my_node().uuid
+        obj.node_uuid = str(node_manager().get_my_node().uuid)
         obj.ping_id = ping_id
         obj.ping_counter = ping_counter
         obj.ping_begin_time = ping_begin_time
@@ -227,7 +234,7 @@ class OANMessagePing():
 
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         #if self.ping_counter == 1:
         print "Ping [%s][%d] from [%s] %s - %s" % (
             self.ping_id,
@@ -239,9 +246,35 @@ class OANMessagePing():
 
         if self.ping_counter > 1:
             node_manager().send(
-                self.node_uuid,
+                uuid.UUID(self.node_uuid),
                 OANMessagePing.create(self.ping_id, self.ping_counter-1, self.ping_begin_time)
             )
+
+
+###
+class OANMessageStoreNodes():
+
+    @classmethod
+    def create(cls):
+        obj = cls()
+        return obj
+
+    def execute(self, dispatcher):
+        print "OANMessageStoreNodes"
+        node_manager().store(dispatcher.database)
+
+
+class OANMessageLoadNodes():
+
+    @classmethod
+    def create(cls):
+        obj = cls()
+        return obj
+
+    def execute(self, dispatcher):
+        print "OANMessageLoadNodes"
+        node_manager().load(dispatcher.database)
+
 
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
 oan_serializer.add("OANMessageClose", OANMessageClose)

@@ -15,6 +15,7 @@ import asyncore
 import socket
 import thread
 import sys
+import uuid
 
 from oan import node_manager
 from datetime import datetime, timedelta
@@ -29,6 +30,7 @@ class OANBridge(asyncore.dispatcher):
 
     server = None
     node = None # node that the bridge leading to... is None to handshake is done.
+    statistic = None # statistic for my node.
 
     out_queue = None
     out_buffer = ''
@@ -64,20 +66,20 @@ class OANBridge(asyncore.dispatcher):
 
     def got_close(self, message):
         print "OANBridge:got_close: %s" % (message.uuid)
-        message.execute()
+        self.in_queue.put(message)
 
         if not self.writable():
             self.handle_close()
 
     def got_handshake(self, message):
         #print "OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
-        message.execute()
 
-        self.node = node_manager().create_node(message.uuid, message.host, message.port, message.blocked)
+        self.node = node_manager().create_node(uuid.UUID(message.uuid), message.host, message.port, message.blocked)
 
         self.out_queue = self.node.out_queue
-        self.in_queue = node_manager().dispatcher.queue
-
+        self.in_queue = node_manager().in_queue
+        self.statistic = node_manager().get_my_node().statistic
+        self.in_queue.put(message)
         self.server.add_bridge(self)
 
     def send_message(self, message):
@@ -99,8 +101,9 @@ class OANBridge(asyncore.dispatcher):
 
     def handle_read(self):
         data = self.recv(1024)
-        #if self.node is not None:
-           # print "IN[%s][%s]" % (self.node.uuid, data)
+        if self.node is not None:
+            self.statistic.add_in_transfered(len(data))
+            # print "IN[%s][%s]" % (self.node.uuid, data)
 
         if data:
             self.in_buffer += data
@@ -147,8 +150,10 @@ class OANBridge(asyncore.dispatcher):
                     self.out_buffer = self.send_message(message)
 
         sent = self.send(self.out_buffer)
-        #if self.node is not None:
+        if self.node is not None:
+            self.statistic.add_out_transfered(sent)
             #print "OUT[%s][%s]" % (self.node.uuid, self.out_buffer[:sent])
+
         self.out_buffer = self.out_buffer[sent:]
 
     def handle_close(self):
