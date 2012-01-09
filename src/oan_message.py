@@ -14,6 +14,8 @@ __status__ = "Test"
 import oan_serializer
 import uuid
 import oan
+import threading
+
 
 #####
 from threading import Thread
@@ -22,9 +24,11 @@ from oan_event import OANEvent
 from oan import node_manager
 from oan_database import OANDatabase
 
+
+# TODO: OANMessageDispatcher should start more than one thread (consumer...)
 class OANMessageDispatcher(Thread):
 
-    database = None
+    config = None
 
     ''' use: dispatcher.on_shutdown += my_loop_shutdown() '''
     on_shutdown = None
@@ -41,35 +45,53 @@ class OANMessageDispatcher(Thread):
 
     queue = None
 
-    def __init__(self, queue):
+    statistic = None  # statistic for my node
+
+    # wait for the thread to start and stop
+    _started = None
+
+    def __init__(self, config):
         Thread.__init__(self)
-        self.queue = queue
+        self.config = config
+        self.queue = Queue()
+        self._started = threading.Event()
         self.on_shutdown = OANEvent()
         self.on_message = OANEvent()
 
+    def process(self, message):
+        self.queue.put(message)
+        self.statistic.in_queue_inc()
+
     def start(self):
         Thread.start(self)
+        #wait for set
+        self._started.wait()
 
     def stop(self):
         self.queue.put(None)
+        #wait for clear
+        self._started.wait()
 
     def run(self):
         print "OANMessageDispatcher: started"
-        self.database = OANDatabase(node_manager().get_my_node())
-        print "OANMessageDispatcher: database connected"
+        self.statistic = node_manager().get_statistic()
+        self._started.set()
         while(True):
             message = self.queue.get()
             if message is None:
                 break
 
             message.execute(self)
+            self.statistic.in_queue_dec()
             self.on_message(message)
 
         print "OANMessageDispatcher: shutdown"
         self.on_shutdown()
+        self._started.clear()
 
 # TODO: maybe have a time_to_live datetime. if node vill be offline och dead etc. clear all queues.
 class OANMessageHandshake():
+    ttl = False
     uuid = None
     host = None
     port = None
@@ -90,6 +112,7 @@ class OANMessageHandshake():
 
 class OANMessageClose():
     uuid = None
+    ttl = False
 
     @classmethod
     def create(cls, uuid):
@@ -104,6 +127,8 @@ class OANMessageRelay():
     uuid = None
     destination_uuid = None
     message = None
+    ttl = False
+
 
     @classmethod
     def create(cls, uuid, destination_uuid, message):
@@ -125,6 +150,8 @@ class OANMessageHeartbeat():
     uuid = None
     host = None
     port = None
+    ttl = False
+
 
     @classmethod
     def create(cls, node):
@@ -148,6 +175,7 @@ class OANMessageNodeSync():
     node_list = None
     node_list_hash = None
     step = None
+    ttl = False
 
     @classmethod
     def create(cls, step = 1, l = None):
@@ -219,6 +247,7 @@ class OANMessagePing():
     ping_begin_time = None
     ping_end_time = None
     ping_counter = None
+    ttl = False # Time to live TODO: should be a datetime
 
     @classmethod
     def create(cls, ping_id, ping_counter = 1, ping_begin_time = None):
@@ -251,8 +280,9 @@ class OANMessagePing():
             )
 
 
-###
+### OANMessageStoreNodes can not be send over network
 class OANMessageStoreNodes():
+    ttl = True
 
     @classmethod
     def create(cls):
@@ -261,10 +291,12 @@ class OANMessageStoreNodes():
 
     def execute(self, dispatcher):
         print "OANMessageStoreNodes"
-        node_manager().store(dispatcher.database)
+        node_manager().store()
 
 
+### OANMessageLoadNodes can not be send over network
 class OANMessageLoadNodes():
+    ttl = True
 
     @classmethod
     def create(cls):
@@ -273,7 +305,7 @@ class OANMessageLoadNodes():
 
     def execute(self, dispatcher):
         print "OANMessageLoadNodes"
-        node_manager().load(dispatcher.database)
+        node_manager().load()
 
 
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)

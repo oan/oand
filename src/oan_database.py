@@ -26,7 +26,7 @@ from oan import node_manager
 
 '''
 If we want to update database from more than one thread.
-
+'''
 class OANDatabaseConnection(Thread):
 
     def __init__(self, db):
@@ -54,8 +54,9 @@ class OANDatabaseConnection(Thread):
                     res.put(rec)
 
                 res.put('--no more--')
+            else:
+                cnx.commit()
 
-            cnx.commit()
             elapsed = (time.time() - start)
             print "SQL:%f sec" % elapsed
 
@@ -72,29 +73,26 @@ class OANDatabaseConnection(Thread):
             if rec=='--no more--': break
             yield rec
 
-    def close(self):
+    def shutdown(self):
         self.execute('--close--')
-'''
 
 class OANDatabase:
+    start = None
     conn = None
-    cursor = None
     tables = None
 
-    def __init__(self, node):
-        #self.conn = OANDatabaseConnection("%s%s.db" % (oan.VAR_DIR, node.uuid))
-        self.conn = sqlite3.connect("%s%s.db" % (oan.VAR_DIR, node.uuid))
-        self.cursor = self.conn.cursor()
+    def __init__(self, config):
+        self.config = config
         self.tables = {}
 
-    def close(self):
-        self.conn.close()
+    def start(self):
+        self.conn = OANDatabaseConnection("%s%s.db" % (oan.VAR_DIR, self.config.node_uuid))
 
     def create(self, cls):
         if cls.__name__ not in self.tables:
             # check that the class as a uuid attribute
 
-            self.cursor.execute("""
+            self.conn.execute("""
                 create table if not exists %s (
                     uuid  BLOB primary key,
                     data  TEXT
@@ -117,16 +115,17 @@ class OANDatabase:
 
     def delete(self, cls, uuid):
         self.create(cls)
-        self.cursor.execute("delete from %s where uuid = ?" % (cls.__name__), (sqlite3.Binary(guid.bytes),))
+        self.conn.execute("delete from %s where uuid = ?" % (cls.__name__), (sqlite3.Binary(guid.bytes),))
 
     def delete_all(self, cls):
-        self.cursor.execute("delete from %s" % (cls.__name__))
+        self.create(cls)
+        self.conn.execute("delete from %s" % (cls.__name__))
 
     def select(self, cls, guid):
         self.create(cls)
-        self.cursor.execute("select uuid, data from %s where uuid = ?" % (cls.__name__), (sqlite3.Binary(guid.bytes),))
-        self.cursor.fetchone()
-        for pk, data in self.cursor():
+        for pk, data in self.conn.select("select uuid, data from %s where uuid = ?" %
+                                        (cls.__name__), (sqlite3.Binary(guid.bytes),)):
+
             obj = cls(uuid.UUID(bytes=pk))
             obj.unserialize(json.loads(data))
             return obj
@@ -134,7 +133,7 @@ class OANDatabase:
     def select_all(self, cls):
         self.create(cls)
 
-        for pk, data in self.cursor.execute("select uuid, data from %s" % cls.__name__):
+        for pk, data in self.conn.select("select uuid, data from %s" % cls.__name__):
             obj = cls(uuid.UUID(bytes=pk))
             obj.unserialize(json.loads(data))
             yield obj
@@ -148,5 +147,9 @@ class OANDatabase:
             )
 
         self.create(cls)
-        self.cursor.executemany("%s into %s (uuid, data) values (?, ?)" % (cmd, cls.__name__), to_save)
+        self.conn.execute("%s into %s (uuid, data) values (?, ?)" % (cmd, cls.__name__), to_save)
+
+    def shutdown(self):
+        self.conn.shutdown()
+
 

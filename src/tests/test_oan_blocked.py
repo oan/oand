@@ -16,7 +16,7 @@ import unittest
 import time
 import oan
 import uuid
-from oan import node_manager
+from oan import dispatcher, node_manager
 
 from oan_loop import OANLoop
 from oan_event import OANEvent
@@ -56,13 +56,11 @@ class TestOANBlocked(OANTestCase):
         self.queue = None
 
     def got_message(self, message):
-        pass
-        #if isinstance(message, OANMessagePing):
-        #    if message.ping_counter == 1:
-        #        self.queue.put(message)
+        if isinstance(message, OANMessagePing):
+            self.queue.put(message)
 
     def create_watcher(self):
-        self.app.dispatcher.on_message += [self.got_message]
+        dispatcher().on_message += [self.got_message]
 
     def create_node(self):
         pass
@@ -71,14 +69,15 @@ class TestOANBlocked(OANTestCase):
     def test_message_relay(self):
         # send a ping to a blocked node
 
-        while True:
+        while not node_manager().exist_node(uuid.UUID('00000000-0000-bbbb-4008-000000000000')):
             time.sleep(10)
-            if node_manager().exist_node(uuid.UUID('00000000-0000-bbbb-4008-000000000000')):
-                node_manager().send(uuid.UUID('00000000-0000-bbbb-4008-000000000000'),
-                                              OANMessagePing.create( "my relay ping", 2))
-                                               # send ping back and forward (2)
 
-        self.queue.get() # wait for ever
+        print "send ping"
+        node_manager().send(uuid.UUID('00000000-0000-bbbb-4008-000000000000'),
+                                      OANMessagePing.create( "my relay ping", 2))
+                                           # send ping back and forward (2)
 
-        self.assertEqual(counter, 20)  # 4 * 5
+        message = self.queue.get()
+        print message
+        # self.assertEqual(counter, 20)  # 4 * 5
 

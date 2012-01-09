@@ -18,13 +18,8 @@ from datetime import datetime, timedelta
 import unittest
 import time
 import oan
-
-import pymongo
-from pymongo import Connection
-from pymongo import ASCENDING, DESCENDING
-
-import sqlite3
-
+import uuid
+import json
 
 from oan import node_manager
 from oan_loop import OANLoop
@@ -36,12 +31,11 @@ from oan_node_manager import OANNetworkNode, OANNodeManager
 from oan_message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OANMessageHandshake
 
 from Queue import Queue
-
-import uuid
-import json
-from bson.binary import Binary, UUIDLegacy
+from oan_database import OANDatabase
 
 '''
+from bson.binary import Binary, UUIDLegacy
+
 from bson.binary import Binary, UUIDLegacy
 >>> id = uuid.uuid4()
 >>> db.test.insert({'uuid': Binary(id.bytes, 3)})
@@ -66,7 +60,7 @@ ObjectId('...')
 
 
 
-
+'''
 class MyTestNode():
     uuid = None
     host = None
@@ -145,7 +139,7 @@ class TestOANStatistic(OANTestCase):
         collection.drop_indexes()
 
 
-
+'''
 
 
 

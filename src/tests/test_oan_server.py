@@ -17,7 +17,7 @@ import time
 import uuid
 
 import oan
-from oan import node_manager
+from oan import dispatcher, node_manager
 
 from oan_loop import OANLoop
 from oan_event import OANEvent
@@ -59,7 +59,7 @@ class TestOAN(OANTestCase):
                 self.queue.put(message)
 
     def create_watcher(self):
-        self.app.dispatcher.on_message += [self.got_message]
+        dispatcher().on_message += [self.got_message]
 
     def create_node(self):
         node_manager().create_node(uuid.UUID('00000000-0000-0000-4000-000000000000'), 'localhost', 4000, False)
@@ -67,15 +67,12 @@ class TestOAN(OANTestCase):
         node_manager().create_node(uuid.UUID('00000000-0000-0000-4002-000000000000'), 'localhost', 4002, False)
         node_manager().create_node(uuid.UUID('00000000-0000-0000-4003-000000000000'), 'localhost', 4003, False)
 
-    def test_message_nodelist(self):
-        node_manager().send(uuid.UUID('00000000-0000-0000-4000-000000000000'), OANMessageNodeSync.create())
-        message = self.queue.get() # wait forever
-
     def test_message_ping(self):
-        for n in xrange(4000, 4003):
+        for n in xrange(4000, 4004):
             for i in xrange(5):
-                node_manager().send(uuid.UUID('00000000-0000-0000-%s-000000000000' % n), OANMessagePing.create( "N%dP%d" % (n, i), 10 ))
-                # the ping will be transfered 10 times
+                node_manager().send(uuid.UUID('00000000-0000-0000-%s-000000000000' % n),
+                                    OANMessagePing.create( "N%dP%d" % (n, i), 10 ))
+                                    # the ping will be transfered 10 times
 
         counter = 0
         for i in xrange(20):

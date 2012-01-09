@@ -17,7 +17,7 @@ import thread
 import sys
 import uuid
 
-from oan import node_manager
+from oan import dispatcher, node_manager
 from datetime import datetime, timedelta
 from oan_event import OANEvent
 from Queue import Queue
@@ -29,18 +29,22 @@ import oan_serializer
 class OANBridge(asyncore.dispatcher):
 
     server = None
-    node = None # node that the bridge leading to... is None to handshake is done.
+    node = None # node that the bridge leading to... is None until handshake is done.
+    remote_addr = None
     statistic = None # statistic for my node.
 
     out_queue = None
     out_buffer = ''
 
-    in_queue = None
     in_buffer = ''
 
     def __init__(self, server, sock = None):
         asyncore.dispatcher.__init__(self, sock)
         self.server = server
+
+    def connect(self, addr):
+        self.remote_addr = addr
+        asyncore.dispatcher.connect(self, addr)
 
     def handle_connect(self):
         #print "OANBridge:handle_connect"
@@ -66,7 +70,7 @@ class OANBridge(asyncore.dispatcher):
 
     def got_close(self, message):
         print "OANBridge:got_close: %s" % (message.uuid)
-        self.in_queue.put(message)
+        dispatcher().process(message)
 
         if not self.writable():
             self.handle_close()
@@ -77,9 +81,8 @@ class OANBridge(asyncore.dispatcher):
         self.node = node_manager().create_node(uuid.UUID(message.uuid), message.host, message.port, message.blocked)
 
         self.out_queue = self.node.out_queue
-        self.in_queue = node_manager().in_queue
-        self.statistic = node_manager().get_my_node().statistic
-        self.in_queue.put(message)
+        self.statistic = node_manager().get_statistic()
+        dispatcher().process(message)
         self.server.add_bridge(self)
 
     def send_message(self, message):
@@ -120,7 +123,7 @@ class OANBridge(asyncore.dispatcher):
                 elif isinstance(message, OANMessageClose):
                     self.got_close(message)
                 else:
-                    self.in_queue.put(message)
+                    dispatcher().process(message)
 
                 pos = self.in_buffer.find('\n')
 
@@ -141,6 +144,7 @@ class OANBridge(asyncore.dispatcher):
         if (len(self.out_buffer) == 0):
             if self.out_queue is not None and not self.out_queue.empty():
                 message = self.out_queue.get()
+                self.statistic.out_queue_dec()
 
                 if (message == None):
                     #print "OANBridge:handle_write closing"
@@ -165,11 +169,14 @@ class OANBridge(asyncore.dispatcher):
 
     def handle_error(self):
         print "OANBridge:handle_error"
-        asyncore.dispatcher.handle_error(self)
+        #asyncore.dispatcher.handle_error(self)
+
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        #print "OANBridge:handle_error: %s" % exc_value
+        print "OANBridge:handle_error: %s, %s" % (self.remote_addr, exc_value)
+        print self.addr
 
     def shutdown(self):
         print "OANBridge:shutdown"
         self.out_queue.put(None)
+
 

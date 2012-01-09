@@ -62,10 +62,17 @@ class TestOANDatabase(OANTestCase):
     database = None
 
     def setUp(self):
-        self.database = OANDatabase(oan.VAR_DIR + 'TestOANDatabase.db')
+        config = OANConfig(
+                '00000000-0000-aaaa-0000-000000000000',
+                "TestOANDatabase",
+                "localhost",
+                str(9000))
+
+        self.database = OANDatabase(config)
+        self.database.start()
 
     def tearDown(self):
-        self.database.close()
+        self.database.shutdown()
         self.database = None
 
     def generate_nodes(self):

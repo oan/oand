@@ -21,7 +21,6 @@ from threading import Thread
 
 import oan
 from oan_bridge import OANBridge
-from oan_loop import OANLoop
 from oan_event import OANEvent
 from oan_node_manager import OANNetworkNode, OANNetworkNodeState, OANNodeManager
 from oan_message import OANMessagePing
@@ -121,9 +120,15 @@ class OANServer(asyncore.dispatcher):
         self.close()
 
     def shutdown(self):
-        self.close()
-        for k, bridge in self._map.iteritems():
+        if self.accepting:
+            self.close()
+
+        for bridge in self.bridges.values():
             bridge.shutdown()
+
+        # check if there any sockets left with no handshake
+        for bridge in self._map.values():
+            bridge.handle_close()
 
     def handle_error(self):
         print "OanServer:handle_error"
