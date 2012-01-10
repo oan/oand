@@ -4,3 +4,4 @@
 *.log*
 _trial_temp
 tmp/
+var/
