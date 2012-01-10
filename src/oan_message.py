@@ -242,7 +242,10 @@ class OANMessageNodeSync():
 
         if self.step == 2:
             for n in self.node_list:
-                node_manager().create_node(uuid.UUID(n[0]), n[1], n[2], n[3])
+                currentnode = node_manager().get_node(uuid.UUID(n[0]))
+                if currentnode.heartbeat < n[4]:
+                    newnode = node_manager().create_node(uuid.UUID(n[0]), n[1], n[2], n[3])
+                    newnode.heartbeat.value = n[4]
 
 #######
 

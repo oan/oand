@@ -137,7 +137,6 @@ class OANNodeManager():
             node = OANNetworkNode.create(uuid, host, int(port), blocked)
             self._nodes[uuid] = node
 
-        node.heartbeat.touch()
         return node
 
     def set_my_node(self, node):
@@ -165,8 +164,11 @@ class OANNodeManager():
     #TODO: remove dead nodes in database
     def remove_dead_nodes(self):
         for n in self._nodes.values():
+            if n.heartbeat.is_expired():
+                del self._nodes[n.uuid]
+
             if n.heartbeat.is_dead():
-                del _nodes[n.uuid]
+                del self._nodes[n.uuid]
 
     #TODO: maybe should send heartbeat to blocked nodes to test. once a week or so.
     def send_heartbeat(self):
