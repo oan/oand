@@ -69,5 +69,22 @@ class TestOANHeartbeat(OANTestCase):
         self.assertRaises(ValueError, hb.set_value, "NOT-A-VALID-DATE")
         self.assertRaises(ValueError, hb.set_value, "")
 
+    def test_heartbeat_operators(self):
+        low = OANHeartbeat()
+        low.value = "2006-06-06T06:06:06Z"
+
+        high = OANHeartbeat()
+        same = OANHeartbeat()
+        high.value = same.value = "2106-06-06T06:06:06Z"
+
+        self.assertTrue(low < high)
+        self.assertTrue(high > low)
+        self.assertTrue(high == same)
+        self.assertTrue(high != low)
+
+        self.assertFalse(low > high)
+        self.assertFalse(high < low)
+        self.assertFalse(high == low)
+
 if __name__ == '__main__':
     unittest.main()

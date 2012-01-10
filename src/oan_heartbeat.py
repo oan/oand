@@ -141,3 +141,18 @@ class OANHeartbeat(object):
 
         '''
         return self._is_touched(self.DEAD_MIN)
+
+    def __cmp__(self, other):
+        left = self._value
+
+        if isinstance(other, OANHeartbeat):
+            right = other._value
+        else:
+            right = OANHeartbeat(other)._value
+
+        if left < right:
+            return -1
+        elif left > right:
+            return 1
+        else:
+            return 0
