@@ -64,12 +64,12 @@ class OANMessageDispatcher(Thread):
 
     def start(self):
         Thread.start(self)
-        #wait for set
+        #wait for set in run
         self._started.wait()
 
     def stop(self):
         self.queue.put(None)
-        #wait for clear
+        #wait for clear in run
         self._started.wait()
 
     def run(self):
@@ -147,11 +147,16 @@ class OANMessageRelay():
 
 
 class OANMessageHeartbeat():
+    '''
+
+
+    The heartbeat touch will be done in bridge read and write.
+
+    '''
     uuid = None
     host = None
     port = None
     ttl = False
-
 
     @classmethod
     def create(cls, node):

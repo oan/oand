@@ -93,7 +93,12 @@ class OANNodeManager():
             self._nodes[node.uuid] = node
 
         if uuid.UUID(self.config.node_uuid) in self._nodes:
-            self.set_my_node(self._nodes[uuid.UUID(self.config.node_uuid)])
+            my_node = self._nodes[uuid.UUID(self.config.node_uuid)]
+            my_node.host  = self.config.node_domain_name
+            my_node.port = int(self.config.node_port)
+            my_node.blocked = self.config.blocked
+
+            print my_node
         else:
             my_node = self.create_node(
                 uuid.UUID(self.config.node_uuid),
@@ -102,8 +107,8 @@ class OANNodeManager():
                 self.config.blocked
             )
 
-            self.add_node(my_node)
-            self.set_my_node(my_node)
+        self.add_node(my_node)
+        self.set_my_node(my_node)
 
     # store all nodes in to database
     def store(self):
@@ -167,6 +172,7 @@ class OANNodeManager():
                 if n.heartbeat.is_expired():
                     self.send(n.uuid, heartbeat)
 
+    #TODO sync ony with open nodes
     def send_node_sync(self):
         node_sync = OANMessageNodeSync.create()
         for n in self._nodes.values():
@@ -182,7 +188,6 @@ class OANNodeManager():
             else:
 
                 try:
-                    print message
                     node.out_queue.put(message, False)
                     self._my_node.statistic.out_queue_inc()
                 except:

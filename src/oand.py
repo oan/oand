@@ -30,7 +30,7 @@ from oan_meta_manager import OANMetaManager
 from oan_data_manager import OANDataManager
 from oan_config import OANConfig
 from oan_loop import OANLoop, OANTimer
-from oan_message import OANMessageDispatcher, OANMessageStoreNodes, OANMessageLoadNodes
+from oan_message import OANMessageDispatcher, OANMessagePing, OANMessageStoreNodes, OANMessageLoadNodes
 from oan_database import OANDatabase
 
 class OANApplication():
@@ -64,6 +64,8 @@ class OANApplication():
 
         if not node_manager().get_my_node().blocked:
             loop().listen(node_manager().get_my_node())
+
+        # wait for all thread to complete.
 
     # is it possible to catch the SIG when killing a deamon and call this function.
     def stop(self):
@@ -138,6 +140,10 @@ class OANApplication():
         node_manager().remove_dead_nodes()
 
         dispatcher().process(OANMessageStoreNodes.create())
+
+        node_manager().send(uuid.UUID('00000000-0000-dead-0000-000000000000'),
+                                        OANMessagePing.create( "my test ping", 2))
+                                           # send ping back and forward (2)
 
     def _start_logger(self,):
         my_logger = logging.getLogger()

@@ -77,7 +77,6 @@ class OANDatabaseConnection(Thread):
         self.execute('--close--')
 
 class OANDatabase:
-    start = None
     conn = None
     tables = None
 
@@ -139,13 +138,13 @@ class OANDatabase:
             yield obj
 
     def _execute(self, cmd, objs):
-        cls = objs[0].__class__
         to_save = []
         for obj in objs:
             to_save.append(
                 (sqlite3.Binary(obj.uuid.bytes), json.dumps(obj.serialize()))
             )
 
+        cls = objs[0].__class__
         self.create(cls)
         self.conn.execute("%s into %s (uuid, data) values (?, ?)" % (cmd, cls.__name__), to_save)
 

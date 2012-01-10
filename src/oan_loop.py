@@ -84,12 +84,12 @@ class OANLoop(Thread):
         if (not self._running):
             self._running = True
             Thread.start(self)
-            #wait for set
+            #wait for set in run
             self._started.wait()
 
     def stop(self):
         self._running = False
-        #wait for clear
+        #wait for clear in run
         self._started.wait()
 
     def add_timer(self, timer):
