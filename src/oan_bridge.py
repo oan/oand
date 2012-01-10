@@ -89,7 +89,7 @@ class OANBridge(asyncore.dispatcher):
     def send_message(self, message):
         raw_message = oan_serializer.encode(message)
         if self.node is not None:
-            #print "send_message: %s to %s" % (message.__class__.__name__, self.node.uuid)
+            print "send_message: %s to %s" % (message.__class__.__name__, self.node.uuid)
             self.node.heartbeat.touch()
 
         return raw_message + '\n'
@@ -99,7 +99,7 @@ class OANBridge(asyncore.dispatcher):
 
         if self.node is not None:
             self.node.heartbeat.touch()
-            #print "read_message: %s from %s" % (message.__class__.__name__, self.node.uuid)
+            print "read_message: %s from %s" % (message.__class__.__name__, self.node.uuid)
 
         return message
 

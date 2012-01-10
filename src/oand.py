@@ -25,7 +25,7 @@ import uuid
 
 from oan import loop, database, dispatcher, node_manager, meta_manager, data_manager, set_managers
 from oan_daemon_base import OANDaemonBase
-from oan_node_manager import OANNodeManager
+from oan_node_manager import OANNodeManager, OANNetworkNodeState
 from oan_meta_manager import OANMetaManager
 from oan_data_manager import OANDataManager
 from oan_config import OANConfig
@@ -103,7 +103,7 @@ class OANApplication():
 
             connected = False
             for bridges in server.bridges.values():
-                if bridges.node.host == host and bridges.node.port == port:
+                if bridges.node.state == OANNetworkNodeState.connected:
                     connected = True
                     loop().remove_timer(self.timer_connect)
                     print "Connected to bff %s:%s" % (host, port)
