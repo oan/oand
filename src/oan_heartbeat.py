@@ -14,6 +14,22 @@ __status__ = "Test"
 from datetime import datetime, timedelta
 
 class OANHeartbeat(object):
+    '''
+    Representing a heartbeat "timestamp"
+
+    >>> hb = OANHeartbeat()
+    >>> hb.is_idle()
+    True
+    >>> hb.is_idle()
+    True
+    >>> hb.is_expired()
+    True
+    >>> hb.is_offline()
+    True
+    >>> hb.is_dead()
+    False
+
+    '''
     _value = None
 
     IDLE_MIN = 1 # test value 0.1
@@ -60,7 +76,7 @@ class OANHeartbeat(object):
         '''
         Check if the heartbeat has been touched within MIN minutes.
 
-        min - Number of minutes the heatbeat is valid.
+        min - Number of minutes the heatbeat is valid.)
 
         '''
         expire_date = datetime.utcnow() - timedelta(minutes = min)
@@ -74,6 +90,10 @@ class OANHeartbeat(object):
         '''
         The heartbeat has not been touched for 1 minute.
 
+        >>> hb = OANHeartbeat()
+        >>> hb.is_idle()
+        True
+
         '''
         return self._is_touched(self.IDLE_MIN)
 
@@ -82,6 +102,10 @@ class OANHeartbeat(object):
         The heartbeat has not been touched for 5 minutes.
 
         The node needs to be verified if it's still alive.
+
+        >>> hb = OANHeartbeat()
+        >>> hb.is_expired()
+        True
 
         '''
         return self._is_touched(self.EXPIRE_MIN)
@@ -92,6 +116,10 @@ class OANHeartbeat(object):
 
         The node is probably offline.
 
+        >>> hb = OANHeartbeat()
+        >>> hb.is_offline()
+        True
+
         '''
         return self._is_touched(self.OFFLINE_MIN)
 
@@ -100,6 +128,10 @@ class OANHeartbeat(object):
         The heartbeat has not been touched for 10 days.
 
         The node is probably dead.
+
+        >>> hb = OANHeartbeat()
+        >>> hb.is_dead()
+        False
 
         '''
         return self._is_touched(self.DEAD_MIN)
