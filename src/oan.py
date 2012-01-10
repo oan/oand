@@ -14,6 +14,9 @@ __status__ = "Test"
 import os
 import sys
 
+_loop = None
+_database = None
+_dispatcher = None
 _data_manager = None
 _meta_manager = None
 _node_manager = None
@@ -30,16 +33,30 @@ ETC_DIR = BASE_DIR + "etc/"
 # Log files
 LOG_DIR = BASE_DIR + "log/"
 
-def set_managers(data, meta, node):
+#TODO: We should make app global and use app().dispatcher instead of dispatcher()
+def set_managers(loop, database, dispatcher, data, meta, node):
     '''
     Set all global managers that can be used from anywhere in the app.
 
     '''
-    global _data_manager, _meta_manager, _node_manager
+    global _loop, _database, _dispatcher, _data_manager, _meta_manager, _node_manager
+
+    _loop = loop
+    _database = database
+    _dispatcher = dispatcher
     _data_manager = data
     _meta_manager = meta
     _node_manager = node
     validate()
+
+def loop():
+    return _loop
+
+def dispatcher():
+    return _dispatcher
+
+def database():
+    return _database
 
 def data_manager():
     return _data_manager
@@ -55,6 +72,15 @@ def validate():
     Validate that all managers are set and have valid data.
 
     '''
+    if (not _loop):
+        raise Exception("loop is not valid.")
+
+    if (not _database):
+        raise Exception("database is not valid.")
+
+    if (not _dispatcher):
+        raise Exception("dispatcher is not valid.")
+
     if (not _data_manager):
         raise Exception("data_manager is not valid.")
 

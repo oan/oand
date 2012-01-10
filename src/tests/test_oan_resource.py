@@ -19,7 +19,6 @@ from oand import OANDaemon
 from oan_config import OANConfig
 from oan_meta_manager import OANMetaManager
 from oan_node_manager import OANNodeManager
-from oan_network_node import OANNetworkNode
 
 class TestResources(OANTestCase):
     def setUp(self):

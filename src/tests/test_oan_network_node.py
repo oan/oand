@@ -2,7 +2,6 @@
 '''
 Test cases for oan_network_node.py
 
-'''
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -52,3 +51,7 @@ class TestOANNetworkNode(OANTestCase):
 
         self.assertEqual(nn.connection_url, "domain_name:port")
         self.assertTrue(nn.is_valid())
+
+
+'''
+

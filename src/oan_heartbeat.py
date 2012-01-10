@@ -61,16 +61,16 @@ class OANHeartbeat(object):
         return self.get_value()
 
     def set_idle(self):
-        self._value = (datetime.utcnow() - timedelta(minutes = self.IDLE_MIN + 1))
+        self._value = (datetime.utcnow() - timedelta(minutes = self.IDLE_MIN, seconds = 1))
 
     def set_expired(self):
-        self._value = (datetime.utcnow() - timedelta(minutes = self.EXPIRE_MIN + 1))
+        self._value = (datetime.utcnow() - timedelta(minutes = self.EXPIRE_MIN, seconds = 1))
 
     def set_offline(self):
-        self._value = (datetime.utcnow() - timedelta(minutes = self.OFFLINE_MIN + 1))
+        self._value = (datetime.utcnow() - timedelta(minutes = self.OFFLINE_MIN, seconds = 1))
 
     def set_dead(self):
-        self._value = (datetime.utcnow() - timedelta(minutes = self.DEAD_MIN + 1))
+        self._value = (datetime.utcnow() - timedelta(minutes = self.DEAD_MIN, seconds = 1))
 
     def _is_touched(self, min):
         '''

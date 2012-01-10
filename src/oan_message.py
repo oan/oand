@@ -12,14 +12,23 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import oan_serializer
+import uuid
+import oan
+import threading
+
 
 #####
 from threading import Thread
 from Queue import Queue
 from oan_event import OANEvent
 from oan import node_manager
+from oan_database import OANDatabase
 
+
+# TODO: OANMessageDispatcher should start more than one thread (consumer...)
 class OANMessageDispatcher(Thread):
+
+    config = None
 
     ''' use: dispatcher.on_shutdown += my_loop_shutdown() '''
     on_shutdown = None
@@ -36,33 +45,53 @@ class OANMessageDispatcher(Thread):
 
     queue = None
 
-    def __init__(self):
+    statistic = None  # statistic for my node
+
+    # wait for the thread to start and stop
+    _started = None
+
+    def __init__(self, config):
         Thread.__init__(self)
+        self.config = config
         self.queue = Queue()
+        self._started = threading.Event()
         self.on_shutdown = OANEvent()
         self.on_message = OANEvent()
 
+    def process(self, message):
+        self.queue.put(message)
+        self.statistic.in_queue_inc()
+
     def start(self):
         Thread.start(self)
+        #wait for set in run
+        self._started.wait()
 
     def stop(self):
         self.queue.put(None)
+        #wait for clear in run
+        self._started.wait()
 
     def run(self):
         print "OANMessageDispatcher: started"
+        self.statistic = node_manager().get_statistic()
+        self._started.set()
         while(True):
             message = self.queue.get()
             if message is None:
                 break
 
-            message.execute()
+            message.execute(self)
+            self.statistic.in_queue_dec()
             self.on_message(message)
 
         print "OANMessageDispatcher: shutdown"
         self.on_shutdown()
+        self._started.clear()
 
 # TODO: maybe have a time_to_live datetime. if node vill be offline och dead etc. clear all queues.
 class OANMessageHandshake():
+    ttl = False
     uuid = None
     host = None
     port = None
@@ -71,63 +100,73 @@ class OANMessageHandshake():
     @classmethod
     def create(cls, uuid, host, port, blocked):
         obj = cls()
-        obj.uuid = uuid
+        obj.uuid = str(uuid)
         obj.host = host
         obj.port = port
         obj.blocked = blocked
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageHandshake: %s %s %s blocked:%s" % (self.uuid, self.host, self.port, self.blocked)
 
 
 class OANMessageClose():
     uuid = None
+    ttl = False
 
     @classmethod
     def create(cls, uuid):
         obj = cls()
-        obj.uuid = uuid
+        obj.uuid = str(uuid)
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageClose: %s" % (self.uuid)
 
 class OANMessageRelay():
     uuid = None
     destination_uuid = None
     message = None
+    ttl = False
+
 
     @classmethod
     def create(cls, uuid, destination_uuid, message):
         obj = cls()
-        obj.uuid = uuid
-        obj.destination_uuid = destination_uuid
+        obj.uuid = str(uuid)
+        obj.destination_uuid = str(destination_uuid)
         obj.message = message
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageRelay: %s %s" % (self.destination_uuid, self.message)
         node_manager().send(
-            self.destination_uuid,
+            uuid.UUID(self.destination_uuid),
             self.message
         )
 
 
 class OANMessageHeartbeat():
+    '''
+
+
+    The heartbeat touch will be done in bridge read and write.
+
+    '''
     uuid = None
     host = None
     port = None
+    ttl = False
 
     @classmethod
     def create(cls, node):
         obj = cls()
-        obj.uuid = node.uuid
+        obj.uuid = str(node.uuid)
         obj.host = node.host
         obj.port = node.port
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         print "OANMessageHeartbeat: %s %s %s" % (self.uuid, self.host, self.port)
 
 #####
@@ -141,13 +180,14 @@ class OANMessageNodeSync():
     node_list = None
     node_list_hash = None
     step = None
+    ttl = False
 
     @classmethod
     def create(cls, step = 1, l = None):
         obj = cls()
         obj.step = step
         obj.node_list = []
-        obj.node_uuid = node_manager().get_my_node().uuid
+        obj.node_uuid = str(node_manager().get_my_node().uuid)
 
         if l is None:
             l = obj.create_list()
@@ -170,7 +210,7 @@ class OANMessageNodeSync():
         valuelist = []
         hashlist = []
         for node in node_manager()._nodes.values():
-            valuelist.append((node.uuid, node.host, node.port, node.blocked))
+            valuelist.append((str(node.uuid), node.host, node.port, node.blocked))
 
         valuelist.sort()
 
@@ -182,7 +222,7 @@ class OANMessageNodeSync():
     def create_hash(self):
         return
 
-    def execute(self):
+    def execute(self, dispatcher):
         #print "----- List from %s " % self.node_uuid
         #print self.node_list_hash
         #print self.node_list
@@ -194,13 +234,13 @@ class OANMessageNodeSync():
             # if hash is diffrent continue to step 2, send over the list.
             if self.node_list_hash != my_l[0]:
                 node_manager().send(
-                    self.node_uuid,
+                    uuid.UUID(self.node_uuid),
                     OANMessageNodeSync.create(2, my_l)
                 )
 
         if self.step == 2:
             for n in self.node_list:
-                node_manager().create_node(n[0], n[1], n[2], n[3])
+                node_manager().create_node(uuid.UUID(n[0]), n[1], n[2], n[3])
 
 #######
 
@@ -212,11 +252,12 @@ class OANMessagePing():
     ping_begin_time = None
     ping_end_time = None
     ping_counter = None
+    ttl = False # Time to live TODO: should be a datetime
 
     @classmethod
     def create(cls, ping_id, ping_counter = 1, ping_begin_time = None):
         obj = cls()
-        obj.node_uuid = node_manager().get_my_node().uuid
+        obj.node_uuid = str(node_manager().get_my_node().uuid)
         obj.ping_id = ping_id
         obj.ping_counter = ping_counter
         obj.ping_begin_time = ping_begin_time
@@ -227,7 +268,7 @@ class OANMessagePing():
 
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         #if self.ping_counter == 1:
         print "Ping [%s][%d] from [%s] %s - %s" % (
             self.ping_id,
@@ -239,9 +280,38 @@ class OANMessagePing():
 
         if self.ping_counter > 1:
             node_manager().send(
-                self.node_uuid,
+                uuid.UUID(self.node_uuid),
                 OANMessagePing.create(self.ping_id, self.ping_counter-1, self.ping_begin_time)
             )
+
+
+### OANMessageStoreNodes can not be send over network
+class OANMessageStoreNodes():
+    ttl = True
+
+    @classmethod
+    def create(cls):
+        obj = cls()
+        return obj
+
+    def execute(self, dispatcher):
+        print "OANMessageStoreNodes"
+        node_manager().store()
+
+
+### OANMessageLoadNodes can not be send over network
+class OANMessageLoadNodes():
+    ttl = True
+
+    @classmethod
+    def create(cls):
+        obj = cls()
+        return obj
+
+    def execute(self, dispatcher):
+        print "OANMessageLoadNodes"
+        node_manager().load()
+
 
 oan_serializer.add("OANMessageHandshake", OANMessageHandshake)
 oan_serializer.add("OANMessageClose", OANMessageClose)

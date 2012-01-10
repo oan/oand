@@ -14,9 +14,15 @@ __status__ = "Test"
 from oan_unittest import OANTestCase
 
 import oan
+from oan import loop, database, dispatcher, node_manager
+
 from oan_node_manager import OANNodeManager
 from oan_meta_manager import OANMetaManager
 from oan_data_manager import OANDataManager
+from oan_loop import OANLoop
+from oan_database import OANDatabase
+from oan_config import OANConfig
+from oan_message import OANMessageDispatcher
 
 class TestOan(OANTestCase):
     def setUp(self):
@@ -25,9 +31,20 @@ class TestOan(OANTestCase):
     def test_oan(self):
         self.assertRaises(Exception, oan.validate)
 
+        config = OANConfig(
+                '00000000-0000-aaaa-0000-000000000000',
+                "TestOANDatabase",
+                "localhost",
+                str(9000))
+
         oan.set_managers(
+            OANLoop(),
+            OANDatabase(config),
+            OANMessageDispatcher(config),
             OANDataManager("unittest-data.dat"),
             OANMetaManager(),
-            OANNodeManager()
+            OANNodeManager(config)
         )
+
         oan.validate()
+

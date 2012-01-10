@@ -14,8 +14,10 @@ __status__ = "Test"
 from oan_unittest import OANTestCase
 import unittest
 import time
+import uuid
+
 import oan
-from oan import node_manager
+from oan import dispatcher, node_manager
 
 from oan_loop import OANLoop
 from oan_event import OANEvent
@@ -37,7 +39,7 @@ class TestOAN(OANTestCase):
         self.queue = Queue()
 
         self.app = OANApplication(OANConfig(
-            "tt:tt:10",
+            '00000000-0000-0000-8000-000000000000',
             "TestOAN",
             "localhost",
             str(8000)
@@ -57,24 +59,20 @@ class TestOAN(OANTestCase):
                 self.queue.put(message)
 
     def create_watcher(self):
-        node_manager().dispatcher.on_message += [self.got_message]
+        dispatcher().on_message += [self.got_message]
 
     def create_node(self):
-        node_manager().create_node('oo:hh:10', 'localhost', 4000)
-        node_manager().create_node('oo:hh:11', 'localhost', 4001)
-        node_manager().create_node('oo:hh:12', 'localhost', 4002)
-        node_manager().create_node('oo:hh:13', 'localhost', 4003)
-
-
-    def test_message_nodelist(self):
-        node_manager().send('oo:hh:10', OANMessageNodeSync.create())
-        message = self.queue.get() # wait forever
+        node_manager().create_node(uuid.UUID('00000000-0000-0000-4000-000000000000'), 'localhost', 4000, False)
+        node_manager().create_node(uuid.UUID('00000000-0000-0000-4001-000000000000'), 'localhost', 4001, False)
+        node_manager().create_node(uuid.UUID('00000000-0000-0000-4002-000000000000'), 'localhost', 4002, False)
+        node_manager().create_node(uuid.UUID('00000000-0000-0000-4003-000000000000'), 'localhost', 4003, False)
 
     def test_message_ping(self):
-        for n in xrange(10, 14):
+        for n in xrange(4000, 4004):
             for i in xrange(5):
-                node_manager().send('xx:hh:%d' % n, OANMessagePing.create( "N%dP%d" % (n, i), 10 ))
-                # the ping will be transfered 10 times
+                node_manager().send(uuid.UUID('00000000-0000-0000-%s-000000000000' % n),
+                                    OANMessagePing.create( "N%dP%d" % (n, i), 10 ))
+                                    # the ping will be transfered 10 times
 
         counter = 0
         for i in xrange(20):
