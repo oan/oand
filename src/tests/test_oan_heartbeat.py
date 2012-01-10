@@ -34,6 +34,7 @@ class TestOANHeartbeat(OANTestCase):
         self.assertEqual(hb.is_offline(), False)
         self.assertEqual(hb.is_dead(), False)
         self.assertEqual(hb.value, "2106-06-06T06:06:06Z")
+        self.assertEqual(hb.time, "06:06:06")
 
         hb.touch()
         self.assertEqual(hb.is_idle(), False)
