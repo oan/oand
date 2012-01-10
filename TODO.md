@@ -6,7 +6,6 @@ HIGH-LEVEL TODO
 * Optimize speed/amount-of-data
 * Client
 * Encryption
-* VERSION 0.1
 
 Network Feature List
 --------------------
@@ -22,38 +21,114 @@ Network Feature List
 * Stable code.
 * SSL/TLS enabled
 
-TODO
-====
+VERSION 0.1 - NODE AWARENESS
+============================
 
-* test-all  -v -p *heartbeat* -n -t
+All nodes should be able to communicate, send heartbeats, sync-nodes,
+store node info in datbase, can handle nodes that comes and goes. All is
+well written with unit test and comments.
+
+* Daniel - oand --console
+  oand --console --message=ping -args=xxxx
+  oand --ping --uuid=xxxx
+  oand --console=ping --uuid=xxxx
+
+* Daniel - Create logging system.
+
+* Martin - Go through all network interfaces. Try to connect to OAN with each of them.
+  The first internal ip/interface that can connect, will be used to bind the
+  server. The external ip will be returned from OAN and will be used in the
+  node-list.
+  https://github.com/systemconsole/syco/blob/master/bin/common/net.py
+
+* Daniel - test-all  -v -p *heartbeat* -n -t
   Only display trace output for unit test files.
 
-* Check doctest
+* Daniel - Check doctest
   http://docs.python.org/library/doctest.html
 
-* Check readthedocs.org/docs/nose and pytest.org.
-  We should probably not use this.
-  http://www.ibm.com/developerworks/aix/library/au-pythontesting1/index.html
-  http://www.ibm.com/developerworks/aix/library/au-pythontesting2/index.html
-  http://www.ibm.com/developerworks/aix/library/au-pythontesting3/index.html
+* Daniel - Continous testing with git hooks.
 
-* Continous testing with git hooks.
+* Daniel - Check buildout
+  Check http://peak.telecommunity.com/DevCenter/setuptools
+  Add setup.php??
+  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/setup.py?revision=157&view=markup
 
-* Check buildout
-* Check http://peak.telecommunity.com/DevCenter/setuptools
-
-* Read
+* Daniel - Read
   http://www.ibm.com/developerworks/aix/library/au-cleancode/index.html
 
-* Check http://readthedocs.org/
+* Daniel - Check http://readthedocs.org/
 
-* Check http://pypi.python.org/pypi/virtualenv for isolated env
+* Daniel - Check http://pypi.python.org/pypi/virtualenv for isolated env
 
-* Check http://nedbatchelder.com/code/coverage/
-  can be used with nose
+* Daniel - Check http://nedbatchelder.com/code/coverage/
 
-*
+* Martin - Collect statistics from all nodes.
 
+* Decide which threads that are allowed to use certain managers. Or if we
+  need more queues/thread-looks.
+
+* Organize codes in more folders/packages.
+
+* Rename src folder to lib/pkg?? What are others using?
+
+* Test if queues are faster/better than threads locks.
+
+* Add unit test, testing many thousand nodes.
+
+* Add comments.
+
+VERSION 0.2
+===========
+
+* Write test_resources and resourcemanager.
+
+* Enable tls/ssl
+  http://stackoverflow.com/questions/1085050/how-do-i-use-tls-with-asyncore
+
+* Prefix all our classes with OAN.
+
+* Rename server-* to node-* in oand.cfg
+
+* Daniel - Have a look att github ruby comment thing.
+
+* Look more at this, giving any ideas for REST?
+  http://developer.github.com/v3/gists/
+
+* HtmlValueHandler should see the difference between folder and file.
+
+* ValueHandler (json) should see the difference between folder and file.
+
+* Add version to http://localhost:1337/nodes and check if version is the same
+  between nodes.
+
+* Lots of error checking, code comments etc.
+
+* Have another look at
+  http://entangled.svn.sourceforge.net/viewvc/entangled/
+
+* Test this Fuse-python
+  http://websaucesoftware.com/programming/python/installing-fuse-python-on-os-x-105
+
+* Have a look at different DHT algorithms Chord, Kademlia, Pastry, OceanStore
+  and Coral.
+
+* Features we should support.
+  anonymity, Byzantine fault-tolerant lookups, geographic routing and the
+  efficient broadcasting of messages to enter the network.
+
+* Rewrite deamon to work with windows.
+
+* Test oand with windows.
+
+* Add config page, looking like this
+  http://www.facebook.com/editprofile.php?sk=basic
+  http://www.youtube.com/account_profile
+
+* Add security, like checking all arguments for XXS. Check owasp.
+
+* One way to store key/value
+  http://highscalability.com/blog/2011/1/10/riaks-bitcask-a-log-structured-hash-table-for-fast-keyvalue.html
 
 * Create UML
   http://yuml.me/1555afce
@@ -77,72 +152,6 @@ TODO
   # Generate new diagram
 
   http://yuml.me/diagram/scruffy/class/draw2
-
-
-
-* Write test_resources and resourcemanager.
-
-* Enable tls/ssl
-  http://stackoverflow.com/questions/1085050/how-do-i-use-tls-with-asyncore
-
-* Prefix all our classes with OAN.
-
-* Rename server-* to node-* in oand.cfg
-
-* Use twisted json-rpc??
-  http://stackoverflow.com/questions/4738209/python-twisted-json-rpc
-
-* Have a look att github ruby comment thing.
-
-* Add unit test, testing many thousand nodes.
-
-* Look more at this, giving any ideas?
-  http://developer.github.com/v3/gists/
-
-* Save all known nodes to file/db.
-  Use the oan db class.
-
-* Add oan-db-backend class system, with possiblity to store all data in sqllite,
-  filesystem or other.
-
-* HtmlValueHandler should see the difference between folder and file.
-
-* ValueHandler (json) should see the difference between folder and file.
-
-* Add version to http://localhost:1337/nodes and check if version is the same
-  between nodes.
-
-* Use this for all getter/setters
-  http://docs.python.org/library/functions.html#property
-
-* Lots of error checking, code comments etc.
-
-* Have another look at
-  http://entangled.svn.sourceforge.net/viewvc/entangled/
-
-* Test this Fuse-python
-  http://websaucesoftware.com/programming/python/installing-fuse-python-on-os-x-105
-
-* Have a look at different DHT algorithms Chord, Kademlia, Pastry, OceanStore
-  and Coral.
-
-* Features we should support.
-  anonymity, Byzantine fault-tolerant lookups, geographic routing and the
-  efficient broadcasting of messages to enter the network.
-
-* Try this daemon? http://pypi.python.org/pypi/python-daemon/
-
-* Add something like this? easy_install?
-  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/setup.py?revision=157&view=markup
-
-* Add config page, looking like this
-  http://www.facebook.com/editprofile.php?sk=basic
-  http://www.youtube.com/account_profile
-
-* Add security, like checking all arguments for XXS. Check owasp.
-
-* One way to store key/value
-  http://highscalability.com/blog/2011/1/10/riaks-bitcask-a-log-structured-hash-table-for-fast-keyvalue.html
 
 Things to read
 ==============
