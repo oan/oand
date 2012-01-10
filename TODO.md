@@ -25,6 +25,36 @@ Network Feature List
 TODO
 ====
 
+* test-all  -v -p *heartbeat* -n -t
+  Only display trace output for unit test files.
+
+* Check doctest
+  http://docs.python.org/library/doctest.html
+
+* Check readthedocs.org/docs/nose and pytest.org.
+  We should probably not use this.
+  http://www.ibm.com/developerworks/aix/library/au-pythontesting1/index.html
+  http://www.ibm.com/developerworks/aix/library/au-pythontesting2/index.html
+  http://www.ibm.com/developerworks/aix/library/au-pythontesting3/index.html
+
+* Continous testing with git hooks.
+
+* Check buildout
+* Check http://peak.telecommunity.com/DevCenter/setuptools
+
+* Read
+  http://www.ibm.com/developerworks/aix/library/au-cleancode/index.html
+
+* Check http://readthedocs.org/
+
+* Check http://pypi.python.org/pypi/virtualenv for isolated env
+
+* Check http://nedbatchelder.com/code/coverage/
+  can be used with nose
+
+*
+
+
 * Create UML
   http://yuml.me/1555afce
 

@@ -48,16 +48,23 @@ Optional:
 Install
 =======
 
-Ubuntu 10.10
-------------
+OS X
+----
+    # Install easy_install
+    # Tool used for installing py packages used by oand
+    cd /tmp/
+    curl http://pypi.python.org/packages/2.7/s/setuptools/setuptools-0.6c11-py2.7.egg#md5=fe1f997bc722265116870bc7919059ea >> setuptools-0.6c11-py2.7.egg
+    sh setuptools-0.6c11-py2.7.egg --prefix=~
 
-        sudo apt-get install python-setuptools
-        sudo easy_install s
-        mkdir /usr/local/oand
-        cd /usr/local/oand
-        git clone git://github.com/oan/oand.git
-        cd src
-        ./oand start
+    # Install nose used for unit tests.
+    easy_install nose
+    easy_install coverage
+
+    mkdir /usr/local/oand
+    cd /usr/local/oand
+    git clone git://github.com/oan/oand.git
+    cd bin
+    ./oand start
 
 How to run all tests
 ====================
@@ -67,15 +74,8 @@ executed separately, or all at the same time.
 
 To run all tests
 
-    $ cd oand/src
-    $ . test.env
-    $ ./tools/testall.py
-
-To execute them separatley
-
-    $ cd oand/src
-    $ . test.env
-    $ ./tests/test_oand.py
+    $ cd oand/bin
+    $ ./test-all
 
 License information
 ===================
