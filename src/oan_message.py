@@ -25,6 +25,7 @@ from oan import node_manager
 from oan_database import OANDatabase
 
 
+
 # TODO: OANMessageDispatcher should start more than one thread (consumer...)
 class OANMessageDispatcher(Thread):
 
@@ -206,11 +207,12 @@ class OANMessageNodeSync():
 
         return obj
 
+    # add heartbeat should not be included in hash
     def create_list(self):
         valuelist = []
         hashlist = []
         for node in node_manager()._nodes.values():
-            valuelist.append((str(node.uuid), node.host, node.port, node.blocked))
+            valuelist.append((str(node.uuid), node.host, node.port, node.blocked, node.heartbeat.value))
 
         valuelist.sort()
 

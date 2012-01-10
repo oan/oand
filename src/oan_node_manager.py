@@ -70,7 +70,11 @@ class OANNetworkNode:
         return(self.host, self.port, self.blocked, self.statistic.serialize())
 
     def __str__(self):
-        return 'OANNetworkNode(%s, %s, %s) (queue: %s) (%s)' % (self.uuid, self.host, self.port, self.out_queue.qsize(), self.statistic)
+        return 'OANNetworkNode(%s, %s, %s) (queue: %s) (%s) (%s)' % (
+            self.uuid, self.host, self.port,
+            self.out_queue.qsize(),
+            self.heartbeat.time, self.statistic
+        )
 
 class OANNodeManager():
     # Node server to connect and send message to other node servers

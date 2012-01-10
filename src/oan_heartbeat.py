@@ -39,12 +39,16 @@ class OANHeartbeat(object):
 
     # ISO 8601 format
     _date_fmt = "%Y-%m-%dT%H:%M:%SZ"
+    _time_fmt = "%H:%M:%S"
 
     def __init__(self,  last_heartbeat = None):
         if (last_heartbeat is None):
             self.set_offline()
         else:
             self.set_value(last_heartbeat)
+
+    def get_time(self):
+        return self._value.strftime(self._time_fmt)
 
     def get_value(self):
         return self._value.strftime(self._date_fmt)
@@ -55,6 +59,7 @@ class OANHeartbeat(object):
             raise Exception('Not valid date.' + datetime_str)
 
     value = property(get_value, set_value)
+    time = property(get_time)
 
     def touch(self):
         self._value = datetime.utcnow()
