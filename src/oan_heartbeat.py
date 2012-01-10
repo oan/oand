@@ -61,6 +61,11 @@ class OANHeartbeat(object):
     value = property(get_value, set_value)
     time = property(get_time)
 
+    def get_time(self):
+        return self._value.strftime(self._time_fmt)
+
+    time = property(get_time)
+
     def touch(self):
         self._value = datetime.utcnow()
         return self.get_value()
