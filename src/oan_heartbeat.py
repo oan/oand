@@ -47,9 +47,6 @@ class OANHeartbeat(object):
         else:
             self.set_value(last_heartbeat)
 
-    def get_time(self):
-        return self._value.strftime(self._time_fmt)
-
     def get_value(self):
         return self._value.strftime(self._date_fmt)
 
@@ -59,6 +56,10 @@ class OANHeartbeat(object):
             raise Exception('Not valid date.' + datetime_str)
 
     value = property(get_value, set_value)
+
+    def get_time(self):
+        return self._value.strftime(self._time_fmt)
+
     time = property(get_time)
 
     def touch(self):
