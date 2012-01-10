@@ -1,1 +1,128 @@
-../src/tools/test-all.py
+#!/usr/bin/env python
+'''
+Executes all unit tests that are found in the project according to the
+pattern set with "--pattern". Default pattern is test*.py. It will recursively
+go through all directories looking for files matching the pattern.
+
+The script will also start a local oand network containing several nodes. These
+nodes are used by several testcases to test network functionalities.
+
+'''
+
+__author__ = "daniel.lindh@cybercow.se"
+__copyright__ = "Copyright 2011, Amivono AB"
+__maintainer__ = "daniel.lindh@cybercow.se"
+__license__ = "We pwn it all."
+__version__ = "0.1"
+__status__ = "Test"
+
+import unittest
+import os
+import os.path
+import sys
+import trace
+from optparse import OptionParser
+
+# Command line options.
+OPTIONS = None
+
+# Command line positional arguments.
+ARGS = None
+
+def run():
+    setup_env()
+    set_global_options_and_args()
+
+    from tests import util_network_simulation
+    if (OPTIONS.network):
+        util_network_simulation.start_test_network()
+
+    try:
+        if OPTIONS.trace:
+            execute_tests_with_trace()
+        else:
+            execute_tests()
+    finally:
+        if (OPTIONS.network):
+            util_network_simulation.stop_test_network()
+
+def setup_env():
+    '''Add all folders including src code to the "import-path"'''
+    sys.path.insert(1, get_base_dir() + "src/")
+
+def get_base_dir():
+    '''Return the path to the root folder of the project.'''
+    return os.path.abspath(__file__).rsplit('/', 2)[0] + "/"
+
+def set_global_options_and_args():
+    '''Set cmd line arguments in global vars OPTIONS and ARGS.'''
+    global OPTIONS, ARGS
+
+    usage = "usage: %prog [-t] -f pattern"
+
+    parser = OptionParser(usage=usage)
+
+    parser.add_option("-q", "--quiet", default=1,
+                      action="store_const", const=0, dest="verbose",
+                      help="No output to screen.")
+
+    parser.add_option("-v", "--verbose",
+                      action="store_const", const=2, dest="verbose",
+                      help="Show verbose output to screen.")
+
+    parser.add_option("-p", "--pattern", default='test*.py',
+                      dest="pattern",
+                      help="The search pattern to use when finding tests.")
+
+    parser.add_option("-n", "--network", default=True,
+                      action="store_const", const=False, dest="network",
+                      help="Don't start oand local network.")
+
+    parser.add_option("-t", "--trace", action="store_true",
+                      help="Run with trace.Trace")
+
+    (OPTIONS, ARGS) = parser.parse_args()
+
+def print_verbose(txt, verbose = 1):
+    '''Print to screen according to verbose level is set on cmd line.'''
+    if (OPTIONS.verbose >= verbose):
+        print txt
+
+def execute_tests_with_trace():
+    cover_dir = get_base_dir() + "tmp/cover/"
+    if (not os.path.exists(cover_dir)):
+        print_verbose("Create folder %s" % cover_dir)
+        os.makedirs(cover_dir)
+
+    # create a Trace object, telling it what to ignore, and whether to
+    # do tracing or line-counting or both.
+    print_verbose("Start traceing store file in %s" % cover_dir)
+    tracer = trace.Trace(
+        ignoredirs = [sys.prefix, sys.exec_prefix],
+        trace = 0,
+        count = 1,
+        countfuncs = 1,
+        countcallers = 1,
+        infile = cover_dir + "cover.tmp",
+        outfile = cover_dir + "cover.tmp"
+    )
+
+    # run the new command using the given tracer
+    tracer.run('execute_tests()')
+
+    # make a report, placing output in cover_dir
+    r = tracer.results()
+    r.write_results(show_missing = True, summary = True, coverdir = cover_dir)
+
+def execute_tests():
+    '''Execute all testcases.'''
+    unittest.TextTestRunner(stream=sys.stderr, descriptions=True, verbosity=OPTIONS.verbose).run(suite())
+
+def suite():
+    '''Setup a test suit with all testcases'''
+    test_root_folder = get_base_dir()
+    print_verbose("Add tests from %s" % test_root_folder)
+    return unittest.defaultTestLoader.discover(test_root_folder, OPTIONS.pattern)
+
+if __name__ == '__main__':
+    run()

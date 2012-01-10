@@ -3,3 +3,4 @@
 *.cover
 *.log*
 _trial_temp
+tmp/
