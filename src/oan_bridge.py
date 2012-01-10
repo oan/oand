@@ -78,7 +78,8 @@ class OANBridge(asyncore.dispatcher):
     def got_handshake(self, message):
         #print "OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
 
-        self.node = node_manager().create_node(uuid.UUID(message.uuid), message.host, message.port, message.blocked)
+        remote_host, remote_port = self.remote_addr
+        self.node = node_manager().create_node(uuid.UUID(message.uuid), remote_host, message.port, message.blocked)
 
         self.out_queue = self.node.out_queue
         self.statistic = node_manager().get_statistic()

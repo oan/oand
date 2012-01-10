@@ -113,6 +113,7 @@ class OANServer(asyncore.dispatcher):
             sock, addr = pair
             print 'OanServer: accepting connection from %s' % repr(addr)
             bridge = OANBridge(self, sock)
+            bridge.remote_addr = addr
             bridge.handle_accept()
 
     def handle_close(self):
