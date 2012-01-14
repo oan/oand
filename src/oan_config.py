@@ -53,6 +53,9 @@ class OANConfig(object):
     bff_domain_name = None
     bff_port = None
 
+    # This node can't be reached from internet through firewall.
+    blocked = None
+
      # if node will act as blocked node, if True the server vill not listen to incomming connetion.
     blocked = None
 
