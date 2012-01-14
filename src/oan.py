@@ -22,7 +22,7 @@ _meta_manager = None
 _node_manager = None
 
 # OAN application root folder.
-BASE_DIR = os.path.abspath(__file__ + "/../../") + "/"
+BASE_DIR = os.path.abspath(__file__).rsplit('/', 2)[0] + "/"
 
 # All variable data.
 VAR_DIR = BASE_DIR + "var/"

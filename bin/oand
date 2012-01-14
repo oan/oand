@@ -1,1 +1,33 @@
-../src/oand.py
+#!/usr/bin/env python
+'''
+Open Archive Network Deamon starter.
+
+Starting and controlling the oan-deamon. Enter 'oand help' for light
+documentation about what you can do with oand, and how to interact with
+the deamon.
+
+'''
+
+__author__ = "daniel.lindh@cybercow.se"
+__copyright__ = "Copyright 2011, Amivono AB"
+__maintainer__ = "daniel.lindh@cybercow.se"
+__license__ = "We pwn it all."
+__version__ = "0.1"
+__status__ = "Test"
+
+import sys
+import os
+
+def setup_env():
+    '''Add oan src folder to the "import-path"'''
+    sys.path.insert(1, get_base_dir() + "src/")
+
+def get_base_dir():
+    '''Return the path to the root folder of oan.'''
+    return os.path.abspath(__file__).rsplit('/', 2)[0] + "/"
+
+if __name__ == "__main__":
+    setup_env()
+
+    from starter.oan_application_starter import OANApplicationStarter
+    OANApplicationStarter()

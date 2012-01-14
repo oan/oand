@@ -3,6 +3,31 @@ README
 
 This is a small research project about a distibuted nosql database/filesystem.
 
+Examples
+--------
+
+# Pipe commands to oand
+
+    $ echo "start\nstatus\nstop" | oand
+
+# Start deamon
+
+    $ oand start
+
+# Stop deamon
+
+    $ oand stop
+
+# Start oand shell
+
+    $ oand
+
+# Help on commands
+
+    $ oand --help
+    $ oand help
+    $ oand help start
+
 /etc/oand.conf
 --------------
         # The OAN deamon
