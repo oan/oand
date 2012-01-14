@@ -128,6 +128,39 @@ class OANDaemonBase:
         self.stop()
         self.start()
 
+    def pid_exists(self, pid):
+        """Check whether pid exists in the current process table."""
+        import os, errno
+
+        if pid < 0:
+            return False
+        try:
+            os.kill(pid, 0)
+        except OSError, e:
+            return e.errno == errno.EPERM
+        else:
+            return True
+
+    def status(self):
+        """
+        Stop of the daemon
+        """
+        # Get the pid from the pidfile
+        try:
+            pf = file(self.pidfile, 'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+
+        if (pid):
+            if (self.pid_exists(pid)):
+                print "oand (pid  %s) is running..." % pid
+            else:
+                print "oand dead but pid file exists"
+        else:
+            print "oand is stopped."
+
     def run(self):
         """
         You should override this method when you subclass Daemon. It will be called after the process has been
