@@ -33,6 +33,17 @@ well written with unit test and comments.
   oand --ping --uuid=xxxx
   oand --console=ping --uuid=xxxx
 
+  Nice code :-)
+
+  * We have still problem with paths if I start up in src directory or oand directory. In src path "Log path" will
+    raise a exception when i run cmd start.
+
+  * Excepetion should not quit shell.
+
+  * a send-ping -h or invalid send-ping, should print out send-ping args. (all cmds)
+
+  * A Tab function with autocomplete of commands would be nice.
+
 * Daniel - Create logging system.
 
 * Martin - Go through all network interfaces. Try to connect to OAN with each of them.
