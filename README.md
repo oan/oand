@@ -6,23 +6,19 @@ This is a small research project about a distibuted nosql database/filesystem.
 Examples
 --------
 
-# Pipe commands to oand
-
+    # Pipe commands to oand
     $ echo "start\nstatus\nstop" | oand
 
-# Start deamon
+    # Start deamon
 
     $ oand start
-
-# Stop deamon
+    # Stop deamon
 
     $ oand stop
-
-# Start oand shell
+    # Start oand shell
 
     $ oand
-
-# Help on commands
+    # Help on commands
 
     $ oand --help
     $ oand help
