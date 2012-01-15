@@ -39,5 +39,8 @@ class OANEvent(list):
         for f in self:
             f(*args, **kwargs)
 
+    def empty(self):
+        return len(self) == 0
+
     def __repr__(self):
         return "Event(%s)" % list.__repr__(self)

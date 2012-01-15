@@ -184,8 +184,31 @@ class TestOANDispatcher(OANTestCase):
         self.assertEqual(value, "My return value")
 
 
+
+    '''
+
+    '''
+    got_message_queue = None
+
+    def got_message(self, message):
+        self.got_message_queue.put(message)
+
+    def test_events(self):
+        self.got_message_queue = Queue()
+
+        m = OANTestStatic
+        dispatcher().on_message.append(self.got_message)
+        dispatcher().execute(m)
+
+        self.assertEqual(self.got_message_queue.get(), m)
+        dispatcher().on_message.remove(self.got_message)
+
+
+    '''
+
+    '''
     def test_threads(self):
-        # generate alot of inc and dec message that will be executed, sum should be zero
+        # generate a lot of inc and dec message that will be executed, sum should be zero
         network().generate()
         # stop the dispatcher and wait for threads to finish
         dispatcher().stop()

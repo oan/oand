@@ -46,6 +46,8 @@ well written with unit test and comments.
 
 * Daniel - Create logging system.
 
+  * turn on logging for a unit test or a logfile for each unittest.
+
 * Martin - Go through all network interfaces. Try to connect to OAN with each of them.
   The first internal ip/interface that can connect, will be used to bind the
   server. The external ip will be returned from OAN and will be used in the

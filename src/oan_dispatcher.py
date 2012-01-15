@@ -18,6 +18,7 @@ from datetime import datetime, timedelta
 from threading import Thread, Lock
 from Queue import Queue
 
+from oan_event import OANEvent
 
 class OANMessageShutdown:
     def execute(self):
@@ -37,6 +38,7 @@ class OANMessageWorker(Thread):
         q = self._pass
 
         print "Start worker %s" % self.name
+
         while True:
             (message, back) = q.get()
             try:
@@ -53,9 +55,38 @@ class OANMessageWorker(Thread):
 
 class OANPassthru(Queue):
 
+    ''' Event '''
+    '''
+        use:
+
+        def got_message(self, message):
+            print "got message"
+
+        dispatcher.on_message += [got_message]
+    '''
+    on_message = None
+
+
+    ''' Private '''
+    _lock = None
+
+    def __init__(self):
+        Queue.__init__(self)
+        self.on_message = OANEvent()
+        self._lock = Lock()
+
+
+    '''
+
+    '''
     def execute(self, message):
         self.put((message, None))
 
+
+
+    '''
+
+    '''
     def select(self, message):
         back = Queue()
         self.put((message, back))
@@ -70,12 +101,33 @@ class OANPassthru(Queue):
 
             yield ret
 
+
+    '''
+
+    '''
+    def get(self):
+        item = Queue.get(self)
+
+        if not self.on_message.empty():
+            with self._lock:
+                (message, back) = item
+                self.on_message(message)
+
+        return item
+
+    '''
+
+    '''
     def error(self, ex, back):
         print ex
         if (back):
             back.put(ex)
             back.put(None)
 
+
+    '''
+
+    '''
     def result(self, ret, back):
         if (back):
             for rec in ret:
@@ -84,18 +136,25 @@ class OANPassthru(Queue):
             back.put(None)
 
 
+
 class OANMessageDispatcher:
 
+    ''' Public '''
     config = None
     node_manager = None
     meta_manager = None
     data_manager = None
 
+    ''' Event '''
+    on_message = None
+
+    ''' Privat '''
     _workers = []
     _pass = None
 
     def __init__(self, config):
         self._pass = OANPassthru()
+        self.on_message = self._pass.on_message
 
     def execute(self, message):
         self._pass.execute(message)
