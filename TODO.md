@@ -28,23 +28,21 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
-* Daniel - oand --console
-  oand --console --message=ping -args=xxxx
-  oand --ping --uuid=xxxx
-  oand --console=ping --uuid=xxxx
+* Daniel - We have still problem with paths if I start up in src directory
+  or oand directory. In src path "Log path" will raise a exception when i
+  run cmd start.
 
-  Nice code :-)
+* Excepetion should not quit shell.
 
-  * We have still problem with paths if I start up in src directory or oand directory. In src path "Log path" will
-    raise a exception when i run cmd start.
+* a send-ping -h or invalid send-ping, should print out send-ping args.
+  (all cmds)
 
-  * Excepetion should not quit shell.
-
-  * a send-ping -h or invalid send-ping, should print out send-ping args. (all cmds)
-
-  * A Tab function with autocomplete of commands would be nice.
+* A Tab function with autocomplete of commands would be nice.
 
 * Daniel - Create logging system.
+  Use --loglevel instead of --verbose???
+
+* A simple http shell, where you can see status of oan.
 
 * Martin - Go through all network interfaces. Try to connect to OAN with each of them.
   The first internal ip/interface that can connect, will be used to bind the
