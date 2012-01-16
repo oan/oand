@@ -146,7 +146,6 @@ class OANMessageRelay():
             self.message
         )
 
-
 class OANMessageHeartbeat():
     '''
 
