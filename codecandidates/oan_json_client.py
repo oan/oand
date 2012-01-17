@@ -15,7 +15,7 @@ import urllib
 import json
 import logging
 
-from oan_network_node import OANNetworkNode
+from oan.network_node import OANNetworkNode
 
 class OANURLopener(urllib.FancyURLopener):
     '''

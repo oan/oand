@@ -29,5 +29,5 @@ def get_base_dir():
 if __name__ == "__main__":
     setup_env()
 
-    from starter.oan_application_starter import OANApplicationStarter
+    from oan.starter import OANApplicationStarter
     OANApplicationStarter()

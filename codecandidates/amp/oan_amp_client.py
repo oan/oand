@@ -5,8 +5,8 @@ from twisted.internet import reactor
 from twisted.internet.protocol import ClientFactory, ReconnectingClientFactory
 from twisted.protocols import amp
 
-from oan_amp_server import default_port
-import oan_amp_commands
+from oan.amp_server import default_port
+import oan.amp_commands
 
 default_host = "localhost"
 

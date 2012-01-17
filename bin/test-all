@@ -33,9 +33,9 @@ def run():
     setup_env()
     set_global_options_and_args()
 
-    from tests import util_network_simulation
+    from test.network_simulation import start_test_network, stop_test_network
     if (OPTIONS.network):
-        util_network_simulation.start_test_network()
+        start_test_network()
 
     try:
         if OPTIONS.trace:
@@ -44,7 +44,7 @@ def run():
             execute_tests()
     finally:
         if (OPTIONS.network):
-            util_network_simulation.stop_test_network()
+            stop_test_network()
 
 def setup_env():
     '''Add all folders including src code to the "import-path"'''
@@ -58,7 +58,7 @@ def set_global_options_and_args():
     '''Set cmd line arguments in global vars OPTIONS and ARGS.'''
     global OPTIONS, ARGS
 
-    usage = "usage: %prog [-t] -f pattern"
+    usage = "usage: %prog [-t] -p pattern"
 
     parser = OptionParser(usage=usage)
 

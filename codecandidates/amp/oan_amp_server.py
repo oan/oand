@@ -6,7 +6,7 @@ from twisted.protocols import amp
 from twisted.internet import reactor
 from twisted.internet.protocol import ServerFactory
 from twisted.python import usage
-import oan_amp_commands
+import oan.amp_commands
 
 default_port = 65432
 
