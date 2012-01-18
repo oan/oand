@@ -28,7 +28,8 @@ commands:
   restart        - restart OAN as a deamon.
   start-native   - start OAN in native mode.
   send-ping      - send a ping to a remote node.
-  send-heartbeat - send a heartbeat to a remote node."""
+  send-heartbeat - send a heartbeat to a remote node.
+  get_node_info  - get information about this node."""
 
 DOC_HELP = """
   NAME
@@ -175,4 +176,18 @@ DESCRIPTION
 
 OPTIONS
     <node-id>         UUID to a remote node.
+"""
+
+DOC_GET_NODE_INFO = """
+NAME
+    get_node_info - get information about this node.
+
+SYNOPSIS
+    get_node_info
+
+DESCRIPTION
+    Get information about this OAN node.
+
+    This message can only be used in native mode.
+
 """

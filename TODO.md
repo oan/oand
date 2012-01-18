@@ -28,6 +28,8 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
+* Unittest and nicing up passthrou.
+
 * Daniel - We have still problem with paths if I start up in src directory
   or oand directory. In src path "Log path" will raise a exception when i
   run cmd start.

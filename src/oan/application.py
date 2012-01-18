@@ -20,7 +20,7 @@ import logging
 import logging.handlers
 import uuid
 
-from oan import loop, database, dispatcher, node_manager, meta_manager, data_manager, set_managers
+from oan import loop, database, dispatcher, node_mgr, meta_mgr, data_mgr, set_managers
 from oan.daemon_base import OANDaemonBase
 from oan.node_manager import OANNodeManager, OANNetworkNodeState
 from oan.meta_manager import OANMetaManager
@@ -29,6 +29,7 @@ from oan.config import OANConfig
 from oan.loop import OANLoop, OANTimer
 from oan.message import OANMessagePing, OANMessageStoreNodes, OANMessageLoadNodes
 from oan.dispatcher import OANMessageDispatcher
+from oan.dispatcher.message import OANMessageStaticGetNodeInfo
 from oan.database import OANDatabase
 
 class OANApplication():
@@ -57,11 +58,11 @@ class OANApplication():
         database().start()
         self._setup_node_manager()
         self._setup_timers()
-        self._start_loop()
+        #self._start_loop()
         self._start_dispatcher()
 
-        if not node_manager().get_my_node().blocked:
-            loop().listen(node_manager().get_my_node())
+        # if not node_mgr().get_my_node().blocked:
+        #     loop().listen(node_mgr().get_my_node())
 
         # wait for all thread to complete.
 
@@ -69,10 +70,10 @@ class OANApplication():
     def stop(self):
         logging.info("Stopping Open Archive Network (oand)")
 
-        self._stop_loop()
+        #self._stop_loop()
         self._stop_dispatcher()
         database().shutdown()
-        node_manager().dump()
+        node_mgr().dump()
 
     def _setup_timers(self):
         self.timer_every_minute = OANTimer(5, self.run_every_minute)
@@ -85,8 +86,8 @@ class OANApplication():
 
         '''
 
-        node_manager().load()
-        node_manager().remove_dead_nodes()
+        node_mgr().load()
+        node_mgr().remove_dead_nodes()
 
     # maybe choose from nodelist if bff fails. just use bff if nodes list is empty.
     # our test network just know bff so if 2 fails from start there will be 2 seperate networks, for now wait for bff
@@ -110,36 +111,37 @@ class OANApplication():
                 loop().connect_to_oan(host, port)
 
     def _start_loop(self):
-        loop().add_timer(self.timer_every_minute)
-        loop().add_timer(self.timer_every_day)
-        loop().add_timer(self.timer_connect)
-        loop().on_shutdown += [node_manager().shutdown]
-        loop().start()
+        # loop().add_timer(self.timer_every_minute)
+        # loop().add_timer(self.timer_every_day)
+        # loop().add_timer(self.timer_connect)
+        #loop().on_shutdown += [node_mgr().shutdown]
+        #loop().start()
+        pass
 
     def _stop_loop(self):
-        loop().stop()
-        loop().join()
+        #loop().stop()
+        #loop().join()
+        pass
 
     def _start_dispatcher(self):
-        dispatcher().start()
+        pass
 
     def _stop_dispatcher(self):
-        dispatcher().stop()
-        dispatcher().join()
+        dispatcher().shutdown()
 
     def run_every_minute(self):
         #print "run_every_minute"
-        node_manager().send_heartbeat()
-        node_manager().dump()
+        node_mgr().send_heartbeat()
+        node_mgr().dump()
 
     def run_every_day(self):
         #print "run_every_day"
-        node_manager().send_node_sync()
-        node_manager().remove_dead_nodes()
+        node_mgr().send_node_sync()
+        node_mgr().remove_dead_nodes()
 
         dispatcher().execute(OANMessageStoreNodes.create())
 
-        node_manager().send(uuid.UUID('00000000-0000-dead-0000-000000000000'),
+        node_mgr().send(uuid.UUID('00000000-0000-dead-0000-000000000000'),
                                         OANMessagePing.create( "my test ping", 2))
                                            # send ping back and forward (2)
 
@@ -168,6 +170,10 @@ class OANApplication():
         my_logger.handlers = []
         my_logger.addHandler(ch1)
         my_logger.addHandler(ch2)
+
+    def get_node_info(self):
+        #return OANMessageStaticGetNodeInfo.execute()
+        return dispatcher().get(OANMessageStaticGetNodeInfo)
 
 class OANDaemon(OANDaemonBase):
     _app = None

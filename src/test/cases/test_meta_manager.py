@@ -49,7 +49,7 @@ __status__ = "Test"
 
 #     def setUp(self):
 #         self.start_logging()
-#         network_node_manager = self.create_network_node_manager()
+#         network_node_manager = self.create_network_node_mgr()
 
 #         self.manager = OANMetaManager()
 

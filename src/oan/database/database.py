@@ -21,7 +21,7 @@ import uuid
 import json
 
 import oan
-from oan import node_manager
+from oan import node_mgr
 
 class OANDatabaseConnection(Thread):
     """

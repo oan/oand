@@ -46,13 +46,13 @@ def dispatcher():
 def database():
     return _database
 
-def data_manager():
+def data_mgr():
     return _data_manager
 
-def meta_manager():
+def meta_mgr():
     return _meta_manager
 
-def node_manager():
+def node_mgr():
     return _node_manager
 
 def validate():

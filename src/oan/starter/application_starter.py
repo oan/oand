@@ -14,8 +14,8 @@ __status__ = "Test"
 import sys
 
 from oan.config import OANConfig
-from oan.argument_parser import OANArgumentParser
-from oan.shell import OANShell
+from argument_parser import OANArgumentParser
+from shell import OANShell
 
 class OANApplicationStarter():
     """Handling cmdline positional and optional arguments to control the oan-deamon."""

@@ -55,14 +55,14 @@ class OANBridge(asyncore.dispatcher):
         self.send_handshake()
 
     def send_handshake(self):
-        my_node = node_manager().get_my_node()
+        my_node = node_mgr().get_my_node()
         #print "OANBridge:send_handshake: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
         self.out_buffer = self.send_message(
             OANMessageHandshake.create(my_node.uuid, my_node.host, my_node.port, my_node.blocked)
         )
 
     def send_close(self):
-        my_node = node_manager().get_my_node()
+        my_node = node_mgr().get_my_node()
         print "OANBridge:send_close: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
         self.out_buffer = self.send_message(
             OANMessageClose.create(my_node.uuid)
@@ -79,10 +79,10 @@ class OANBridge(asyncore.dispatcher):
         #print "OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
 
         remote_host, remote_port = self.remote_addr
-        self.node = node_manager().create_node(uuid.UUID(message.uuid), remote_host, message.port, message.blocked)
+        self.node = node_mgr().create_node(uuid.UUID(message.uuid), remote_host, message.port, message.blocked)
 
         self.out_queue = self.node.out_queue
-        self.statistic = node_manager().get_statistic()
+        self.statistic = node_mgr().get_statistic()
         dispatcher().execute(message)
         self.server.add_bridge(self)
 
