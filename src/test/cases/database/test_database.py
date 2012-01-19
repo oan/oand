@@ -58,7 +58,7 @@ class TestOANDatabase(OANTestCase):
                 str(9000))
 
         self.database = OANDatabase(config)
-        self.database.start()
+        self.database.delete_all(MyTestNode)
 
     def tearDown(self):
         self.database.shutdown()
@@ -71,22 +71,106 @@ class TestOANDatabase(OANTestCase):
 
         return l
 
-    def test_select(self):
+
+    def test_count(self):
+        # Test that table is empty
+        self.assertEqual(self.database.count(MyTestNode), 0)
+
+        # Insert one row
         n = MyTestNode.create(UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'), 'localhost', 4000)
-        self.database.replace(n)
+        self.database.insert(n)
+
+        # Test that table have one row
+        self.assertEqual(self.database.count(MyTestNode), 1)
+
+
+
+
+    def test_delete(self):
+        # Insert rows
+        rows = self.generate_nodes()
+        self.database.insert_all(rows)
+
+        # Test that table have all rows
+        self.assertEqual(self.database.count(MyTestNode), len(rows))
+
+        n = MyTestNode.create(UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'), 'localhost', 4000)
+        self.database.insert(n)
+
+        # Test that table have the last insert rows
+        self.assertEqual(self.database.count(MyTestNode), len(rows)+1)
+
+        # retrieve the row and check that it's has the same attribute
         self.assertEqual(self.database.select(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95')).__dict__, n.__dict__)
 
-    def test_insert_all(self):
-        l = self.generate_nodes();
+        # Delete the row
+        self.database.delete(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'))
 
+        # Test that one row is missing
+        self.assertEqual(self.database.count(MyTestNode), len(rows))
+
+        # try to retrieve the row is should return None
+        self.assertEqual(self.database.select(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95')), None)
+
+
+
+
+    def test_delete_all(self):
+        # Insert rows
+        rows = self.generate_nodes()
+        self.database.insert_all(rows)
+
+        # Test that table have all rows
+        self.assertEqual(self.database.count(MyTestNode), len(rows))
+
+        # Delete them
         self.database.delete_all(MyTestNode)
-        self.database.insert_all(l)
 
-        counter = 0
-        for n in self.database.select_all(MyTestNode):
-            counter = counter + 1
+        # Table should be empty
+        self.assertEqual(self.database.count(MyTestNode), 0)
 
-        self.assertEqual(counter, len(l))
+
+
+
+
+    def test_select(self):
+        # insert a row
+        n = MyTestNode.create(UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'), 'localhost', 4000)
+        self.database.insert(n)
+
+        # retrieve the row and check that it's has the same attribute
+        self.assertEqual(self.database.select(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95')).__dict__, n.__dict__)
+
+
+
+    def test_select_all(self):
+        # Insert rows
+        rows = self.generate_nodes()
+        self.database.insert_all(rows)
+
+        # retrieve the rows and check that it's has the same attribute
+        i = 0
+        for db_node in self.database.select_all(MyTestNode):
+            self.assertEqual(db_node.__dict__, rows[i].__dict__)
+            i += 1
+
+
+
+    def test_insert(self):
+        # insert a row
+        n = MyTestNode.create(UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'), 'localhost', 4000)
+        self.database.insert(n)
+
+        # retrieve the row and check that it's has the same attribute
+        self.assertEqual(self.database.select(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95')).__dict__, n.__dict__)
+
+
+        #TODO: test duplicate insert, today a on_error will be fired, perhaps insert, replace would raise a exception insted
+
+
+
+
+
 
 
 
