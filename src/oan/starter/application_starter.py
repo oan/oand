@@ -31,9 +31,13 @@ class OANApplicationStarter():
         del options.command
 
         # Handle positional arguments through the OANShell.
-        shell = OANShell(self.get_config(options), parser.format_help())
+        shell = OANShell(self.get_config(options))
         if len(sys.argv) > 1:
-            shell.onecmd(' '.join(command))
+            command = command[0]
+            if command in ["start", "stop", "restart", "status", "help"]:
+                shell.onecmd(command)
+            else:
+                print "Invalid shell command '%s'" % command
         else:
             shell.cmdloop()
 

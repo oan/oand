@@ -17,18 +17,20 @@ Type:  'help' for help with commands
        'quit' to quit
 """ % __version__
 
-DOC_USAGE = """
+DOC_USAGE_TERMINAL = """
 oand [options] [commands]
 
 commands:
-  help           - print help
+  start          - start Open Archive Network.
+  stop           - stop Open Archive Network.
+  restart        - restart Open Archive Network.
+  status         - status of OAN deamon.
+  help           - print help"""
+
+DOC_USAGE = DOC_USAGE_TERMINAL + """
   quit           - quit this interactive shell
-  start          - start OAN as a deamon.
-  stop           - stop OAN as a deamon.
-  restart        - restart OAN as a deamon.
-  start-native   - start OAN in native mode.
-  send-ping      - send a ping to a remote node.
-  send-heartbeat - send a heartbeat to a remote node.
+  send_ping      - send a ping to a remote node.
+  send_heartbeat - send a heartbeat to a remote node.
   get_node_info  - get information about this node."""
 
 DOC_HELP = """
@@ -73,21 +75,33 @@ DOC_SHELL = """
 
 DOC_START = """
   NAME
-    start - start OAN as a deamon.
+    start - start Open Archive Network.
 
   SYNOPSIS
-    start
+    start [--daemon] [--native]
 
   DESCRIPTION
-    Start Open Archive Network as a deamon.
+    Start Open Archive Network.
 
   OPTIONS
-    <command>        name of shell command
+    --daemon
+      Start Open Archive Network as a daemon. This means that OAN will be
+      executed in a background process. All output will be sent to logfiles.
+
+      This is the default mode.
+
+    --native
+      Start Open Archive Network in native mode. This means that OAN will use
+      the same process as the starter and no deamon will be used.
+
+      What this really means is that error messages and other things written
+      to stdout and stderr will be displayed to the user. This can be really
+      useful when debugging the application.
 """
 
 DOC_STOP = """
   NAME
-    stop - stop OAN as a deamon.
+    stop - stop Open Archive Network.
 
   SYNOPSIS
     stop
@@ -101,7 +115,7 @@ DOC_STOP = """
 
 DOC_RESTART = """
   NAME
-    restart - restart OAN as a deamon.
+    restart - restart Open Archive Network.
 
   SYNOPSIS
     restart [--server-name]
@@ -122,25 +136,6 @@ DOC_STATUS = """
 
   DESCRIPTION
     Status of Open Archive Network deamon.
-
-  OPTIONS
-    None
-"""
-
-DOC_START_NATIVE = """
-  NAME
-    start-native - start OAN in native mode.
-
-  SYNOPSIS
-    start-native
-
-  DESCRIPTION
-    Start Open Archive Network in native mode. This means that OAN will use
-    the same process as the starter and no deamon will be used.
-
-    What this really means is that error messages and other things written
-    to stdout and stderr will be displayed to the user. This can be really
-    useful when debugging the application.
 
   OPTIONS
     None

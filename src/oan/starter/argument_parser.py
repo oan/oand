@@ -31,7 +31,7 @@ class OANArgumentParser(ArgumentParser):
         ArgumentParser.__init__(
             self,
             usage = "oand [options] [commands]",
-            description = DOC_USAGE,
+            description = DOC_USAGE_TERMINAL,
             version = "Open Archive Network Shell - Version %s" % __version__,
             add_help = True,
             formatter_class = OANHelpFormatter,
@@ -39,65 +39,73 @@ class OANArgumentParser(ArgumentParser):
         )
 
         self.add_arguments()
+        self.add_commands()
 
     def add_arguments(self):
-            self.add_argument(
-                "-v", "--verbose", action="store_const", const=2, dest="verbose",
-                help="Show more output."
-            )
+        self.add_argument(
+            "-v", "--verbose", action="store_const", const=2, dest="verbose",
+            help="Show more output."
+        )
 
-            self.add_argument(
-                "-q", "--quiet", action="store_const", const=0, dest="verbose",
-                help="show no output."
-            )
+        self.add_argument(
+            "-q", "--quiet", action="store_const", const=0, dest="verbose",
+            help="show no output."
+        )
 
-            self.add_argument(
-                "--server-name", metavar="NAME",
-                help="the server name."
-            )
+        self.add_argument(
+            "--server-name", metavar="NAME",
+            help="the server name."
+        )
 
-            self.add_argument(
-                "--server-domain-name", metavar="NAME",
-                help="the server domain name or ip."
-            )
+        self.add_argument(
+            "--server-domain-name", metavar="NAME",
+            help="the server domain name or ip."
+        )
 
-            self.add_argument(
-                "--server-port", metavar="PORT", type=int,
-                help="the server port number."
-            )
+        self.add_argument(
+            "--server-port", metavar="PORT", type=int,
+            help="the server port number."
+        )
 
-            self.add_argument(
-                "--bff-name", metavar="NAME",
-                help="the bff server name."
-            )
+        self.add_argument(
+            "--bff-name", metavar="NAME",
+            help="the bff server name."
+        )
 
-            self.add_argument(
-                "--bff-domain-name", metavar="NAME",
-                help="the bff server domain name or ip."
-            )
+        self.add_argument(
+            "--bff-domain-name", metavar="NAME",
+            help="the bff server domain name or ip."
+        )
 
-            self.add_argument(
-                "--bff-port", metavar="PORT", type=int,
-                help="the bff server port number."
-            )
+        self.add_argument(
+            "--bff-port", metavar="PORT", type=int,
+            help="the bff server port number."
+        )
 
-            self.add_argument(
-                "--defaults-extra-file", metavar="FILE",
-                dest="config", default = oan.ETC_DIR + "oand.cfg",
-                help="the name of the config file."
-            )
+        self.add_argument(
+            "--defaults-extra-file", metavar="FILE",
+            dest="config", default = oan.ETC_DIR + "oand.cfg",
+            help="the name of the config file."
+        )
 
-            self.add_argument(
-                "--pid-file", metavar="FILE",
-                help="the pid-file path."
-            )
+        self.add_argument(
+            "--pid-file", metavar="FILE",
+            help="the pid-file path."
+        )
 
-            self.add_argument(
-                "--log-file", metavar="FILE",
-                help="the log-file path."
-            )
+        self.add_argument(
+            "--log-file", metavar="FILE",
+            help="the log-file path."
+        )
 
-            self.add_argument(
-                "command", nargs='*',
-                help="action that should be performed."
-            )
+    def add_commands(self):
+        """
+        This is a dummy command, needed to remove error message.
+
+        All positional arguments are handled by OANShell
+
+        """
+        self.add_argument(
+            "command", nargs='*',
+            help="action that should be performed."
+        )
