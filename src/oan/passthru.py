@@ -1,12 +1,8 @@
 #!/usr/bin/env python
-'''
+"""
 Handle communication between threads.
 
-
-TODO:
-    move _lock of event to OANEvent
-
-'''
+"""
 
 __author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -22,26 +18,26 @@ from oan.event import OANEvent
 
 class OANPassthru(Queue):
 
-    ''' Event '''
-    '''
+    """ Event """
+    """
         use:
 
         def got_message(self, message):
             print "got message"
 
         on_message += [got_message]
-    '''
+    """
     on_message = None
 
 
-    '''
+    """
         use:
 
         def got_error(self, message, exception):
             print "got error", exception
 
         on_error += [got_error]
-    '''
+    """
     on_error = None
 
     def __init__(self):
@@ -50,17 +46,17 @@ class OANPassthru(Queue):
         self.on_error= OANEvent()
 
 
-    '''
+    """
 
-    '''
+    """
     def execute(self, message):
         self.put((message, None))
 
 
 
-    '''
+    """
 
-    '''
+    """
     def select(self, message):
         back = Queue()
         self.put((message, back))
@@ -76,18 +72,18 @@ class OANPassthru(Queue):
             yield ret
 
 
-    '''
+    """
 
-    '''
+    """
     def get(self):
         (message, back) = Queue.get(self)
         self.on_message(message)
         return (message, back)
 
 
-    '''
+    """
 
-    '''
+    """
     def error(self, message, ex, back):
         print "Got error %s on %s " % (ex, message)
         self.on_error(message, ex)
@@ -96,9 +92,9 @@ class OANPassthru(Queue):
             back.put(ex)
             back.put(None)
 
-    '''
+    """
 
-    '''
+    """
     def result(self, ret, back):
         if (back):
             for rec in ret:

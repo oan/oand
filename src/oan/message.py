@@ -13,7 +13,7 @@ __status__ = "Test"
 
 from uuid import UUID
 
-from oan import node_manager, serializer
+from oan import node_mgr, serializer
 from oan.event import OANEvent
 from oan.database import OANDatabase
 
@@ -67,7 +67,7 @@ class OANMessageDispatcher(Thread):
 
     def run(self):
         print "OANMessageDispatcher: started"
-        self.statistic = node_manager().get_statistic()
+        self.statistic = node_mgr.get_statistic()
         self._started.set()
         while(True):
             message = self.queue.get()
@@ -134,7 +134,7 @@ class OANMessageRelay():
 
     def execute(self):
         print "OANMessageRelay: %s %s" % (self.destination_uuid, self.message)
-        node_manager().send(
+        node_mgr.send(
             UUID(self.destination_uuid),
             self.message
         )
@@ -180,7 +180,7 @@ class OANMessageNodeSync():
         obj = cls()
         obj.step = step
         obj.node_list = []
-        obj.node_uuid = str(node_manager().get_my_node().uuid)
+        obj.node_uuid = str(node_mgr.get_my_node().uuid)
 
         if l is None:
             l = obj.create_list()
@@ -203,7 +203,7 @@ class OANMessageNodeSync():
     def create_list(self):
         valuelist = []
         hashlist = []
-        for node in node_manager()._nodes.values():
+        for node in node_mgr._nodes.values():
             valuelist.append((str(node.uuid), node.host, node.port, node.blocked, node.heartbeat.value))
 
         valuelist.sort()
@@ -227,16 +227,16 @@ class OANMessageNodeSync():
 
             # if hash is diffrent continue to step 2, send over the list.
             if self.node_list_hash != my_l[0]:
-                node_manager().send(
+                node_mgr.send(
                     UUID(self.node_uuid),
                     OANMessageNodeSync.create(2, my_l)
                 )
 
         if self.step == 2:
             for n in self.node_list:
-                currentnode = node_manager().get_node(UUID(n[0]))
+                currentnode = node_mgr.get_node(UUID(n[0]))
                 if currentnode.heartbeat < n[4]:
-                    newnode = node_manager().create_node(UUID(n[0]), n[1], n[2], n[3])
+                    newnode = node_mgr.create_node(UUID(n[0]), n[1], n[2], n[3])
                     newnode.heartbeat.value = n[4]
 
 #######
@@ -254,7 +254,7 @@ class OANMessagePing():
     @classmethod
     def create(cls, ping_id, ping_counter = 1, ping_begin_time = None):
         obj = cls()
-        obj.node_uuid = str(node_manager().get_my_node().uuid)
+        obj.node_uuid = str(node_mgr.get_my_node().uuid)
         obj.ping_id = ping_id
         obj.ping_counter = ping_counter
         obj.ping_begin_time = ping_begin_time
@@ -276,7 +276,7 @@ class OANMessagePing():
         )
 
         if self.ping_counter > 1:
-            node_manager().send(
+            node_mgr.send(
                 UUID(self.node_uuid),
                 OANMessagePing.create(self.ping_id, self.ping_counter-1, self.ping_begin_time)
             )
@@ -293,7 +293,7 @@ class OANMessageStoreNodes():
 
     def execute(self):
         print "OANMessageStoreNodes"
-        node_manager().store()
+        node_mgr.store()
 
 
 ### OANMessageLoadNodes can not be send over network
@@ -307,7 +307,7 @@ class OANMessageLoadNodes():
 
     def execute(self):
         print "OANMessageLoadNodes"
-        node_manager().load()
+        node_mgr.load()
 
 class OANMessageShutdown:
     def execute(self):

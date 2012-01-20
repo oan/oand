@@ -28,14 +28,27 @@ from oan.database import OANDatabase
 class OANNetworkNodeState:
     connecting, connected, disconnected = range(1, 4)
 
+"""
+TODO
+    All members should be private and we should use get/set which are thread safe.
+
+    def get()
+        return (sdf), sadf ,sadf, )
+
+    def set(uuid, host, port, blocked)
+        with self._lock:
+            self.name = name
+
+"""
 class OANNetworkNode:
-    heartbeat = None
     uuid = None
     name = None
     port = None
     host = None
     state = None
     blocked = None # if server is listen or its blocked by router or firewall.
+
+    heartbeat = None
     statistic = None
 
     out_queue = None
@@ -138,6 +151,7 @@ class OANNodeManager():
             print "OANNodeManager:Error my node is already set"
 
     def get_my_node(self):
+        #with self._lock:
         return self._my_node
 
     def get_statistic(self):

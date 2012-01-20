@@ -28,7 +28,7 @@ class OANMetaManager():
         oan network.
 
         '''
-        self.resourceRoot.get("/").node_uuids.extend(node_manager().node_uuids)
+        self.resourceRoot.get("/").node_uuids.extend(node_mgr().node_uuids)
 
     def get(self, path):
         '''
@@ -37,7 +37,7 @@ class OANMetaManager():
         '''
         if not self.resourceRoot.exist(path) or self.resourceRoot.get("/").heartbeat.is_expired():
             node_uuids = self.resourceRoot.get_known_parent(path).node_uuids
-            for result in node_manager().get_remote_resources(node_uuids, path):
+            for result in node_mgr().get_remote_resources(node_uuids, path):
                 pass
                 #self.resourceRoot.set(path, res)
 

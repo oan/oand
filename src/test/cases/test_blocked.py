@@ -60,16 +60,16 @@ class TestOANBlocked(OANTestCase):
 
     def create_node(self):
         pass
-        #node_manager().create_node('oo:hh:18', 'localhost', 4008)
+        #node_mgr().create_node('oo:hh:18', 'localhost', 4008)
 
     def test_message_relay(self):
         # send a ping to a blocked node
 
-        while not node_manager().exist_node(uuid.UUID('00000000-0000-bbbb-4008-000000000000')):
+        while not node_mgr().exist_node(uuid.UUID('00000000-0000-bbbb-4008-000000000000')):
             time.sleep(10)
 
         print "send ping"
-        node_manager().send(uuid.UUID('00000000-0000-bbbb-4008-000000000000'),
+        node_mgr().send(uuid.UUID('00000000-0000-bbbb-4008-000000000000'),
                                       OANMessagePing.create( "my relay ping", 2))
                                            # send ping back and forward (2)
 

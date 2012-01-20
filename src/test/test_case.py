@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-'''
-A replacement of unittest.TestCase
+"""
+A replacement and inheritence of unittest.TestCase
 
-This is almost the same code as in the base class. The difference is the
-handling of tearDown, that will be executed when a KeyboardInterrupt exception
-is raised.
+Add functionality to the existing TestCase class.
 
-'''
+"""
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -21,16 +19,52 @@ from time import time, sleep
 
 class OANTestCase(unittest.TestCase):
 
-    def run(self, result=None):
-        '''
-        This is almost the same code as in the base class. The difference is the
-        handling of tearDown, that will be executed when a KeyboardInterrupt
-        exception is raised.
+    # Todo: Fix it
+    # def run(self, result=None):
+    #     """
+    #     This is almost the same code as in the base class. The difference is the
+    #     handling of tearDown, that will be executed when a KeyboardInterrupt
+    #     exception is raised.
 
-        I remove the code it doesnt work with python 2.7
+    #     """
+    #     try:
+    #         unittest.TestCase.run(self, result)
+    #     except KeyboardInterrupt:
+    #         print "KeyboardInterrupt"
 
-        '''
-        try:
-            unittest.TestCase.run(self, result)
-        except KeyboardInterrupt:
-            print "KeyboardInterrupt"
+    def wait(self, condition, timeout = 5):
+        """
+        Wait until the function given by condition returns True.
+
+        condition
+            Function that will be executed until it returns true.
+
+        timeout
+            Number of seconds to wait until timeout and return False.
+
+        return
+            True if condtion was met.
+
+        """
+        endtime = time() + timeout
+        result = False
+        while (endtime > time()):
+            result = condition()
+            if result:
+                break
+            sleep(0.1)
+
+        return result
+
+    def assertTrueWait(self, condition, timeout = 5):
+        """
+        Wait until the function given by condtion returns True.
+
+        timeout
+            Number of seconds to wait until timeout and return False.
+
+        Example:
+            self.assertTrueWait(lambda : 'n2' in node_list)
+
+        """
+        self.assertTrue(self.wait(condition, timeout))

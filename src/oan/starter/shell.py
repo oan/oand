@@ -35,15 +35,18 @@ class OANShell(cmd.Cmd):
     prompt = 'oan$ '
 
     # OANConfig initialized from cmdline and config file.
-    config = None
+    _config = None
+
+    # Application object when started in native mode.
+    _app = None
 
     # Help text displayed when typing "oand help"
-    help = None
+    _help = None
 
     def __init__(self, config, help):
-        self.config = config
+        self._config = config
         cmd.Cmd.__init__(self)
-        self.help = help
+        self._help = help
 
     def emptyline(self):
         """
@@ -100,11 +103,14 @@ class OANShell(cmd.Cmd):
     def help_send_heartbeat(self):
         print DOC_HEARTBEAT
 
+    def help_get_node_info(self):
+        print DOC_GET_NODE_INFO
+
     def do_help(self, arg):
         if arg:
             cmd.Cmd.do_help(self, arg)
         else:
-            print self.help
+            print self._help
 
     def do_EOF(self, line):
         """
@@ -127,22 +133,38 @@ class OANShell(cmd.Cmd):
         print output
 
     def do_start(self, argument):
-        OANDaemon(self.config).start()
+        OANDaemon(self._config).start()
 
     def do_stop(self, argument):
-        OANDaemon(self.config).stop()
+        if self._app:
+            print "Stop native oand"
+            self._app.stop()
+            self._app = None
+        else:
+            print "Stop deamon oand"
+            OANDaemon(self._config).stop()
 
     def do_restart(self, argument):
-        OANDaemon(self.config).restart()
+        OANDaemon(self._config).restart()
 
     def do_status(self, argument):
-        OANDaemon(self.config).status()
+        OANDaemon(self._config).status()
 
     def do_start_native(self, argument):
-        OANApplication(self.config).run()
+        if not self._app:
+            print "Start native oand"
+            self._app = OANApplication(self._config)
+            self._app.run()
+        else:
+            print "Native oand already started."
 
     def do_send_ping(self, argument):
         print "send_ping %s (NOT IMPLEMENTED)" % argument
 
     def do_send_heartbeat(self, argument):
         print "send_heartbeat %s (NOT IMPLEMENTED)" % argument
+
+    def do_get_node_info(self, argument):
+        print "Node nformation."
+        result = self._app.get_node_info()
+        print(result)
