@@ -116,6 +116,9 @@ class OANShell(cmd.Cmd):
         else:
             print self._help
 
+    def print_need_native(self):
+        print DOC_NEED_NATIVE
+
     def do_EOF(self, line):
         """
         Used when piping commands to oand
@@ -128,6 +131,10 @@ class OANShell(cmd.Cmd):
 
     def do_quit(self, line):
         print "Cleaning up and exiting."
+
+        # Stop server if started in native mode.
+        if self._app:
+            self.do_stop()
         return True
 
     # TODO Is this function useful or just fun and a security issue.
@@ -139,7 +146,7 @@ class OANShell(cmd.Cmd):
     def do_start(self, argument):
         OANDaemon(self._config).start()
 
-    def do_stop(self, argument):
+    def do_stop(self, argument = None):
         if self._app:
             print "Stop native oand"
             self._app.stop()
@@ -169,6 +176,9 @@ class OANShell(cmd.Cmd):
         print "send_heartbeat %s (NOT IMPLEMENTED)" % argument
 
     def do_get_node_info(self, argument):
-        print "Node nformation."
-        result = self._app.get_node_info()
-        print(result)
+        if self._app:
+            print "Node Information."
+            result = self._app.get_node_info()
+            print(result)
+        else:
+            self.print_need_native()

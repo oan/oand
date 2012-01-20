@@ -55,7 +55,7 @@ class OANApplication():
             OANNodeManager(self.config)
         )
 
-        database().start()
+        #database().start()
         self._setup_node_manager()
         self._setup_timers()
         #self._start_loop()

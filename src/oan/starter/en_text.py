@@ -191,3 +191,4 @@ DESCRIPTION
     This message can only be used in native mode.
 
 """
+DOC_NEED_NATIVE = """ERROR: Need server to run in native mode."""
