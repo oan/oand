@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf8 -*-
 """
 Creating an interactive shell used to communicate with oand.
 
@@ -6,7 +7,8 @@ Read more about building shells in python.
     http://www.doughellmann.com/PyMOTW/cmd/
 
 Example
-oand ping xx:xx:xx
+$ oand
+oan$ send_ping xx:xx:xx
 
 """
 
@@ -21,9 +23,9 @@ import sys
 import cmd
 import os
 import traceback
+import readline
 
 from en_text import *
-from oan.config import OANConfig
 from oan.application import OANApplication, OANDaemon
 
 class OANShell(cmd.Cmd):
@@ -44,10 +46,45 @@ class OANShell(cmd.Cmd):
     # Help text displayed when typing "oand help"
     _help = None
 
-    def __init__(self, config, help):
+    def __init__(self, config):
         self._config = config
+        self.activate_cmd_history()
         cmd.Cmd.__init__(self)
-        self._help = help
+
+    def activate_cmd_history(self):
+        """
+        Activate the history of commands in the oand shell.
+
+        All old commands are stored in the home folder in the file .oand_history.
+
+        Requires:
+            sudo easy_install readline
+
+        """
+        histfile = os.path.join(os.path.expanduser("~"), ".oand_history")
+        try:
+            readline.read_history_file(histfile)
+        except IOError:
+            pass
+
+        # Save the .oand_history file when exiting the program.
+        import atexit
+        atexit.register(readline.write_history_file, histfile)
+        del histfile
+
+        readline.set_completer_delims(" ")
+
+    def completenames(self, text, *ignored):
+        """
+        Finds all shell commands that can be autocompleted.
+
+        This is a copy of cmd.Cmd.completenames() with the difference that this
+        functions adds a space after each command. To make more easy for the
+        user to type the first argument.
+
+        """
+        dotext = 'do_'+text
+        return [a[3:] + " " for a in self.get_names() if a.startswith(dotext)]
 
     def emptyline(self):
         """
@@ -77,47 +114,40 @@ class OANShell(cmd.Cmd):
             traceback.print_tb(sys.exc_info()[2])
             return self.cmdloop("")
 
+    #
+    # Command: help
+    #
+
     def help_help(self):
         print DOC_HELP
-
-    def help_quit(self):
-        print DOC_QUIT
-
-    def help_shell(self):
-        print DOC_SHELL
-
-    def help_start(self):
-        print DOC_START
-
-    def help_stop(self):
-        print DOC_STOP
-
-    def help_restart(self):
-        print DOC_RESTART
-
-    def help_status(self):
-        print DOC_STATUS
-
-    def help_start_native(self):
-        print DOC_START_NATIVE
-
-    def help_send_ping(self):
-        print DOC_PING
-
-    def help_send_heartbeat(self):
-        print DOC_HEARTBEAT
-
-    def help_get_node_info(self):
-        print DOC_GET_NODE_INFO
 
     def do_help(self, arg):
         if arg:
             cmd.Cmd.do_help(self, arg)
         else:
-            print self._help
+            print DOC_USAGE
 
-    def print_need_native(self):
-        print DOC_NEED_NATIVE
+    def check_native(self):
+        if not self._app:
+            print DOC_NEED_NATIVE
+            return True
+        else:
+            return False
+
+    #
+    # Command: quit
+    #
+
+    def help_quit(self):
+        print DOC_QUIT
+
+    def do_quit(self, line):
+        print "Cleaning up and exiting."
+
+        # Stop server if started in native mode.
+        if self._app:
+            self.do_stop()
+        return True
 
     def do_EOF(self, line):
         """
@@ -129,22 +159,65 @@ class OANShell(cmd.Cmd):
         """
         return self.do_quit(line)
 
-    def do_quit(self, line):
-        print "Cleaning up and exiting."
-
-        # Stop server if started in native mode.
-        if self._app:
-            self.do_stop()
-        return True
-
+    #
+    # Command: shell
+    #
     # TODO Is this function useful or just fun and a security issue.
+    #
+
+    def help_shell(self):
+        print DOC_SHELL
+
     def do_shell(self, line):
         print "running shell command:", line
         output = os.popen(line).read()
         print output
 
-    def do_start(self, argument):
-        OANDaemon(self._config).start()
+    #
+    # Comand: start
+    #
+
+    # Modes that oan can be started in.
+    # See: help_start for more info.
+    SERVER_MODES = [ '--native', '--daemon']
+
+    def help_start(self):
+        print DOC_START
+
+    def do_start(self, mode):
+        if self._app:
+            print "Native oand already started."
+            return
+
+        if mode == "":
+            mode = '--daemon'
+
+        if mode not in self.SERVER_MODES:
+            print "Invalid start mode \"%s\"." % mode
+            return
+
+        print "Start oand in %s mode." % mode.lstrip("-")
+
+        if mode == '--native':
+            self._app = OANApplication(self._config)
+            self._app.run()
+        elif mode == '--daemon':
+            OANDaemon(self._config).start()
+
+    def complete_start(self, text, line, begidx, endidx):
+        if not text:
+            completions = self.SERVER_MODES[:]
+        else:
+            completions = [f + " " for f in self.SERVER_MODES
+                           if f.startswith(text)]
+        return completions
+
+    #
+    # Comand: stop
+    #
+
+    def help_stop(self):
+        print DOC_STOP
 
     def do_stop(self, argument = None):
         if self._app:
@@ -155,30 +228,66 @@ class OANShell(cmd.Cmd):
             print "Stop deamon oand"
             OANDaemon(self._config).stop()
 
+    #
+    # Command: restart
+    #
+
+    def help_restart(self):
+        print DOC_RESTART
+
     def do_restart(self, argument):
         OANDaemon(self._config).restart()
 
-    def do_status(self, argument):
-        OANDaemon(self._config).status()
+    #
+    # Command: status
+    #
 
-    def do_start_native(self, argument):
-        if not self._app:
-            print "Start native oand"
-            self._app = OANApplication(self._config)
-            self._app.run()
+    def help_status(self):
+        print DOC_STATUS
+
+    def do_status(self, argument):
+        if self._app:
+            print "OAN is in native mode."
         else:
-            print "Native oand already started."
+            OANDaemon(self._config).status()
+
+    #
+    # Command: send_ping
+    #
+
+    def help_send_ping(self):
+        print DOC_PING
 
     def do_send_ping(self, argument):
+        if self.check_native():
+            return
+
         print "send_ping %s (NOT IMPLEMENTED)" % argument
 
+    #
+    # Command: send_heartbeat
+    #
+
+    def help_send_heartbeat(self):
+        print DOC_HEARTBEAT
+
     def do_send_heartbeat(self, argument):
+        if self.check_native():
+            return
+
         print "send_heartbeat %s (NOT IMPLEMENTED)" % argument
 
+    #
+    # Command: get_node_info
+    #
+
+    def help_get_node_info(self):
+        print DOC_GET_NODE_INFO
+
     def do_get_node_info(self, argument):
-        if self._app:
-            print "Node Information."
-            result = self._app.get_node_info()
-            print(result)
-        else:
-            self.print_need_native()
+        if self.check_native():
+            return
+
+        print "Node Information."
+        result = self._app.get_node_info()
+        print(result)

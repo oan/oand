@@ -34,11 +34,6 @@ well written with unit test and comments.
   or oand directory. In src path "Log path" will raise a exception when i
   run cmd start.
 
-* a send-ping -h or invalid send-ping, should print out send-ping args.
-  (all cmds)
-
-* A Tab function with autocomplete of commands would be nice.
-
 * Daniel - Create logging system.
   Use --loglevel instead of --verbose???
 
@@ -88,6 +83,9 @@ well written with unit test and comments.
 * Add unit test, testing many thousand nodes.
 
 * Add comments.
+
+* An invalid command (send_ping) should print the help text
+  (OANShell.help_send_ping) (all cmds).
 
 VERSION 0.2
 ===========
