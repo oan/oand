@@ -20,6 +20,7 @@ __status__ = "Test"
 import sys
 import cmd
 import os
+import traceback
 
 from en_text import *
 from oan.config import OANConfig
@@ -70,8 +71,11 @@ class OANShell(cmd.Cmd):
         except KeyboardInterrupt:
             print
             return self.do_quit(None)
-        except:
-            raise
+        except Exception as e:
+            print e
+            print "Unexpected error:", sys.exc_info()[0]
+            traceback.print_tb(sys.exc_info()[2])
+            return self.cmdloop("")
 
     def help_help(self):
         print DOC_HELP

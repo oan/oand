@@ -34,8 +34,6 @@ well written with unit test and comments.
   or oand directory. In src path "Log path" will raise a exception when i
   run cmd start.
 
-* Excepetion should not quit shell.
-
 * a send-ping -h or invalid send-ping, should print out send-ping args.
   (all cmds)
 
