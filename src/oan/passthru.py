@@ -97,7 +97,8 @@ class OANPassthru(Queue):
     """
     def result(self, ret, back):
         if (back):
-            for rec in ret:
-                back.put(rec)
+            if ret is not None:
+                for rec in ret:
+                    back.put(rec)
 
             back.put(None)

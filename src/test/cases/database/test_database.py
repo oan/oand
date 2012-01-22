@@ -154,6 +154,8 @@ class TestOANDatabase(OANTestCase):
             self.assertEqual(db_node.__dict__, rows[i].__dict__)
             i += 1
 
+
+
     def test_insert(self):
         # insert a row
         n = MyTestNode.create(UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'), 'localhost', 4000)
@@ -162,8 +164,11 @@ class TestOANDatabase(OANTestCase):
         # retrieve the row and check that it's has the same attribute
         self.assertEqual(self.database.select(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95')).__dict__, n.__dict__)
 
+        #Test exception with get method
+        with self.assertRaises(Exception):
+            self.database.insert(n)
 
-        #TODO: test duplicate insert, today a on_error will be fired, perhaps insert, replace would raise a exception insted
+
 
 
     def test_insert_all(self):
@@ -177,8 +182,9 @@ class TestOANDatabase(OANTestCase):
             self.assertEqual(db_node.__dict__, rows[i].__dict__)
             i += 1
 
-
-        #TODO: test duplicate insert, today a on_error will be fired, perhaps insert, replace would raise a exception insted
+        #Test exception with get method
+        with self.assertRaises(Exception):
+            self.database.insert_all(rows)
 
 
 
