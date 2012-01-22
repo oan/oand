@@ -154,8 +154,6 @@ class TestOANDatabase(OANTestCase):
             self.assertEqual(db_node.__dict__, rows[i].__dict__)
             i += 1
 
-
-
     def test_insert(self):
         # insert a row
         n = MyTestNode.create(UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'), 'localhost', 4000)
@@ -168,9 +166,64 @@ class TestOANDatabase(OANTestCase):
         #TODO: test duplicate insert, today a on_error will be fired, perhaps insert, replace would raise a exception insted
 
 
+    def test_insert_all(self):
+        # Insert rows
+        rows = self.generate_nodes()
+        self.database.insert_all(rows)
+
+        # retrieve the rows and check that it's has the same attribute
+        i = 0
+        for db_node in self.database.select_all(MyTestNode):
+            self.assertEqual(db_node.__dict__, rows[i].__dict__)
+            i += 1
+
+
+        #TODO: test duplicate insert, today a on_error will be fired, perhaps insert, replace would raise a exception insted
 
 
 
 
+    def test_replace(self):
+        # insert a row
+        n = MyTestNode.create(UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95'), 'localhost', 4000)
+        self.database.insert(n)
 
+        # retrieve the row and check that it's has the same attribute
+        self.assertEqual(self.database.select(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95')).__dict__, n.__dict__)
+
+        # change a attribute and replace the node in database
+        n.host = 'replace_host'
+        self.database.replace(n)
+
+        # retrieve and check if the host has changed
+        self.assertEqual(self.database.select(MyTestNode, UUID('31f40446-1565-4b2d-9f61-83e8b4dd5c95')).host, 'replace_host')
+
+
+
+
+    def test_replace_all(self):
+        # Insert rows
+        rows = self.generate_nodes()
+        self.database.insert_all(rows)
+
+        # retrieve the rows and check that it's has the same attribute
+        i = 0
+        for db_node in self.database.select_all(MyTestNode):
+            self.assertEqual(db_node.__dict__, rows[i].__dict__)
+            i += 1
+
+
+        rows[7].host = "replace_host_1"
+        rows[20].host = "replace_host_2"
+        rows[221].host = "replace_host_3"
+
+        self.database.replace_all(rows)
+
+        rows_from_db = []
+        for db_node in self.database.select_all(MyTestNode):
+            rows_from_db.append(db_node)
+
+        self.assertEqual(rows_from_db[7].host, 'replace_host_1')
+        self.assertEqual(rows_from_db[20].host, 'replace_host_2')
+        self.assertEqual(rows_from_db[221].host, 'replace_host_3')
 
