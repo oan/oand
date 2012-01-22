@@ -94,6 +94,21 @@ class OANArgumentParser(ArgumentParser):
         )
 
         self.add_argument(
+            "--syslog-level", metavar="TYPE",
+            help="log-level of log messages that should be sent to syslog."
+        )
+
+        self.add_argument(
+            "--stderr-level", metavar="TYPE",
+            help="log-level of log messages that should be sent to stderr."
+        )
+
+        self.add_argument(
+            "--log-level", metavar="TYPE",
+            help="log-level of log messages that should be sent to log file."
+        )
+
+        self.add_argument(
             "--log-file", metavar="FILE",
             help="the log-file path."
         )

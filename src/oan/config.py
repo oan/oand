@@ -31,8 +31,21 @@ class OANConfig(object):
     # Name and path of the pidfile
     pid_file = oan.VAR_DIR + "run/oand.pid"
 
-    # Name and path of the logfile.
-    log_file = oan.LOG_DIR + "oand.log"
+    # log-level of log messages that should be sent to syslog.
+    # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
+    syslog_level="NONE"
+
+    # log-level of log messages that should be sent to stderr.
+    # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
+    stderr_level="NONE"
+
+    # log-level of log messages that should be sent to log file.
+    # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
+    log_level="WARNING"
+
+    # Defines in which file, logs should be stored to if log-level is higher
+    # than none.
+    log_file=oan.LOG_DIR + "oand.log"
 
     # This nodes unique id
     node_uuid = None
