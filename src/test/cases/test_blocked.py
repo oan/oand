@@ -23,6 +23,7 @@ from oan.node_manager import OANNodeManager
 from oan.message import OANMessagePing, OANMessageHeartbeat, OANMessageNodeSync
 from oan.application import OANApplication
 from oan.config import OANConfig
+from oan.util import log
 
 class TestOANBlocked(OANTestCase):
     queue = None
@@ -68,12 +69,12 @@ class TestOANBlocked(OANTestCase):
         while not node_mgr().exist_node(uuid.UUID('00000000-0000-bbbb-4008-000000000000')):
             time.sleep(10)
 
-        print "send ping"
+        log.info("send ping")
         node_mgr().send(uuid.UUID('00000000-0000-bbbb-4008-000000000000'),
                                       OANMessagePing.create( "my relay ping", 2))
                                            # send ping back and forward (2)
 
         message = self.queue.get()
-        print message
+        log.info(message)
         # self.assertEqual(counter, 20)  # 4 * 5
 

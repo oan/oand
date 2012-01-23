@@ -13,6 +13,7 @@ __status__ = "Test"
 from threading import Thread, Lock
 from Queue import Queue
 
+from oan.util import log
 from oan.passthru import OANPassthru
 from oan.message import OANMessageShutdown
 
@@ -93,7 +94,7 @@ class OANMessageWorker(Thread):
     def run(self):
         q = self._pass
 
-        print "Start message worker %s" % self.name
+        log.info("Start message worker %s" % self.name)
 
         while True:
             (message, back) = q.get()
@@ -108,4 +109,4 @@ class OANMessageWorker(Thread):
                 q.execute(message)
                 break
 
-        print "Stop message worker %s" % self.name
+        log.info("Stop message worker %s" % self.name)

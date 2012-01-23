@@ -20,9 +20,9 @@ from datetime import datetime, timedelta
 from Queue import Queue
 from threading import Thread
 
+from oan.util import log
 from oan.event import OANEvent
 from oan.network import OANServer
-
 
 class OANTimer(object):
     checked = None
@@ -112,7 +112,7 @@ class OANLoop(Thread):
         self.add_call(self._server.connect_to_oan, host, port)
 
     def run(self):
-        print "OANLoop: started"
+        log.info("OANLoop: started")
         self._server = OANServer()
         self.on_start()
         self._started.set()
@@ -125,10 +125,10 @@ class OANLoop(Thread):
                 (callback, args, kwargs) = self._calls.get(True, 1)
                 callback(*args, **kwargs)
 
-        print "OANLoop: shutdown"
+        log.info("OANLoop: shutdown")
         self.on_shutdown()
         self._server.shutdown()
         asyncore.loop()
         self.on_stop()
         self._started.clear()
-        print "OANLoop stopped"
+        log.info("OANLoop stopped")

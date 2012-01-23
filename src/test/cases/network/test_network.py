@@ -24,8 +24,9 @@ import uuid
 import threading
 from threading import Thread, Lock
 from network.oan_network import OANNetwork, OANTimer, OANNetworkMessageListen, OANNetworkMessageConnectOan
-
 from Queue import Queue
+
+from oan.util import log
 
 # this would be a manager or statistic object, should be locked
 class OANTestCounter:
@@ -48,7 +49,7 @@ class OANTestCounter:
 
     def dump(self):
         with self._lock:
-            print "Counter: %s" % self._value
+            log.info("Counter: %s" % self._value)
 
     #return primitive or tuple, NOT lists or other mutable data, or object that is return is thread safe.
     def get_value(self):
@@ -139,9 +140,9 @@ class TestOANNetwork(OANTestCase):
     timer_connect = None
 
     def my_bridge_added(self, bridge):
-        print "got in my_bridge_added"
+        log.info("got in my_bridge_added")
         if bridge.node.host == message_bff_connect.host and bridge.node.port == message_bff_connect.port:
-            print "connected in my_bridge_added"
+            log.info("connected in my_bridge_added")
             network().remove_timer(self.timer_connect)
 
     def my_timer_connect(self):

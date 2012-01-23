@@ -16,6 +16,7 @@ import uuid
 from threading import Thread, Lock
 from Queue import Queue
 
+from oan.util import log
 from oan.dispatcher import OANMessageDispatcher
 from test.test_case import OANTestCase
 
@@ -109,7 +110,7 @@ class TestOANMessageDispatcher(OANTestCase):
                 #print "Generated %s on %s:" % (self.cls.__name__, self.name)
                 dispatcher().execute(self.cls(1))
 
-            print "Generated done %s on %s:" % (self.cls.__name__, self.name)
+            log.info("Generated done %s on %s:" % (self.cls.__name__, self.name))
 
     def test_threads(self):
         threads = []
@@ -185,7 +186,7 @@ class OANTestCounter:
 
     def dump(self):
         with self._lock:
-            print "Counter: %s" % self._value
+            log.info("Counter: %s" % self._value)
 
     # Return primitive, tuple or other thread safe data.
     # Note: lists, mutable data etc. are not thread safe.

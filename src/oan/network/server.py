@@ -20,6 +20,7 @@ from Queue import Queue
 from threading import Thread
 
 import oan
+from oan.util import log
 from bridge import OANBridge
 from oan.event import OANEvent
 from oan.node_manager import OANNetworkNode, OANNetworkNodeState, OANNodeManager
@@ -85,7 +86,7 @@ class OANServer(asyncore.dispatcher):
         self.set_reuse_addr()
         self.bind((host, port))
         self.listen(5)
-        print "OanServer:listen %s:%d" % (host, port)
+        log.info("OanServer:listen %s:%d" % (host, port))
 
     def connect_to_node(self, node):
 
@@ -99,7 +100,7 @@ class OANServer(asyncore.dispatcher):
         # ----
 
     def connect_to_oan(self, host, port):
-        print "OanServer:connect_to_oan %s:%d" % (host, port)
+        log.info("OanServer:connect_to_oan %s:%d" % (host, port))
         bridge = OANBridge(self)
         bridge.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         bridge.connect( (host, port) )
@@ -112,15 +113,15 @@ class OANServer(asyncore.dispatcher):
         else:
             try:
                 sock, addr = pair
-                print 'OanServer: accepting connection from %s' % repr(addr)
+                log.info('OanServer: accepting connection from %s' % repr(addr))
                 bridge = OANBridge(self, sock)
                 bridge.remote_addr = addr
                 bridge.handle_accept()
             except Exception, e:
-                print 'OanServer: invalid peer connected from %s [%s]' % (repr(addr), e)
+                log.info('OanServer: invalid peer connected from %s [%s]' % (repr(addr), e))
 
     def handle_close(self):
-        print "OanServer:handle_close"
+        log.info("OanServer:handle_close")
         self.close()
 
     def shutdown(self):
@@ -135,5 +136,5 @@ class OANServer(asyncore.dispatcher):
             bridge.handle_close()
 
     def handle_error(self):
-        print "OanServer:handle_error"
+        log.info("OanServer:handle_error")
         asyncore.dispatcher.handle_error(self)

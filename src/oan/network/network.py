@@ -20,6 +20,7 @@ from datetime import datetime, timedelta
 from Queue import Queue
 from threading import Thread
 
+from oan.util import log
 from oan.event import OANEvent
 from server import OANServer
 from oan.event import OANEvent
@@ -68,7 +69,7 @@ class OANNetworkMessageListen:
         return obj
 
     def execute(self, server):
-        print "OANNetworkMessageListen"
+        log.info("OANNetworkMessageListen")
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("google.com",80))
         host = s.getsockname()[0]
@@ -92,7 +93,7 @@ class OANNetworkMessageConnectOan:
         return obj
 
     def execute(self, server):
-        print "OANNetworkMessageConnectOan"
+        log.info("OANNetworkMessageConnectOan")
         server.connect_to_oan(self.host, self.port)
 
 
@@ -154,7 +155,7 @@ class OANNetworkWorker(Thread):
         self.on_bridge_removed = server.on_bridge_removed
         self.on_bridge_idle = server.on_bridge_idle
 
-        print "Start network worker %s" % self.name
+        log.info("Start network worker %s" % self.name)
         self._started.set()
 
         while True:
@@ -176,7 +177,7 @@ class OANNetworkWorker(Thread):
 
         server.shutdown()
         asyncore.loop()
-        print "Stop network worker %s" % self.name
+        log.info("Stop network worker %s" % self.name)
 
 
 class OANNetwork:

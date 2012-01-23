@@ -14,6 +14,7 @@ __status__ = "Test"
 import time
 from Queue import Queue
 
+from oan.util import log
 from oan.event import OANEvent
 
 class OANPassthru(Queue):
@@ -85,7 +86,7 @@ class OANPassthru(Queue):
 
     """
     def error(self, message, ex, back):
-        print "Got error %s on %s " % (ex, message)
+        log.info("Got error %s on %s " % (ex, message))
         self.on_error(message, ex)
 
         if (back):

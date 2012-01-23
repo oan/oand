@@ -21,6 +21,7 @@ from Queue import Queue
 from threading import Thread
 
 from oan import dispatcher, node_manager
+from oan.util import log
 from oan.event import OANEvent
 from oan.node_manager import OANNetworkNode, OANNodeManager
 from oan.message import OANMessageHandshake, OANMessageClose
@@ -47,36 +48,36 @@ class OANBridge(asyncore.dispatcher):
         asyncore.dispatcher.connect(self, addr)
 
     def handle_connect(self):
-        #print "OANBridge:handle_connect"
+        log.info("OANBridge:handle_connect")
         self.send_handshake()
 
     def handle_accept(self):
-        #print "OANBridge:handle_accept"
+        log.info("OANBridge:handle_accept")
         self.send_handshake()
 
     def send_handshake(self):
         my_node = node_mgr().get_my_node()
-        #print "OANBridge:send_handshake: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
+        log.info("OANBridge:send_handshake: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port))
         self.out_buffer = self.send_message(
             OANMessageHandshake.create(my_node.uuid, my_node.host, my_node.port, my_node.blocked)
         )
 
     def send_close(self):
         my_node = node_mgr().get_my_node()
-        print "OANBridge:send_close: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port)
+        log.info("OANBridge:send_close: %s,%s,%s" % (my_node.uuid, my_node.host, my_node.port))
         self.out_buffer = self.send_message(
             OANMessageClose.create(my_node.uuid)
         )
 
     def got_close(self, message):
-        print "OANBridge:got_close: %s" % (message.uuid)
+        log.info("OANBridge:got_close: %s" % (message.uuid))
         dispatcher().execute(message)
 
         if not self.writable():
             self.handle_close()
 
     def got_handshake(self, message):
-        #print "OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port)
+        log.info("OANBridge:got_handshake: %s,%s,%s" % (message.uuid, message.host, message.port))
 
         remote_host, remote_port = self.remote_addr
         self.node = node_mgr().create_node(uuid.UUID(message.uuid), remote_host, message.port, message.blocked)
@@ -89,7 +90,7 @@ class OANBridge(asyncore.dispatcher):
     def send_message(self, message):
         raw_message = encode(message)
         if self.node is not None:
-            print "send_message: %s to %s" % (message.__class__.__name__, self.node.uuid)
+            log.info("send_message: %s to %s" % (message.__class__.__name__, self.node.uuid))
             self.node.heartbeat.touch()
 
         return raw_message + '\n'
@@ -99,7 +100,7 @@ class OANBridge(asyncore.dispatcher):
 
         if self.node is not None:
             self.node.heartbeat.touch()
-            print "read_message: %s from %s" % (message.__class__.__name__, self.node.uuid)
+            log.info("read_message: %s from %s" % (message.__class__.__name__, self.node.uuid))
 
         return message
 
@@ -107,7 +108,7 @@ class OANBridge(asyncore.dispatcher):
         data = self.recv(1024)
         if self.node is not None:
             self.statistic.add_in_transfered(len(data))
-            # print "IN[%s][%s]" % (self.node.uuid, data)
+            log.info("IN[%s][%s]" % (self.node.uuid, data))
 
         if data:
             self.in_buffer += data
@@ -162,21 +163,21 @@ class OANBridge(asyncore.dispatcher):
         self.out_buffer = self.out_buffer[sent:]
 
     def handle_close(self):
-        print "OANBridge:handle_close"
+        log.info("OANBridge:handle_close")
         if self.node is not None:
             self.server.remove_bridge(self)
 
         asyncore.dispatcher.close(self)
 
     def handle_error(self):
-        print "OANBridge:handle_error"
+        log.info("OANBridge:handle_error")
         #asyncore.dispatcher.handle_error(self)
 
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        print "OANBridge:handle_error: %s, %s" % (self.remote_addr, exc_value)
+        log.info("OANBridge:handle_error: %s, %s" % (self.remote_addr, exc_value))
 
     def shutdown(self):
-        print "OANBridge:shutdown"
+        log.info("OANBridge:shutdown")
         self.out_queue.put(None)
 
 
