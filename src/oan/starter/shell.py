@@ -236,7 +236,8 @@ class OANShell(cmd.Cmd):
         print DOC_RESTART
 
     def do_restart(self, argument):
-        OANDaemon(self._config).restart()
+        self.do_stop("")
+        self.do_start("")
 
     #
     # Command: status

@@ -28,7 +28,7 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
-* https://github.com/oan/oand/issues/6
+* Test all unit tests.
 
 * Unittest and nicing up passthrou.
 
