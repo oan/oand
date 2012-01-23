@@ -12,9 +12,10 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from test.test_case import OANTestCase
+from oan.util import log
 
 import oan
-from oan.config import OANConfig
+from oan.config import OANConfig, OANLogLevel, OANFileName
 
 class TestOANConfig(OANTestCase):
     _config = None
@@ -70,7 +71,7 @@ class TestOANConfig(OANTestCase):
 class TestOANConfigSetFromFile(TestOANConfig):
     def setUp(self):
         self._config = OANConfig()
-        self._config.set_from_file(oan.BASE_DIR + "src/tests/oand.cfg")
+        self._config.set_from_file(oan.BASE_DIR + "src/test/cases/oand.cfg")
 
     def test_config_extended(self):
         cnf = self._config
@@ -87,6 +88,45 @@ class TestOANConfigSetFromCmdLine(TestOANConfigSetFromFile):
         options.__dict__ = self.opts
         self._config = OANConfig()
         self._config.set_from_cmd_line(options)
+
+class TestOANLogLevel(OANTestCase):
+
+    class config(object):
+        log_level = OANLogLevel("WARNING")
+
+    def test_property(self):
+        config = self.config()
+
+        self.assertEqual(config.log_level, log.WARNING)
+
+        config.log_level="warning"
+        self.assertEqual(config.log_level, log.WARNING)
+
+        with self.assertRaises(ValueError):
+            config.log_level="INVALID"
+
+class TestOANFileName(OANTestCase):
+
+    class config(object):
+        file_name = OANFileName("/tmp/", "test.tmp")
+
+    def test_property(self):
+        with self.assertRaises(Exception):
+            file_name = OANFileName("/tmp", "test.tmp")
+
+    def test_property_on_class(self):
+        config = self.config()
+
+        self.assertEqual(config.file_name, "/tmp/test.tmp")
+
+        config.file_name = "test2.tmp"
+        self.assertEqual(config.file_name, "/tmp/test2.tmp")
+
+        config.file_name = "/var/log/test2.tmp"
+        self.assertEqual(config.file_name, "/var/log/test2.tmp")
+
+        with self.assertRaises(Exception):
+            config.file_name="/xxx/xxx/xxx.tmp"
 
 if __name__ == '__main__':
     unittest.main()
