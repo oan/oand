@@ -22,7 +22,6 @@ class TestOANConfig(OANTestCase):
 
     # Options
     opts = {}
-    opts["verbose"] = 5
     opts["config"] = "/tmp/oand.cfg"
     opts["pid_file"] = "/tmp/oand.pid"
     opts["log_file"] = "/tmp/oand.log"

@@ -121,9 +121,6 @@ class OANFileName(object):
             raise Exception("Directory %s doesn't exist." % directory)
 
 class OANConfig(object):
-    # The output verbose level 0-2
-    verbose = 2 # TODO: During development it's set to 2/debug mode.
-
     # Config file
     config = OANFileName(oan.ETC_DIR, "oand.cfg")
 
