@@ -21,6 +21,7 @@ __status__ = "Test"
 
 import os
 import types
+import traceback
 import logging
 import logging.handlers
 from logging import *
@@ -43,6 +44,13 @@ def setup(syslog_level, stderr_level, log_level, log_file_name):
     _setup_stderr(my_logger, stderr_level)
     _setup_file_log(my_logger, log_level, log_file_name)
 
+def trace(msg, *args, **kwargs):
+    """
+    Will store logginging information with traceback.
+
+    """
+    log(logging.DEBUG+1, msg, *args, **kwargs)
+
 class ContextFilter(Filter):
     """Filter which injects contextual information into the log."""
 
@@ -53,10 +61,18 @@ class ContextFilter(Filter):
 
         # Text to display on debugging messages.
         if record.levelno == DEBUG:
-            record.levelname_ex = "%s (%s - %s:%s)" % (
+            record.levelname_ex = "%s (%s - %s - %s:%s)" % (
                 record.levelname_ex,
-                record.filename, record.funcName, record.lineno
+                record.threadName, record.filename,
+                record.funcName, record.lineno
             )
+
+        #
+        record.trace = ""
+        if record.levelno == DEBUG+1:
+            record.trace = "\n"
+            for row in traceback.format_stack()[:-6]:
+                record.trace += row
 
         return True
 
@@ -67,52 +83,36 @@ def _setup_syslog(my_logger, log_level):
     )
 
     handler = logging.handlers.SysLogHandler()
-    handler.setLevel(_get_numeric_log_level(log_level))
+    handler.setLevel(log_level)
     handler.setFormatter(syslog_formatter)
     my_logger.addHandler(handler)
 
 def _setup_stderr(my_logger, log_level):
     """Add stderr logging."""
     formatter = Formatter(
-        '%(time)s %(levelname_ex)-9s %(message)s'
+        '%(time)s %(levelname_ex)-9s %(message)s %(trace)s'
     )
 
     handler = StreamHandler()
-    handler.setLevel(_get_numeric_log_level(log_level))
+    handler.setLevel(log_level)
     handler.setFormatter(formatter)
     my_logger.addHandler(handler)
 
 def _setup_file_log(my_logger, log_level, file_name):
     """Add file logging"""
     formatter = Formatter(
-        '%(time)s %(levelname_ex)-9s %(message)s'
+        '%(time)s %(levelname_ex)-9s %(message)s %(trace)s'
     )
-
     handler = logging.handlers.RotatingFileHandler(
-        file_name, maxBytes=2000000, backupCount=100)
-    handler.setLevel(_get_numeric_log_level(log_level))
+        file_name, maxBytes=2000000, backupCount=100
+    )
+    handler.setLevel(log_level)
     handler.setFormatter(formatter)
     my_logger.addHandler(handler)
 
-def _get_numeric_log_level(log_level):
-    """
-    Convert log_level to integer representation of log_level.
-
-    log_level
-        Can be both string or integer representation of a number. Or can be
-        any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
-
-    """
-    str_log_level = str(log_level)
-    if str_log_level.isdigit():
-        return int(log_level)
-    else:
-        return getattr(logging, log_level.upper(), 100)
-
 if __name__ == '__main__':
     def main():
-        #setup('debug', 'debug', 'debug', '/tmp/oand.log', )
-        setup("WARNING", "None", "DEBUG", '/tmp/oand.log', )
+        setup(WARNING, 100, DEBUG, '/tmp/oand.log', )
 
         debug('This message should go to the log file')
         info('So should this')

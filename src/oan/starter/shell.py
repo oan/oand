@@ -111,7 +111,7 @@ class OANShell(cmd.Cmd):
         except Exception as e:
             print e
             print "Unexpected error:", sys.exc_info()[0]
-            traceback.print_tb(sys.exc_info()[2])
+            log.debug_tb("Unexpected error:", sys.exc_info()[0])
             return self.cmdloop("")
 
     #

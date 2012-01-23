@@ -216,10 +216,9 @@ class OANConfig(object):
                 "Invalid config with key: " + key + " value: " + value)
 
     def log_options(self):
-        log.debug("-- Begin ------------------")
-        log.debug("\tAll configuration attributes")
-        log.debug("\t[oand]")
+        log.debug("-------- ALL CONFIG OPTIONS ---------")
+        log.debug("[oand]")
         for key in self.__dict__.keys():
             value = getattr(self, key)
             log.debug("\t%s: %s" % (key, value))
-        log.debug("-- End --------------------")
+        log.debug("-------------------------------------")
