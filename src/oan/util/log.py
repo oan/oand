@@ -27,6 +27,9 @@ import logging.handlers
 from logging import *
 from time import gmtime, strftime
 
+# Loglevel that will not send any logging messages to log handler.
+NONE = 100
+
 def setup(syslog_level, stderr_level, log_level, log_file_name):
     """Setup all logging handlers"""
     my_logger = getLogger()

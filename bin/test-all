@@ -32,6 +32,7 @@ ARGS = None
 def run():
     setup_env()
     set_global_options_and_args()
+    start_logging()
 
     from test.network_simulation import start_test_network, stop_test_network
     if (OPTIONS.network):
@@ -82,6 +83,15 @@ def set_global_options_and_args():
                       help="Run with trace.Trace")
 
     (OPTIONS, ARGS) = parser.parse_args()
+
+def start_logging():
+    from oan.util import log
+    log_file = get_base_dir() + "log/unittest.log"
+    open(log_file, 'w').close()
+    log.setup(
+        log.NONE, log.NONE, log.DEBUG,
+        log_file
+    )
 
 def print_verbose(txt, verbose = 1):
     '''Print to screen according to verbose level is set on cmd line.'''

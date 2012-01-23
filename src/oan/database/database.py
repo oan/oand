@@ -43,7 +43,8 @@ class OANDatabaseMessageExecute:
         else:
             cursor.execute(self._sql, self._arg)
 
-
+    def __str__(self):
+        return self._sql
 
 class OANDatabaseMessageSelect:
 
@@ -63,7 +64,8 @@ class OANDatabaseMessageSelect:
         for rec in cursor:
             yield rec
 
-
+    def __str__(self):
+        return self._sql
 
 class OANDatabaseMessageCreateTable:
 
@@ -127,7 +129,7 @@ class OANDatabaseWorker(Thread):
 
 
             elapsed = (time.time() - start)
-            log.info("SQL: %f sec" % elapsed)
+            log.debug("SQL: %f sec - %s" % (elapsed, message))
 
             if isinstance(message, OANDatabaseMessageShutdown):
                 # Put back shutdown message for other worker threads
