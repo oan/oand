@@ -15,7 +15,7 @@ from test.test_case import OANTestCase
 import unittest
 import time
 import oan
-import uuid
+from uuid import UUID
 from oan import loop, node_manager
 
 from oan.loop import OANLoop
@@ -63,13 +63,13 @@ class TestOANMessage(OANTestCase):
         self.queue.put("got_close")
 
     def create_node(self):
-        node_mgr().create_node(uuid.UUID('00000000-0000-0000-4004-000000000000'), 'localhost', 4004, False)
+        node_mgr().create_node(UUID('00000000-0000-0000-4004-000000000000'), 'localhost', 4004, False)
 
     # test close message wait for idle.
     def test_message_close(self):
         for i in xrange(1):
             # open a connection to server.
-            node_mgr().send(uuid.UUID('00000000-0000-0000-4004-000000000000'),
+            node_mgr().send(UUID('00000000-0000-0000-4004-000000000000'),
                                 OANMessageHeartbeat.create(node_mgr().get_my_node()))
 
             # Wait for connection

@@ -13,9 +13,10 @@ __status__ = "Test"
 from threading import Thread, Lock
 from Queue import Queue
 
+from oan import dispatch
 from oan.util import log
 from oan.passthru import OANPassthru
-from oan.message import OANMessageShutdown
+from oan.dispatcher.message import OANMessageShutdown
 
 class OANMessageDispatcher:
     """
@@ -110,3 +111,5 @@ class OANMessageWorker(Thread):
                 break
 
         log.info("Stop message worker %s" % self.name)
+
+

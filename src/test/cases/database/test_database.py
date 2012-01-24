@@ -12,7 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from Queue import Queue
-from uuid import UUID, uuid4
+from oan_id import UUID, uuid4
 
 from test.test_case import OANTestCase
 from oan import node_manager
@@ -25,16 +25,16 @@ from oan.message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OA
 from oan.database import OANDatabase
 
 class MyTestNode():
-    uuid = None
+    oan_id = None
     host = None
     port = None
 
-    def __init__(self, uuid):
-        self.uuid = uuid
+    def __init__(self, oan_id):
+        self.oan_id = oan_id
 
     @classmethod
-    def create(cls, uuid, host, port):
-        obj = cls(uuid)
+    def create(cls, oan_id, host, port):
+        obj = cls(oan_id)
         obj.host, obj.port = host, port
         return obj
 
@@ -45,7 +45,7 @@ class MyTestNode():
         return(self.host, self.port)
 
     def __str__(self):
-        return 'MyTestNode(%s, %s, %s)' % (self.uuid, self.host, self.port)
+        return 'MyTestNode(%s, %s, %s)' % (self.oan_id, self.host, self.port)
 
 class TestOANDatabase(OANTestCase):
     database = None

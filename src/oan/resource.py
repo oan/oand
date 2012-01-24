@@ -23,7 +23,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import uuid
+from uuid import UUID
 
 from oan.heartbeat import OANHeartbeat
 
@@ -113,10 +113,10 @@ class OANResource():
         return isinstance(self, OANFile)
 
     @property
-    def uuid(self):
+    def oan_id(self):
         if not self._uuid:
-            self._uuid = uuid.uuid5(
-                uuid.NAMESPACE_URL, self.directory + '/' + self.name
+            self._uuid = oan_id.uuid5(
+                oan_id.NAMESPACE_URL, self.directory + '/' + self.name
             )
         return self._uuid
 
@@ -131,7 +131,7 @@ class OANResource():
     @classmethod
     def create_from_dict(cls, args):
         return cls (
-            args['uuid'],
+            args['oan_id'],
             args['name'],
             args['domain_name'],
             args['port'],
@@ -140,7 +140,7 @@ class OANResource():
 
     def get_dict(self):
         param = {}
-        param['uuid'] = str(self.uuid)
+        param['oan_id'] = str(self.oan_id)
         param['type'] = self.type
         param['directory'] = self.directory
         param['name'] = self.name

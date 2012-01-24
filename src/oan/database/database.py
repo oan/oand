@@ -17,12 +17,14 @@ from threading import Thread, Lock
 from Queue import Queue
 import time
 import sqlite3
-import uuid
+from uuid import UUID
 import json
 
 import oan
 from oan.util import log
 from oan.passthru import OANPassthru
+
+
 
 class OANDatabaseMessageExecute:
 
@@ -49,6 +51,8 @@ class OANDatabaseMessageExecute:
     def __str__(self):
         return self._sql
 
+
+
 class OANDatabaseMessageSelect:
 
     _sql = None
@@ -74,6 +78,8 @@ class OANDatabaseMessageSelect:
     def __str__(self):
         return self._sql
 
+
+
 class OANDatabaseMessageCreateTable:
 
     _table = None
@@ -89,10 +95,11 @@ class OANDatabaseMessageCreateTable:
     def execute(self, cursor):
         cursor.execute("""
             create table if not exists %s (
-                uuid  BLOB primary key,
+                oan_id  BLOB primary key,
                 data  TEXT
             )
         """ % self._table)
+
 
 
 
@@ -101,6 +108,8 @@ class OANDatabaseMessageShutdown:
 
     def execute(self, cursor):
         pass
+
+
 
 
 class OANDatabaseWorker(Thread):
@@ -154,6 +163,8 @@ class OANDatabaseWorker(Thread):
         cnx.close()
         log.info("Stop database worker %s" % self.name)
 
+
+
 class OANDatabase:
 
     _config = None
@@ -174,7 +185,7 @@ class OANDatabase:
     def create(self, cls):
         with self._lock:
             if cls.__name__ not in self._tables:
-                # check that the class as a uuid attribute
+                # check that the class as a oan_id attribute
                 for status in self._pass.select(
                     OANDatabaseMessageCreateTable.create(cls.__name__)
                 ):
@@ -222,7 +233,7 @@ class OANDatabase:
         self.create(cls)
         for status in self._pass.select(
             OANDatabaseMessageExecute.create(
-                "delete from %s where uuid = ?" % (cls.__name__),
+                "delete from %s where oan_id = ?" % (cls.__name__),
                 (sqlite3.Binary(oid.bytes),)
             )
         ):
@@ -243,10 +254,10 @@ class OANDatabase:
         self.create(cls)
         for pk, data in self._pass.select(
             OANDatabaseMessageSelect.create(
-                "select uuid, data from %s where uuid = ?" % (cls.__name__), (sqlite3.Binary(guid.bytes),)
+                "select oan_id, data from %s where oan_id = ?" % (cls.__name__), (sqlite3.Binary(guid.bytes),)
             )
         ):
-            obj = cls(uuid.UUID(bytes=pk))
+            obj = cls(UUID(bytes=pk))
             obj.unserialize(json.loads(data))
             return obj
 
@@ -256,9 +267,9 @@ class OANDatabase:
         self.create(cls)
 
         for pk, data in self._pass.select(
-           OANDatabaseMessageSelect.create("select uuid, data from %s" % cls.__name__)
+           OANDatabaseMessageSelect.create("select oan_id, data from %s" % cls.__name__)
         ):
-            obj = cls(uuid.UUID(bytes=pk))
+            obj = cls(UUID(bytes=pk))
             obj.unserialize(json.loads(data))
             yield obj
 
@@ -274,7 +285,7 @@ class OANDatabase:
         to_save = []
         for obj in objs:
             to_save.append(
-                (sqlite3.Binary(obj.uuid.bytes), json.dumps(obj.serialize()))
+                (sqlite3.Binary(obj.oan_id.bytes), json.dumps(obj.serialize()))
             )
 
         cls = objs[0].__class__
@@ -284,6 +295,6 @@ class OANDatabase:
         # signal success or fail with a exception.
         # it needs a for statement to wait for the select yield.
         for status in self._pass.select(
-           OANDatabaseMessageExecute.create("%s into %s (uuid, data) values (?, ?)" % (cmd, cls.__name__), to_save)
+           OANDatabaseMessageExecute.create("%s into %s (oan_id, data) values (?, ?)" % (cmd, cls.__name__), to_save)
         ):
             pass

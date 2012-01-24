@@ -16,14 +16,14 @@ from oan.network_node import OANNetworkNode
 
 class TestOANNetworkNode(OANTestCase):
     def test_oan_network_node(self):
-        nn = OANNetworkNode("uuid", "name", "domain_name", "port")
+        nn = OANNetworkNode("oan_id", "name", "domain_name", "port")
         self.validate_network_node(nn)
 
     def test_get_dict(self):
-        nn = OANNetworkNode("uuid", "name", "domain_name", "port")
+        nn = OANNetworkNode("oan_id", "name", "domain_name", "port")
 
         param = {}
-        param['uuid'] = "uuid"
+        param['oan_id'] = "oan_id"
         param['name'] = "name"
         param['domain_name'] = "domain_name"
         param['port'] = "port"
@@ -33,7 +33,7 @@ class TestOANNetworkNode(OANTestCase):
 
     def test_create_from_dict(self):
         param = {}
-        param['uuid'] = "uuid"
+        param['oan_id'] = "oan_id"
         param['name'] = "name"
         param['domain_name'] = "domain_name"
         param['port'] = "port"
@@ -43,7 +43,7 @@ class TestOANNetworkNode(OANTestCase):
         self.validate_network_node(nn)
 
     def validate_network_node(self, nn):
-        self.assertEqual(nn.uuid, "uuid")
+        self.assertEqual(nn.oan_id, "oan_id")
         self.assertEqual(nn.name, "name")
         self.assertEqual(nn.domain_name, "domain_name")
         self.assertEqual(nn.port, "port")

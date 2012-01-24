@@ -16,71 +16,17 @@ import socket
 import time
 import os
 import datetime
-import uuid
+from uuid import UUID
 from Queue import Queue
 
-from oan import loop, database
+from oan import network, database, dispatch
 from oan.util import log
 from oan.heartbeat import OANHeartbeat
-from oan.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay, OANMessagePing
+from oan.dispatcher.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay, OANMessagePing
 from oan.statistic import OANNetworkNodeStatistic
 from oan.database import OANDatabase
-
-class OANNetworkNodeState:
-    connecting, connected, disconnected = range(1, 4)
-
-"""
-TODO
-    All members should be private and we should use get/set which are thread safe.
-
-    def get()
-        return (sdf), sadf ,sadf, )
-
-    def set(uuid, host, port, blocked)
-        with self._lock:
-            self.name = name
-
-"""
-class OANNetworkNode:
-    uuid = None
-    name = None
-    port = None
-    host = None
-    state = None
-    blocked = None # if server is listen or its blocked by router or firewall.
-
-    heartbeat = None
-    statistic = None
-
-    out_queue = None
-
-    def __init__(self, uuid):
-        self.state = OANNetworkNodeState.disconnected
-        self.heartbeat = OANHeartbeat()
-        self.out_queue = Queue(10)
-        self.uuid = uuid
-
-    @classmethod
-    def create(cls, uuid, host, port, blocked):
-        obj = cls(uuid)
-        obj.host, obj.port, obj.blocked = host, port, blocked
-        obj.statistic = OANNetworkNodeStatistic()
-        return obj
-
-    def unserialize(self, data):
-        self.host, self.port, self.blocked, subdata = data
-        self.statistic = OANNetworkNodeStatistic()
-        self.statistic.unserialize(subdata)
-
-    def serialize(self):
-        return(self.host, self.port, self.blocked, self.statistic.serialize())
-
-    def __str__(self):
-        return 'OANNetworkNode(%s, %s, %s) (queue: %s) (%s) (%s)' % (
-            self.uuid, self.host, self.port,
-            self.out_queue.qsize(),
-            self.heartbeat.time, self.statistic
-        )
+from oan.network.network_node import OANNetworkNode
+from oan.network.message import NetworksMessageConnectToNode
 
 class OANNodeManager():
     # Node server to connect and send message to other node servers
@@ -100,10 +46,10 @@ class OANNodeManager():
     def load(self):
         for node in database().select_all(OANNetworkNode):
             log.info(node)
-            self._nodes[node.uuid] = node
+            self._nodes[node.oan_id] = node
 
-        if uuid.UUID(self.config.node_uuid) in self._nodes:
-            my_node = self._nodes[uuid.UUID(self.config.node_uuid)]
+        if UUID(self.config.node_uuid) in self._nodes:
+            my_node = self._nodes[UUID(self.config.node_uuid)]
             my_node.host  = self.config.node_domain_name
             my_node.port = int(self.config.node_port)
             my_node.blocked = self.config.blocked
@@ -111,7 +57,7 @@ class OANNodeManager():
             log.info(my_node)
         else:
             my_node = self.create_node(
-                uuid.UUID(self.config.node_uuid),
+                UUID(self.config.node_uuid),
                 self.config.node_domain_name,
                 self.config.node_port,
                 self.config.blocked
@@ -130,18 +76,18 @@ class OANNodeManager():
             log.info("\t %s" % n)
         log.info("------ dump end ------")
 
-    def create_node(self, uuid, host, port, blocked):
-        #if not isinstance(uuid, UUID):
-         #    print "OANNodeManager:Error uuid must be UUID instance"
+    def create_node(self, oan_id, host, port, blocked):
+        #if not isinstance(oan_id, UUID):
+         #    print "OANNodeManager:Error oan_id must be UUID instance"
 
-        if self.exist_node(uuid):
-            node = self._nodes[uuid]
+        if self.exist_node(oan_id):
+            node = self._nodes[oan_id]
             node.host = host
             node.port = int(port)
             node.blocked = blocked
         else:
-            node = OANNetworkNode.create(uuid, host, int(port), blocked)
-            self._nodes[uuid] = node
+            node = OANNetworkNode.create(oan_id, host, int(port), blocked)
+            self._nodes[oan_id] = node
 
         return node
 
@@ -159,83 +105,85 @@ class OANNodeManager():
         return self._my_node.statistic
 
     def add_node(self, node):
-        self._nodes[node.uuid] = node
+        self._nodes[node.oan_id] = node
         return node
 
-    def exist_node(self, uuid):
-        return (uuid in self._nodes)
+    def exist_node(self, oan_id):
+        return (oan_id in self._nodes)
 
-    def get_node(self, uuid):
-        return self._nodes[uuid]
+    def get_node(self, oan_id):
+        return self._nodes[oan_id]
 
     #TODO: remove dead nodes in database
     def remove_dead_nodes(self):
         for n in self._nodes.values():
-            if n.uuid != self._my_node.uuid:
+            if n.oan_id != self._my_node.oan_id:
                 if n.heartbeat.is_dead():
-                    del self._nodes[n.uuid]
+                    del self._nodes[n.oan_id]
 
     #TODO: maybe should send heartbeat to blocked nodes to test. once a week or so.
     def send_heartbeat(self):
         heartbeat = OANMessageHeartbeat.create(self._my_node)
         for n in self._nodes.values():
-            if n.uuid != self._my_node.uuid and not n.blocked:
+            if n.oan_id != self._my_node.oan_id and not n.blocked:
                 if n.heartbeat.is_expired():
-                    self.send(n.uuid, heartbeat)
+                    self.send(n.oan_id, heartbeat)
 
     #TODO sync ony with open nodes
     def send_node_sync(self):
         node_sync = OANMessageNodeSync.create()
         for n in self._nodes.values():
-            if n.uuid != self._my_node.uuid:
-                self.send(n.uuid, node_sync)
+            if n.oan_id != self._my_node.oan_id:
+                self.send(n.oan_id, node_sync)
 
     #TODO: not all message should be relay
-    def send(self, uuid, message):
-        if (uuid in self._nodes):
-            node = self._nodes[uuid]
+    def send(self, oan_id, message):
+        log.debug("oan_id: %s, message: %s" % (oan_id, str(message)))
+
+        if (oan_id in self._nodes):
+            node = self._nodes[oan_id]
             if node.blocked and self._my_node.blocked:
-                self.relay(uuid, message)
+                self.relay(oan_id, message)
             else:
 
-                try:
-                    node.out_queue.put(message, False)
-                    self._my_node.statistic.out_queue_inc()
-                except:
-                    log.info("Queue full cleaning up")
-                    save_messages = []
-                    while True:
-                        try:
-                            message_on_queue = node.out_queue.get(False)
-                            if message_on_queue.ttl:
-                                save_message.append(message_on_queue)
-                            else:
-                                log.info("remove %s" % message_on_queue)
-                        except:
-                            log.info("empty cleaning up")
-                            break
+                #try:
+                node.out_queue.put(message, False)
+                #    self._my_node.statistic.out_queue_inc()
+                #except:
+                #    log.info("Queue full cleaning up")
+                #    save_messages = []
+                #    while True:
+                #        try:
+                #            message_on_queue = node.out_queue.get(False)
+                #            if message_on_queue.ttl:
+                #                save_message.append(message_on_queue)
+                #            else:
+                #                log.info("remove %s" % message_on_queue)
+                #        except:
+                #            log.info("empty cleaning up")
+                #            break
 
                     #TODO check if all save_messages culd be put back on queue.
-                    for m in save_messages:
-                        node.out_queue.put(m)
+                 #   for m in save_messages:
+                 #       node.out_queue.put(m)
 
-                    node.out_queue.put(message)
+                  #  node.out_queue.put(message)
 
-                if node.state == OANNetworkNodeState.disconnected:
-                    loop().connect_to_node(node)
+                if node.is_disconnected():
+                    network().execute(NetworksMessageConnectToNode.create(node))
         else:
-            log.info("OANNodeManager:Error node is missing %s" % uuid)
+            log.info("OANNodeManager:Error node is missing %s" % oan_id)
             log.info(self._nodes)
 
 
     #TODO: find good relay nodes.
     def relay(self, destination_uuid, message):
-        relay = OANMessageRelay.create(self._my_node.uuid, destination_uuid, message)
+        relay = OANMessageRelay.create(self._my_node.oan_id, destination_uuid, message)
         for relay_node in self._nodes.values():
-            if relay_node.uuid != self._my_node.uuid:
+            if relay_node.oan_id != self._my_node.oan_id:
                 if not relay_node.blocked:
-                    log.info("Relay %s to [%s] throw [%s]" % (message.__class__.__name__, destination_uuid, relay_node.uuid))
-                    self.send(relay_node.uuid, relay)
+                    log.info("Relay %s to [%s] throw [%s]" % (message.__class__.__name__, destination_uuid, relay_node.oan_id))
+                    self.send(relay_node.oan_id, relay)
                     return
 
         log.info("OANNodeManager:Error can not relay message no relay node found")

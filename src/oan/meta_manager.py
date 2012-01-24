@@ -54,9 +54,9 @@ class OANMetaManager():
     #     for res in self.resourceRoot.resources:
     #         if res.heartbeat.is_expired()
     #             for node in res.nodeuuids:
-    #                 if node.uuid not in nodes:
-    #                     nodes[node.uuid] = []
-    #                 nodes[node.uuid].append(res.uuid)
+    #                 if node.oan_id not in nodes:
+    #                     nodes[node.oan_id] = []
+    #                 nodes[node.oan_id].append(res.oan_id)
 
     #     for node_uuids, resUuids in nodes.iteritems():
     #         resList = self.networkNodeManager.get_resource(node_uuids, resUuids)

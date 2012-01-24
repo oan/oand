@@ -14,7 +14,7 @@ __status__ = "Test"
 from test.test_case import OANTestCase
 
 import oan
-from oan import loop, database, dispatcher, node_manager
+from oan import loop, database, dispatch, node_manager
 
 from oan.node_manager import OANNodeManager
 from oan.meta_manager import OANMetaManager

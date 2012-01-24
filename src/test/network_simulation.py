@@ -29,7 +29,7 @@ def start_test_network():
         else:
             print "Start node [%s][%s] on port %s." % (config.node_name, config.node_uuid, config.node_port)
 
-        OANDaemon(config).start()
+        OANDaemon(config).restart()
 
 def stop_test_network():
     global configs
@@ -66,7 +66,7 @@ def _create_open_config(num_of_nodes):
             )
 
         configs[x].pid_file = "/tmp/oand-test-%d.pid" % x
-        configs[x].log_file = "/tmp/oand-test-network.log"
+        configs[x].log_file = "/tmp/oand-test-%d.log" % x
 
 
 def _create_blocked_config(num_of_nodes):
@@ -86,10 +86,4 @@ def _create_blocked_config(num_of_nodes):
         )
 
         configs[x].pid_file = "/tmp/oand-test-%d.pid" % x
-        configs[x].log_file = "/tmp/oand-test-network.log"
-
-
-
-
-
-
+        configs[x].log_file = "/tmp/oand-test-%d.log" % x

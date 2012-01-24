@@ -14,34 +14,34 @@ __status__ = "Test"
 import os
 import sys
 
-_loop = None
+_network = None
 _database = None
-_dispatcher = None
+_dispatch = None
 _data_manager = None
 _meta_manager = None
 _node_manager = None
 
-#TODO: We should make app global and use app().dispatcher instead of dispatcher()
-def set_managers(loop, database, dispatcher, data, meta, node):
+#TODO: We should make app global and use app().dispatch instead of dispatch()
+def set_managers(network, database, dispatch, data, meta, node):
     '''
     Set all global managers that can be used from anywhere in the app.
 
     '''
-    global _loop, _database, _dispatcher, _data_manager, _meta_manager, _node_manager
+    global _network, _database, _dispatch, _data_manager, _meta_manager, _node_manager
 
-    _loop = loop
+    _network = network
     _database = database
-    _dispatcher = dispatcher
+    _dispatch = dispatch
     _data_manager = data
     _meta_manager = meta
     _node_manager = node
     validate()
 
-def loop():
-    return _loop
+def network():
+    return _network
 
-def dispatcher():
-    return _dispatcher
+def dispatch():
+    return _dispatch
 
 def database():
     return _database
@@ -60,14 +60,14 @@ def validate():
     Validate that all managers are set and have valid data.
 
     '''
-    if (not _loop):
-        raise Exception("loop is not valid.")
+    if (not _network):
+        raise Exception("network is not valid.")
 
     if (not _database):
         raise Exception("database is not valid.")
 
-    if (not _dispatcher):
-        raise Exception("dispatcher is not valid.")
+    if (not _dispatch):
+        raise Exception("dispatch is not valid.")
 
     if (not _data_manager):
         raise Exception("data_manager is not valid.")

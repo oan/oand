@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-Test cases for oan.network.py
+Test communication (network, bridges, server etc.) between nodes.
 
 '''
 
@@ -11,209 +11,276 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from test.test_case import OANTestCase
-
-from datetime import datetime, timedelta
-
-import unittest
 import socket
-import timeit
-import time
-import oan
-import uuid
-import threading
-from threading import Thread, Lock
-from network.oan_network import OANNetwork, OANTimer, OANNetworkMessageListen, OANNetworkMessageConnectOan
+from uuid import UUID
 from Queue import Queue
 
-from oan.util import log
+import oan
+from oan import dispatch, node_mgr
+from oan.dispatcher.message import OANMessageSendToNode, OANMessagePing
+from oan.application import OANApplication
+from oan.config import OANConfig
 
-# this would be a manager or statistic object, should be locked
-class OANTestCounter:
-    _value = 0
-    _lock = Lock()
-
-    def inc_counter(self, v):
-        with self._lock:
-          t = self._value
-          #time.sleep(0.01)
-          self._value = t + v
-          #print "Inc: %s" % self._value
-
-    def dec_counter(self, v):
-        with self._lock:
-          t = self._value
-          #time.sleep(0.01)
-          self._value = t - v
-          #print "Dec: %s" % self._value
-
-    def dump(self):
-        with self._lock:
-            log.info("Counter: %s" % self._value)
-
-    #return primitive or tuple, NOT lists or other mutable data, or object that is return is thread safe.
-    def get_value(self):
-        with self._lock:
-            return self._value
+from test.test_case import OANTestCase
 
 
-class OANTestMessageInc:
-    _value = None
-
-    def __init__(self, value):
-        self._value=value
-
-    def execute(self):
-        counter().inc_counter(self._value)
-
-class OANTestMessageDec:
-    _value = None
-
-    def __init__(self, value):
-        self._value=value
-
-    def execute(self):
-        counter().dec_counter(self._value)
-
-
-class OANNetworkMessageException:
-    exception = None
-
-    @classmethod
-    def create(cls, exception):
-        obj = cls()
-        obj.exception = exception
-        return obj
-
-    def execute(self, server):
-        raise self.exception
-
-
-_counter = None
-def counter():
-    return _counter
-
-_network = None
-def network():
-    return _network
-
+# test and see what happends if n1 connects to n2 at same time as n2 connect to n1.
 class TestOANNetwork(OANTestCase):
+    queue = None
+    app = None
+
 
     def setUp(self):
-        global _counter, _network
+        self.queue = Queue()
 
-        _counter = OANTestCounter()
-        _network = OANNetwork(None)
+        self.app = OANApplication(OANConfig(
+            '00000000-0000-0000-8000-000000000000',
+            "TestOAN",
+            "localhost",
+            str(8000)
+        ))
+
+        self.app.run()
+        self.create_node()
+        self.create_watcher()
 
     def tearDown(self):
-        global _counter, _network
-
-        network().shutdown()
-        _network = None
-        _counter = None
-
-    '''
-    test_listen
-    '''
-    def test_listen(self):
-        port = 8010
-
-        host = network().get(OANNetworkMessageListen.create(port))
-        connected = False
-        for i in xrange(1,10):
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            err = s.connect_ex((host, 8010))
-            if err == 0:
-                connected = True
-                break
-
-            time.sleep(1)
-
-        self.assertTrue(connected)
+        self.app.stop()
+        self.queue = None
 
 
-
-    '''
-    test_connect_oan
-    '''
-    message_bff_connect = None
-    timer_connect = None
-
-    def my_bridge_added(self, bridge):
-        log.info("got in my_bridge_added")
-        if bridge.node.host == message_bff_connect.host and bridge.node.port == message_bff_connect.port:
-            log.info("connected in my_bridge_added")
-            network().remove_timer(self.timer_connect)
-
-    def my_timer_connect(self):
-        network().execute(self.message_bff_connect)
-
-    def test_connect_oan(self):
-        self.timer_connect = OANTimer(2, self.my_timer_connect)
-        self.message_bff_connect = OANNetworkMessageConnectOan.create('localhost', 4000)
-
-        network().on_bridge_added(self.my_bridge_added)
-        network().add_timer(self.timer_connect)
-
-        while True:
-            time.sleep(10)
+    def get_local_host(self):
+        """
+        Should be moved to OANTestCase or a util module to use in all unittest.
+        """
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        host = s.getsockname()[0]
+        s.close()
+        return host
 
 
-    '''
-    test_error
-    '''
-    got_error_queue = None
-
-    def got_error(self, message, ex):
-        self.got_error_queue.put(ex)
-
-    def test_error(self):
-        self.got_error_queue = Queue()
-
-        #Test exception with execute method and on_error event
-        ex = Exception("my test exception")
-        network().on_error.append(self.got_error)
-        network().execute(OANNetworkMessageException.create(ex))
-        self.assertEqual(self.got_error_queue.get(), ex)
-
-        #Test exception with get method
-        #maybe write our own assertException and assertNotException in oanunittest
-        #self.assertRaises(ex, network().get, OANNetworkMessageException.create(ex))
-        try:
-            network().get(OANNetworkMessageException.create(ex))
-            self.assertFalse(True)
-        except Exception, e:
-            self.assertTrue(True)
-
-    """
-
-    '''
-
-    '''
-    got_message_queue = None
+    def create_node(self):
+        """Create known nodes (instead of loading from db"""
+        node_mgr().create_node(UUID('00000000-0000-0000-4000-000000000000'), self.get_local_host(), 4000, False)
+        node_mgr().create_node(UUID('00000000-0000-0000-4001-000000000000'), self.get_local_host(), 4001, False)
+        node_mgr().create_node(UUID('00000000-0000-0000-4002-000000000000'), self.get_local_host(), 4002, False)
+        node_mgr().create_node(UUID('00000000-0000-0000-4003-000000000000'), self.get_local_host(), 4003, False)
 
     def got_message(self, message):
-        self.got_message_queue.put(message)
-
-    def test_events(self):
-        self.got_message_queue = Queue()
-
-        m = OANTestStatic
-        dispatcher().on_message.append(self.got_message)
-        dispatcher().execute(m)
-
-        self.assertEqual(got_message_queue.get(), m)
-        dispatcher().on_message.remove(self.got_message)
+        if isinstance(message, OANMessagePing):
+            if message.ping_counter == 1:
+                self.queue.put(message)
 
 
-    '''
 
-    '''
-    def test_threads(self):
-        # generate a lot of inc and dec message that will be executed, sum should be zero
-        network().generate()
-        # stop the dispatcher and wait for threads to finish
-        dispatcher().stop()
-        self.assertEqual(counter().get_value(), 0)
+    def create_watcher(self):
+        dispatch().on_message.append(self.got_message)
 
-    """
+
+
+    def test_message_ping(self):
+        self.assertTrue(True)
+
+        # Send a ping between all nodes 5x10 times.
+        for n in xrange(4000, 4001):
+            for i in xrange(5):
+                dispatch().execute(OANMessageSendToNode.create(
+                    UUID('00000000-0000-0000-%s-000000000000' % n),
+                    OANMessagePing.create( "N%dP%d" % (n, i), 10 )
+                ))
+
+        counter = 0
+        for i in xrange(20):
+            message = self.queue.get()
+            counter += 1
+            print counter
+
+        self.assertEqual(counter, 20)  # 4 * 5
+
+
+
+# #!/usr/bin/env python
+# '''
+# RPC server handling request from oan clients.
+
+# '''
+
+# __author__ = "martin.palmer.develop@gmail.com"
+# __copyright__ = "Copyright 2011, Amivono AB"
+# __maintainer__ = "martin.palmer.develop@gmail.com"
+# __license__ = "We pwn it all."
+# __version__ = "0.1"
+# __status__ = "Test"
+
+# import asyncore
+# import socket
+# import time
+# import datetime
+
+# from test.test_case import OANTestCase
+# from oan.event import OANEvent
+# from collections import deque
+
+# import asyncore, asynchat
+# import os, socket, string
+
+# from datetime import datetime
+
+
+# class OANBridge(asyncore.dispatcher):
+
+#     on_receive_line = None
+#     on_send_line = None
+
+#     def __init__(self, addr, sock = None):
+#         asyncore.dispatcher.__init__(self, sock)
+
+#     def handle_connect(self):
+#         pass
+
+#     def handle_read(self):
+#         pass
+
+#     def writable(self):
+#         pass
+
+#     def handle_write(self):
+#         pass
+
+#     def handle_close(self):
+#         pass
+
+#     def handle_error(self):
+#         pass
+
+#     def shutdown(self):
+#         pass
+
+
+
+# class OANListen(asyncore.dispatcher):
+
+
+#     def __init__(self, host, port):
+#         asyncore.dispatcher.__init__(self)
+
+#     def handle_accept(self):
+#         server.add_bridge
+#         pass
+
+#     def handle_close(self):
+#         pass
+
+#     def handle_error(self):
+#         server.on_error()
+#         pass
+
+#     def shutdown(self):
+#         pass
+
+
+# class OANServer:
+
+#     # skall skicka in som map till asyncore.
+#     bridges = {}
+
+#     def add_bridge(self, bridge):
+#         self.bridges[bridge.node_oan_id] = bridge
+
+#     def connect(host, port):
+#         bridge = OANBridge(self, host, port)
+
+#     def send(node, message):
+#         if (node not connected)
+
+
+#         self.bridges[node_oan_id].send(message)
+
+
+
+# class OANNetworkWorker(Thread):
+#     _server = None
+#     _passthru = None
+
+#     def __init__(self, passthru):
+#         self._passthru = passthru
+
+#     def run(self):
+#         self._server = OANServer()
+#         while(true):
+#             message = _passthru.get()
+#             message.execute(server)
+
+#         pass
+
+# class TestOANServer(OANTestCase):
+#     def test_xxx(self):
+
+
+# class TestOANNetwork(OANTestCase):
+#     ping_queue = Queue()
+
+
+
+#     def setup(self):
+#         network = OANNetwork()
+#         network.on_receive.append(ping_received)
+
+#         message_listen = OANNetworkMessageListen.create(1337))
+#         network.execute(message_listen)
+
+
+#     def teardown(self):
+#         network.shutdown()
+
+
+
+#     def ping_received(self, message):
+#         ping_queue.put(message)
+
+
+#     def test_send(self):
+#         message_ping = MessagePing.create("unittest-ping", ping_counter = 5):
+
+#         oan_id = UUID("00000000-0000-cccc-0000-000000000000")
+#         node = OANNetworkNode.create(oan_id, "localhost", 1338, False):
+
+#         node.send(message_ping)
+
+#         if node.is_disconnected():
+#             message_connect = NetworksMessageConnectToNode.create(node))
+#             network.execute(message_connect)
+
+#         message_ping_received = ping_queue.get()
+
+#         self.assertEqual(message_ping_received.__class__, MessagePing)
+#         self.assertEqual(message_ping_received.node_oan_id, oan_id)
+#         self.assertEqual(message_ping_received.ping_id, "unittest-ping")
+#         self.assertEqual(message_ping_received.ping_counter, 4)
+
+
+#     # def test_ping(self):
+#     #     message_ping = MessagePing.create("unittest-ping", ping_counter = 5):
+#     #     oan_id = UUID("00000000-0000-cccc-0000-000000000000")
+#     #     node_mgr().send(oan_id, message_ping)
+
+#     #     message_ping_received = ping_queue.get()
+
+#     #     self.assertEqual(message_ping_received.__class__, MessagePing)
+#     #     self.assertEqual(message_ping_received.node_oan_id, oan_id)
+#     #     self.assertEqual(message_ping_received.ping_id, "unittest-ping")
+#     #     self.assertEqual(message_ping_received.ping_counter, 4)
+
+
+
+
+
+
+
+
+
+
+
+
+

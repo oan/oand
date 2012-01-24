@@ -46,6 +46,8 @@ def setup(syslog_level, stderr_level, log_level, log_file_name):
     _setup_syslog(my_logger, syslog_level)
     _setup_stderr(my_logger, stderr_level)
     _setup_file_log(my_logger, log_level, log_file_name)
+    info("-----------------------------------------")
+    info("Start logging")
 
 def trace(msg, *args, **kwargs):
     """

@@ -18,7 +18,7 @@ from datetime import datetime, timedelta
 import unittest
 import time
 import oan
-import uuid
+import oan_id
 import json
 
 from oan import node_manager
@@ -37,41 +37,41 @@ from oan.database import OANDatabase
 from bson.binary import Binary, UUIDLegacy
 
 from bson.binary import Binary, UUIDLegacy
->>> id = uuid.uuid4()
->>> db.test.insert({'uuid': Binary(id.bytes, 3)})
+>>> id = oan_id.uuid4()
+>>> db.test.insert({'oan_id': Binary(id.bytes, 3)})
 ObjectId('...')
->>> db.test.find({'uuid': id}).count()
+>>> db.test.find({'oan_id': id}).count()
 0
->>> db.test.find({'uuid': UUIDLegacy(id)}).count()
+>>> db.test.find({'oan_id': UUIDLegacy(id)}).count()
 1
->>> db.test.find({'uuid': UUIDLegacy(id)})[0]['uuid']
+>>> db.test.find({'oan_id': UUIDLegacy(id)})[0]['oan_id']
 UUID('...')
 >>>
 >>> # Convert from subtype 3 to subtype 4
->>> doc = db.test.find_one({'uuid': UUIDLegacy(id)})
+>>> doc = db.test.find_one({'oan_id': UUIDLegacy(id)})
 >>> db.test.save(doc)
 ObjectId('...')
->>> db.test.find({'uuid': UUIDLegacy(id)}).count()
+>>> db.test.find({'oan_id': UUIDLegacy(id)}).count()
 0
->>> db.test.find({'uuid': {'$in': [UUIDLegacy(id), id]}}).count()
+>>> db.test.find({'oan_id': {'$in': [UUIDLegacy(id), id]}}).count()
 1
->>> db.test.find_one({'uuid': id})['uuid']
+>>> db.test.find_one({'oan_id': id})['oan_id']
 '''
 
 
 
 '''
 class MyTestNode():
-    uuid = None
+    oan_id = None
     host = None
     port = None
 
-    def __init__(self, uuid):
-        self.uuid = uuid
+    def __init__(self, oan_id):
+        self.oan_id = oan_id
 
     @classmethod
-    def create(cls, uuid, host, port):
-        obj = cls(uuid)
+    def create(cls, oan_id, host, port):
+        obj = cls(oan_id)
         obj.host, obj.port = host, port
         return obj
 
@@ -82,7 +82,7 @@ class MyTestNode():
         return(self.host, self.port)
 
     def __str__(self):
-        return 'MyTestNode(%s, %s, %s)' % (self.uuid, self.host, self.port)
+        return 'MyTestNode(%s, %s, %s)' % (self.oan_id, self.host, self.port)
 
 class TestOANStatistic(OANTestCase):
     queue = None
@@ -98,7 +98,7 @@ class TestOANStatistic(OANTestCase):
 
         l = []
         for i in xrange(10000):
-            l.append(MyTestNode.create(uuid.uuid4(), 'localhost', i))
+            l.append(MyTestNode.create(oan_id.uuid4(), 'localhost', i))
 
         database = OANDatabase()
         database.insert_all(l)
@@ -120,8 +120,8 @@ class TestOANStatistic(OANTestCase):
 
         collection.drop()
 
-        n1 = uuid.UUID('fa587853-4511-4a11-ba23-e56a3cc7ead2')
-        n2 = uuid.UUID('fa587853-4511-4a11-ba23-e56a3cc7ead2')
+        n1 = oan_id.UUID('fa587853-4511-4a11-ba23-e56a3cc7ead2')
+        n2 = oan_id.UUID('fa587853-4511-4a11-ba23-e56a3cc7ead2')
 
         post = {"_id":  Binary(n1.bytes, 3),
                 "text": "My first blog posssssdfasdfsssssst!",

@@ -122,26 +122,26 @@ class OANFileName(object):
 
 class OANConfig(object):
     # Config file
-    config = OANFileName(oan.ETC_DIR, "oand.cfg")
+    config = None
 
     # Name and path of the pidfile
-    pid_file = OANFileName(oan.VAR_DIR, "run/oand.pid")
+    pid_file = None
 
     # log-level of log messages that should be sent to syslog.
     # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
-    syslog_level = OANLogLevel("NONE")
+    syslog_level = None
 
     # log-level of log messages that should be sent to stderr.
     # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
-    stderr_level = OANLogLevel("NONE")
+    stderr_level = None
 
     # log-level of log messages that should be sent to log file.
     # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
-    log_level = OANLogLevel("WARNING")
+    log_level = None
 
     # Defines in which file, logs should be stored to if log-level is higher
     # than none.
-    log_file = OANFileName(oan.LOG_DIR, "oand.log")
+    log_file = None
 
     # This nodes unique id
     node_uuid = None
@@ -174,6 +174,13 @@ class OANConfig(object):
         Createing a Config object.
 
         '''
+        self.config = OANFileName(oan.ETC_DIR, "oand.cfg")
+        self.pid_file = OANFileName(oan.VAR_DIR, "run/oand.pid")
+        self.syslog_level = 100 # OANLogLevel("NONE")
+        self.stderr_level = 100 # OANLogLevel("NONE")
+        self.log_level = 0 # OANLogLevel("DEBUG")
+        self.log_file = OANFileName(oan.LOG_DIR, "oand.log")
+
         self.node_uuid = node_uuid
 
         self.node_name = node_name

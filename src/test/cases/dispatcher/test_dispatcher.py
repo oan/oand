@@ -12,7 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import time
-import uuid
+import oan_id
 from threading import Thread, Lock
 from Queue import Queue
 
@@ -25,7 +25,7 @@ def counter():
     return _counter
 
 _dispatcher = None
-def dispatcher():
+def dispatch():
     return _dispatcher
 
 class TestOANMessageDispatcher(OANTestCase):
@@ -39,14 +39,14 @@ class TestOANMessageDispatcher(OANTestCase):
     def tearDown(self):
         global _dispatcher, _counter
 
-        dispatcher().shutdown()
+        dispatch().shutdown()
         _counter = None
         _dispatcher = None
 
     #
 
     def test_execute(self):
-        dispatcher().execute(OANTestMessageInc(1))
+        dispatch().execute(OANTestMessageInc(1))
         self.assertTrueWait(lambda : counter().get_value() == 1)
 
     #
@@ -58,7 +58,7 @@ class TestOANMessageDispatcher(OANTestCase):
 
     def test_select(self):
         i = 0
-        for s in dispatcher().select(self.OANTestMessageSelect()):
+        for s in dispatch().select(self.OANTestMessageSelect()):
             self.assertEqual(s, "My select [%d]" % i)
             i += 1
 
@@ -69,7 +69,7 @@ class TestOANMessageDispatcher(OANTestCase):
             yield "My return value"
 
     def test_get(self):
-        value = dispatcher().get(self.OANTestMessageReturn())
+        value = dispatch().get(self.OANTestMessageReturn())
         self.assertEqual(value, "My return value")
 
     #
@@ -87,11 +87,11 @@ class TestOANMessageDispatcher(OANTestCase):
     def test_events(self):
         self.got_message_queue = Queue()
 
-        dispatcher().on_message.append(self.got_message)
-        dispatcher().execute(self.OANMessageStatic)
+        dispatch().on_message.append(self.got_message)
+        dispatch().execute(self.OANMessageStatic)
 
         self.assertEqual(self.got_message_queue.get(), self.OANMessageStatic)
-        dispatcher().on_message.remove(self.got_message)
+        dispatch().on_message.remove(self.got_message)
 
     #
 
@@ -108,7 +108,7 @@ class TestOANMessageDispatcher(OANTestCase):
         def run(self):
             for i in xrange(self.number):
                 #print "Generated %s on %s:" % (self.cls.__name__, self.name)
-                dispatcher().execute(self.cls(1))
+                dispatch().execute(self.cls(1))
 
             log.info("Generated done %s on %s:" % (self.cls.__name__, self.name))
 
@@ -126,7 +126,7 @@ class TestOANMessageDispatcher(OANTestCase):
             g.join()
 
         # Stop the dispatcher and wait for threads to finish
-        dispatcher().shutdown()
+        dispatch().shutdown()
 
         self.assertEqual(counter().get_value(), 0)
 
@@ -154,13 +154,13 @@ class TestOANMessageDispatcher(OANTestCase):
 
         #Test exception with execute method and on_error event
         ex = Exception("my test exception")
-        dispatcher().on_error.append(self.got_error)
-        dispatcher().execute(self.OANTestMessageException.create(ex))
+        dispatch().on_error.append(self.got_error)
+        dispatch().execute(self.OANTestMessageException.create(ex))
         self.assertEqual(self.got_error_queue.get(), ex)
 
         #Test exception with get method
         with self.assertRaises(Exception):
-            dispatcher().get(self.OANTestMessageException.create(ex))
+            dispatch().get(self.OANTestMessageException.create(ex))
 
 class OANTestCounter:
     """
