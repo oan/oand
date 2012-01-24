@@ -21,6 +21,7 @@ import uuid
 import json
 
 import oan
+from oan.util import log
 from oan.passthru import OANPassthru
 
 class OANDatabaseMessageExecute:
@@ -45,7 +46,8 @@ class OANDatabaseMessageExecute:
         else:
             cursor.execute(self._sql, self._arg)
 
-
+    def __str__(self):
+        return self._sql
 
 class OANDatabaseMessageSelect:
 
@@ -69,7 +71,8 @@ class OANDatabaseMessageSelect:
         for rec in cursor:
             yield rec
 
-
+    def __str__(self):
+        return self._sql
 
 class OANDatabaseMessageCreateTable:
 
@@ -117,11 +120,11 @@ class OANDatabaseWorker(Thread):
 
     def run(self):
         q = self._pass
-        print "Connecting to %s" % self._db_name
+        log.info("Connecting to %s" % self._db_name)
         cnx = sqlite3.connect(self._db_name)
         cursor = cnx.cursor()
 
-        print "Start database worker %s" % self.name
+        log.info("Start database worker %s" % self.name)
 
         while True:
             (message, back) = q.get()
@@ -140,7 +143,7 @@ class OANDatabaseWorker(Thread):
 
 
             elapsed = (time.time() - start)
-            print "SQL:%f sec" % elapsed
+            log.debug("SQL: %f sec - %s" % (elapsed, message))
 
             if isinstance(message, OANDatabaseMessageShutdown):
                 # Put back shutdown message for other worker threads
@@ -149,8 +152,7 @@ class OANDatabaseWorker(Thread):
 
         cursor.close()
         cnx.close()
-        print "Stop database worker %s" % self.name
-
+        log.info("Stop database worker %s" % self.name)
 
 class OANDatabase:
 

@@ -77,10 +77,3 @@ def validate():
 
     if (not _node_manager):
         raise Exception("node_manager is not valid.")
-
-if __name__ == '__main__':
-    print "__file__: " + __file__
-    print "BASE_DIR: " + BASE_DIR
-    print "VAR_DIR: "  + VAR_DIR
-    print "ETC_DIR: "  + ETC_DIR
-    print "LOG_DIR: "  + LOG_DIR

@@ -43,16 +43,6 @@ class OANArgumentParser(ArgumentParser):
 
     def add_arguments(self):
         self.add_argument(
-            "-v", "--verbose", action="store_const", const=2, dest="verbose",
-            help="Show more output."
-        )
-
-        self.add_argument(
-            "-q", "--quiet", action="store_const", const=0, dest="verbose",
-            help="show no output."
-        )
-
-        self.add_argument(
             "--server-name", metavar="NAME",
             help="the server name."
         )
@@ -91,6 +81,21 @@ class OANArgumentParser(ArgumentParser):
         self.add_argument(
             "--pid-file", metavar="FILE",
             help="the pid-file path."
+        )
+
+        self.add_argument(
+            "--syslog-level", metavar="TYPE",
+            help="log-level of log messages that should be sent to syslog."
+        )
+
+        self.add_argument(
+            "--stderr-level", metavar="TYPE",
+            help="log-level of log messages that should be sent to stderr."
+        )
+
+        self.add_argument(
+            "--log-level", metavar="TYPE",
+            help="log-level of log messages that should be sent to log file."
         )
 
         self.add_argument(

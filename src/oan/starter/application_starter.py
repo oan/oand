@@ -14,8 +14,9 @@ __status__ = "Test"
 import sys
 
 from oan.config import OANConfig
+from oan.util import log
+from oan.starter.shell import OANShell
 from argument_parser import OANArgumentParser
-from shell import OANShell
 
 class OANApplicationStarter():
     """Handling cmdline positional and optional arguments to control the oan-deamon."""
@@ -30,8 +31,16 @@ class OANApplicationStarter():
         command = options.command
         del options.command
 
+        config = self.get_config(options)
+        log.setup(
+            config.syslog_level, config.stderr_level,
+            config.log_level, config.log_file
+        )
+        config.log_options()
+
         # Handle positional arguments through the OANShell.
-        shell = OANShell(self.get_config(options))
+        shell = OANShell(config)
+
         if len(sys.argv) > 1:
             command = command[0]
             if command in ["start", "stop", "restart", "status", "help"]:
@@ -46,5 +55,7 @@ class OANApplicationStarter():
         config = OANConfig()
         config.set_from_file(options.config)
         config.set_from_cmd_line(options)
-        config.print_options()
         return config
+
+
+

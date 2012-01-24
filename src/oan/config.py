@@ -18,21 +18,130 @@ __license__ = "We pwn it all."
 __version__ = "0.2"
 __status__ = "Test"
 
-import oan
+import os.path
 import ConfigParser
 
-class OANConfig(object):
-    # The output verbose level 0-2
-    verbose = 2 # TODO: During development it's set to 2/debug mode.
+import oan
+from oan.util import log
 
+class OANLogLevel(object):
+    """
+    Represents a log_level used by oan.log or python logging.
+
+    Can be set with both string or integer representation of a log_level number.
+    Can also be any of the following alphanumerics names NONE, DEBUG, INFO,
+    WARNING, ERROR, CRITICAL.
+
+    NOTE: Classes using this class need to be of type object.
+
+    Example:
+        >>> class Config(object):
+        >>>     log_level = OANLogLevel("Warning")
+        >>> config = Config()
+        >>> config.log_level = "DEBUG"
+        >>> config.log_level = 20
+        >>> print config.log_level
+        20
+
+    """
+    value = None
+
+    def __init__(self, value):
+        self.__set__(None, value)
+
+    def __get__(self, obj, objtype):
+        return self.value
+
+    def __set__(self, obj, value):
+        self.value = self._convert_to_numeric_log_level(value)
+
+    def _convert_to_numeric_log_level(self, log_level):
+        """
+        Convert log_level to integer representation of log_level.
+
+        """
+        import logging
+
+        str_log_level = str(log_level)
+        if str_log_level.isdigit():
+            return int(log_level)
+        else:
+            log_level = log_level.upper()
+            self._validate(log_level)
+            return getattr(logging, log_level, 100)
+
+    def _validate(self, value):
+        if value not in ("NONE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+            raise ValueError
+
+class OANFileName(object):
+    """
+    Represents a filename that can use a default directory.
+
+    Validates that the folder of the file exists.
+
+    NOTE: Classes using this class need to be of type object.
+
+    Example:
+        >>> class Config
+        >>>     file_name1 = OANFileName("/tmp/", "file.txt")
+        >>>     file_name2 = OANFileName("/tmp/", "/file.txt")
+        >>> config = Config()
+        >>> print config.file_name1
+        /tmp/file.txt
+        >>> print config.file_name2
+        /file.txt
+
+    """
+    default_directory = None
+    path = None
+
+    def __init__(self, default_directory, path):
+        if default_directory[-1] != "/":
+            raise Exception("Directory must end with / (%s)" % default_directory)
+
+        self.default_directory = default_directory
+        self.__set__(None, path)
+
+    def __get__(self, obj, objtype):
+        return self.path
+
+    def __set__(self, obj, path):
+        if path[0] == "/":
+            self.path = path
+        else:
+            self.path = self.default_directory + path
+
+        self.validate()
+
+    def validate(self):
+        """Validate that folder for path exists"""
+        directory = self.path.rpartition("/")[0] + "/"
+        if not os.path.exists(directory):
+            raise Exception("Directory %s doesn't exist." % directory)
+
+class OANConfig(object):
     # Config file
-    config = oan.ETC_DIR + "oand.cfg"
+    config = OANFileName(oan.ETC_DIR, "oand.cfg")
 
     # Name and path of the pidfile
-    pid_file = oan.VAR_DIR + "run/oand.pid"
+    pid_file = OANFileName(oan.VAR_DIR, "run/oand.pid")
 
-    # Name and path of the logfile.
-    log_file = oan.LOG_DIR + "oand.log"
+    # log-level of log messages that should be sent to syslog.
+    # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
+    syslog_level = OANLogLevel("NONE")
+
+    # log-level of log messages that should be sent to stderr.
+    # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
+    stderr_level = OANLogLevel("NONE")
+
+    # log-level of log messages that should be sent to log file.
+    # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
+    log_level = OANLogLevel("WARNING")
+
+    # Defines in which file, logs should be stored to if log-level is higher
+    # than none.
+    log_file = OANFileName(oan.LOG_DIR, "oand.log")
 
     # This nodes unique id
     node_uuid = None
@@ -103,14 +212,10 @@ class OANConfig(object):
             raise Exception(
                 "Invalid config with key: " + key + " value: " + value)
 
-    def print_options(self):
-        if self.verbose == 2:
-            print
-            print "-- Begin ------------------"
-            print "#All configuration attributes"
-            print "[oand]"
-            for key in self.__dict__.keys():
-                value = getattr(self, key)
-                print str(key) + ": " + str(value)
-            print "-- End --------------------"
-            print
+    def log_options(self):
+        log.debug("-------- ALL CONFIG OPTIONS ---------")
+        log.debug("[oand]")
+        for key in self.__dict__.keys():
+            value = getattr(self, key)
+            log.debug("\t%s: %s" % (key, value))
+        log.debug("-------------------------------------")

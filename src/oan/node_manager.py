@@ -20,6 +20,7 @@ import uuid
 from Queue import Queue
 
 from oan import loop, database
+from oan.util import log
 from oan.heartbeat import OANHeartbeat
 from oan.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay, OANMessagePing
 from oan.statistic import OANNetworkNodeStatistic
@@ -98,7 +99,7 @@ class OANNodeManager():
     # load all nodes in to memory, later on load only the best 1000 nodes.
     def load(self):
         for node in database().select_all(OANNetworkNode):
-            print node
+            log.info(node)
             self._nodes[node.uuid] = node
 
         if uuid.UUID(self.config.node_uuid) in self._nodes:
@@ -107,7 +108,7 @@ class OANNodeManager():
             my_node.port = int(self.config.node_port)
             my_node.blocked = self.config.blocked
 
-            print my_node
+            log.info(my_node)
         else:
             my_node = self.create_node(
                 uuid.UUID(self.config.node_uuid),
@@ -124,10 +125,10 @@ class OANNodeManager():
         database().replace_all(self._nodes.values())
 
     def dump(self):
-        print "------ dump begin ------"
+        log.info("------ dump begin ------")
         for n in self._nodes.values():
-            print n
-        print "------ dump end ------"
+            log.info("\t %s" % n)
+        log.info("------ dump end ------")
 
     def create_node(self, uuid, host, port, blocked):
         #if not isinstance(uuid, UUID):
@@ -148,7 +149,7 @@ class OANNodeManager():
         if self._my_node is None:
             self._my_node = node
         else:
-            print "OANNodeManager:Error my node is already set"
+            log.info("OANNodeManager:Error my node is already set")
 
     def get_my_node(self):
         #with self._lock:
@@ -201,7 +202,7 @@ class OANNodeManager():
                     node.out_queue.put(message, False)
                     self._my_node.statistic.out_queue_inc()
                 except:
-                    print "Queue full cleaning up"
+                    log.info("Queue full cleaning up")
                     save_messages = []
                     while True:
                         try:
@@ -209,9 +210,9 @@ class OANNodeManager():
                             if message_on_queue.ttl:
                                 save_message.append(message_on_queue)
                             else:
-                                print "remove %s" % message_on_queue
+                                log.info("remove %s" % message_on_queue)
                         except:
-                            print "empty cleaning up"
+                            log.info("empty cleaning up")
                             break
 
                     #TODO check if all save_messages culd be put back on queue.
@@ -223,8 +224,8 @@ class OANNodeManager():
                 if node.state == OANNetworkNodeState.disconnected:
                     loop().connect_to_node(node)
         else:
-            print "OANNodeManager:Error node is missing %s" % uuid
-            print self._nodes
+            log.info("OANNodeManager:Error node is missing %s" % uuid)
+            log.info(self._nodes)
 
 
     #TODO: find good relay nodes.
@@ -233,11 +234,11 @@ class OANNodeManager():
         for relay_node in self._nodes.values():
             if relay_node.uuid != self._my_node.uuid:
                 if not relay_node.blocked:
-                    print "Relay %s to [%s] throw [%s]" % (message.__class__.__name__, destination_uuid, relay_node.uuid)
+                    log.info("Relay %s to [%s] throw [%s]" % (message.__class__.__name__, destination_uuid, relay_node.uuid))
                     self.send(relay_node.uuid, relay)
                     return
 
-        print "OANNodeManager:Error can not relay message no relay node found"
+        log.info("OANNodeManager:Error can not relay message no relay node found")
 
     def shutdown(self):
         pass

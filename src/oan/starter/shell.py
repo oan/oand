@@ -111,7 +111,7 @@ class OANShell(cmd.Cmd):
         except Exception as e:
             print e
             print "Unexpected error:", sys.exc_info()[0]
-            traceback.print_tb(sys.exc_info()[2])
+            log.debug_tb("Unexpected error:", sys.exc_info()[0])
             return self.cmdloop("")
 
     #
@@ -236,7 +236,8 @@ class OANShell(cmd.Cmd):
         print DOC_RESTART
 
     def do_restart(self, argument):
-        OANDaemon(self._config).restart()
+        self.do_stop("")
+        self.do_start("")
 
     #
     # Command: status

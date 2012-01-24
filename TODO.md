@@ -28,27 +28,17 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
+* Test all unit tests.
+
 * Unittest and nicing up passthrou.
 
-* Daniel - We have still problem with paths if I start up in src directory
-  or oand directory. In src path "Log path" will raise a exception when i
-  run cmd start.
-
-* Daniel - Create logging system.
-  Use --loglevel instead of --verbose???
-
-* A simple http shell, where you can see status of oan.
-
-* turn on logging for a unit test or a logfile for each unittest.
+* Turn on logging for a unit test or a logfile for each unittest.
 
 * Martin - Go through all network interfaces. Try to connect to OAN with each of them.
   The first internal ip/interface that can connect, will be used to bind the
   server. The external ip will be returned from OAN and will be used in the
   node-list.
   https://github.com/systemconsole/syco/blob/master/bin/common/net.py
-
-* Daniel - test-all  -v -p *heartbeat* -n -t
-  Only display trace output for unit test files.
 
 * Daniel - Check doctest
   http://docs.python.org/library/doctest.html
@@ -87,8 +77,13 @@ well written with unit test and comments.
 * An invalid command (send_ping) should print the help text
   (OANShell.help_send_ping) (all cmds).
 
+* Daniel - test-all  -v -p *heartbeat* -n -t
+  Only display trace output for unit test files.
+
 VERSION 0.2
 ===========
+
+* A simple http shell, where you can see status of oan.
 
 * Write test_resources and resourcemanager.
 

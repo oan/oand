@@ -14,6 +14,7 @@ __status__ = "Test"
 from uuid import UUID
 
 from oan import node_mgr, serializer
+from oan.util import log
 from oan.event import OANEvent
 from oan.database import OANDatabase
 
@@ -101,7 +102,7 @@ class OANMessageHandshake():
         return obj
 
     def execute(self):
-        print "OANMessageHandshake: %s %s %s blocked:%s" % (self.uuid, self.host, self.port, self.blocked)
+        log.info("OANMessageHandshake: %s %s %s blocked:%s" % (self.uuid, self.host, self.port, self.blocked))
 
 
 class OANMessageClose():
@@ -115,7 +116,7 @@ class OANMessageClose():
         return obj
 
     def execute(self):
-        print "OANMessageClose: %s" % (self.uuid)
+        log.info("OANMessageClose: %s" % (self.uuid))
 
 class OANMessageRelay():
     uuid = None
@@ -133,7 +134,7 @@ class OANMessageRelay():
         return obj
 
     def execute(self):
-        print "OANMessageRelay: %s %s" % (self.destination_uuid, self.message)
+        log.info("OANMessageRelay: %s %s" % (self.destination_uuid, self.message))
         node_mgr.send(
             UUID(self.destination_uuid),
             self.message
@@ -160,7 +161,7 @@ class OANMessageHeartbeat():
         return obj
 
     def execute(self):
-        print "OANMessageHeartbeat: %s %s %s" % (self.uuid, self.host, self.port)
+        log.info("OANMessageHeartbeat: %s %s %s" % (self.uuid, self.host, self.port))
 
 #####
 
@@ -267,13 +268,13 @@ class OANMessagePing():
 
     def execute(self):
         #if self.ping_counter == 1:
-        print "Ping [%s][%d] from [%s] %s - %s" % (
+        log.info("Ping [%s][%d] from [%s] %s - %s" % (
             self.ping_id,
             self.ping_counter,
             self.node_uuid,
             self.ping_begin_time,
             self.ping_end_time
-        )
+        ))
 
         if self.ping_counter > 1:
             node_mgr.send(
@@ -292,9 +293,8 @@ class OANMessageStoreNodes():
         return obj
 
     def execute(self):
-        print "OANMessageStoreNodes"
+        log.info("OANMessageStoreNodes")
         node_mgr.store()
-
 
 ### OANMessageLoadNodes can not be send over network
 class OANMessageLoadNodes():
@@ -306,7 +306,7 @@ class OANMessageLoadNodes():
         return obj
 
     def execute(self):
-        print "OANMessageLoadNodes"
+        log.info("OANMessageLoadNodes")
         node_mgr.load()
 
 class OANMessageShutdown:
