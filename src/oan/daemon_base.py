@@ -83,7 +83,7 @@ class OANDaemonBase:
         if pid:
             message = "pidfile %s already exist. Daemon already running?\n"
             sys.stderr.write(message % self.pidfile)
-            sys.exit(1)
+            return
 
         # Start the daemon
         if (self.daemonize()):
@@ -119,7 +119,6 @@ class OANDaemonBase:
                     os.remove(self.pidfile)
             else:
                 print str(err)
-                sys.exit(1)
 
     def restart(self):
         """
