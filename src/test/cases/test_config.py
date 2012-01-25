@@ -13,7 +13,6 @@ __status__ = "Test"
 
 from test.test_case import OANTestCase
 from oan.util import log
-
 import oan
 from oan.config import OANConfig, OANLogLevel, OANFileName
 
@@ -23,8 +22,8 @@ class TestOANConfig(OANTestCase):
     # Options
     opts = {}
     opts["config"] = "/tmp/oand.cfg"
-    opts["pid_file"] = "/tmp/oand.pid"
-    opts["log_file"] = "/tmp/oand.log"
+    opts["pid_file"] = "/var/run/oand.pid"
+    opts["log_file"] = oan.BASE_DIR + "log/unittest-oand.log"
 
     opts['node_uuid'] = "1"
     opts["node_name"] = "this-is-a-node-name"
@@ -33,6 +32,7 @@ class TestOANConfig(OANTestCase):
     opts["bff_name"] = "LeetNode"
     opts["bff_domain_name"] = "node1.cybecow.se"
     opts["bff_port"] = "1337"
+
 
     def setUp(self):
         self._config = OANConfig(
@@ -44,6 +44,7 @@ class TestOANConfig(OANTestCase):
             self.opts["bff_domain_name"],
             self.opts["bff_port"]
         )
+
 
     def test_config(self):
         cnf = self._config
@@ -61,16 +62,19 @@ class TestOANConfig(OANTestCase):
         self.assertRaises(
             Exception, cnf.set_from_file, "oand_invalid.cfg")
 
+
     def test_config_extended(self):
         cnf = self._config
 
         self.assertEqual(cnf.pid_file, oan.VAR_DIR + "run/oand.pid")
         self.assertEqual(cnf.log_file, oan.LOG_DIR + "oand.log")
 
+
 class TestOANConfigSetFromFile(TestOANConfig):
     def setUp(self):
         self._config = OANConfig()
         self._config.set_from_file(oan.BASE_DIR + "src/test/cases/oand.cfg")
+
 
     def test_config_extended(self):
         cnf = self._config
@@ -78,9 +82,11 @@ class TestOANConfigSetFromFile(TestOANConfig):
         self.assertEqual(cnf.pid_file, self.opts["pid_file"])
         self.assertEqual(cnf.log_file, self.opts["log_file"])
 
+
 class TestOANConfigSetFromCmdLine(TestOANConfigSetFromFile):
     class Options:
         pass
+
 
     def setUp(self):
         options = self.Options()
@@ -88,44 +94,128 @@ class TestOANConfigSetFromCmdLine(TestOANConfigSetFromFile):
         self._config = OANConfig()
         self._config.set_from_cmd_line(options)
 
+
 class TestOANLogLevel(OANTestCase):
 
+
     class config(object):
-        log_level = OANLogLevel("WARNING")
+        log_level1 = OANLogLevel()
+        log_level2 = OANLogLevel()
+        log_level3 = OANLogLevel()
+
+
+        def __init__(self):
+            self.log_level1 = self.log_level2 ="WARNING"
+
 
     def test_property(self):
-        config = self.config()
+        with self.assertRaises(Exception):
+            log_level = OANLogLevel()
 
-        self.assertEqual(config.log_level, log.WARNING)
 
-        config.log_level="warning"
-        self.assertEqual(config.log_level, log.WARNING)
+    def test_property(self):
+        config1 = self.config()
+        config2 = self.config()
+
+        # Test default value set in OANLogLevel, non is set raise error.
+        with self.assertRaises(AttributeError):
+            level = config1.log_level3
+
+        # Test default value set in config class
+        self.assertEqual(config1.log_level1, log.WARNING)
+        self.assertEqual(config1.log_level2, log.WARNING)
+        self.assertEqual(config2.log_level1, log.WARNING)
+        self.assertEqual(config2.log_level2, log.WARNING)
+
+        # Test setting by number
+        config1.log_level1 = 1
+        config1.log_level2 = 2
+        config2.log_level1 = 3
+        config2.log_level2 = 4
+
+        self.assertEqual(config1.log_level1, 1)
+        self.assertEqual(config1.log_level2, 2)
+        self.assertEqual(config2.log_level1, 3)
+        self.assertEqual(config2.log_level2, 4)
+
+        # Test setting by string
+        config1.log_level1 = "DEBUG"
+        config1.log_level2 = "CRITICAL"
+        config2.log_level1 = "INFO"
+        config2.log_level2 = "ERROR"
+
+        self.assertEqual(config1.log_level1, log.DEBUG)
+        self.assertEqual(config1.log_level2, log.CRITICAL)
+        self.assertEqual(config2.log_level1, log.INFO)
+        self.assertEqual(config2.log_level2, log.ERROR)
+
+        # Test exceptions
+        with self.assertRaises(ValueError):
+            config1.log_level1="INVALID"
 
         with self.assertRaises(ValueError):
-            config.log_level="INVALID"
+            config2.log_level1="INVALID"
+
 
 class TestOANFileName(OANTestCase):
 
     class config(object):
-        file_name = OANFileName("/tmp/", "test.tmp")
+        file_name1 = OANFileName("/tmp/")
+        file_name2 = OANFileName("/tmp/")
+
+
+        def __init__(self):
+            self.file_name1 = "file1.tmp"
+            self.file_name2 = "file2.tmp"
+
 
     def test_property(self):
         with self.assertRaises(Exception):
-            file_name = OANFileName("/tmp", "test.tmp")
+            file_name = OANFileName("/tmp")
+
 
     def test_property_on_class(self):
-        config = self.config()
+        config1 = self.config()
+        config2 = self.config()
 
-        self.assertEqual(config.file_name, "/tmp/test.tmp")
+        # Test default value set in OANLogLevel, non is set raise error.
+        with self.assertRaises(AttributeError):
+            file_name = config1.file_name3
 
-        config.file_name = "test2.tmp"
-        self.assertEqual(config.file_name, "/tmp/test2.tmp")
+        with self.assertRaises(AttributeError):
+            file_name = config1.file_name3
 
-        config.file_name = "/var/log/test2.tmp"
-        self.assertEqual(config.file_name, "/var/log/test2.tmp")
+        # Test default value set in config class
+        self.assertEqual(config1.file_name1, "/tmp/file1.tmp")
+        self.assertEqual(config1.file_name2, "/tmp/file2.tmp")
+        self.assertEqual(config2.file_name1, "/tmp/file1.tmp")
+        self.assertEqual(config2.file_name2, "/tmp/file2.tmp")
+
+        # Test setting by default_directory
+        config1.file_name1 = "tmp1.tmp"
+        config1.file_name2 = "tmp2.tmp"
+        config2.file_name1 = "tmp3.tmp"
+        config2.file_name2 = "tmp4.tmp"
+
+        self.assertEqual(config1.file_name1, "/tmp/tmp1.tmp")
+        self.assertEqual(config1.file_name2, "/tmp/tmp2.tmp")
+        self.assertEqual(config2.file_name1, "/tmp/tmp3.tmp")
+        self.assertEqual(config2.file_name2, "/tmp/tmp4.tmp")
+
+        # Test setting by direct path.
+        config1.file_name1 = "/var/log/test1.tmp"
+        config1.file_name2 = "/var/log/test2.tmp"
+        config2.file_name1 = "/var/log/test3.tmp"
+        config2.file_name2 = "/var/log/test4.tmp"
+
+        self.assertEqual(config1.file_name1, "/var/log/test1.tmp")
+        self.assertEqual(config1.file_name2, "/var/log/test2.tmp")
+        self.assertEqual(config2.file_name1, "/var/log/test3.tmp")
+        self.assertEqual(config2.file_name2, "/var/log/test4.tmp")
+
+        # Test exceptions
+        with self.assertRaises(Exception):
+            config1.file_name1="/xxx/xxx/xxx.tmp"
 
         with self.assertRaises(Exception):
-            config.file_name="/xxx/xxx/xxx.tmp"
-
-if __name__ == '__main__':
-    unittest.main()
+            config2.file_name2="/xxx/xxx/xxx.tmp"

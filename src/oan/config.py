@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 '''
-Holding all configurations that can be done to oand.
-
-Usually reading contents from a config file (oand.conf) but also possible
-to initialize all data via the constructor and property members.
-
-Domain_name/bff_domain_name should point to the public ip number,
-of the oand computer node. This ip/domain are sent to remote nodes,
-and they will try to connect to it later.
+All configuration classes and types that can be done to oand.
 
 '''
 
@@ -23,20 +16,22 @@ import ConfigParser
 
 import oan
 from oan.util import log
+from oan.util.descriptor_object import OANDescriptorObject
 
-class OANLogLevel(object):
+
+class OANLogLevel(OANDescriptorObject):
     """
     Represents a log_level used by oan.log or python logging.
 
-    Can be set with both string or integer representation of a log_level number.
-    Can also be any of the following alphanumerics names NONE, DEBUG, INFO,
-    WARNING, ERROR, CRITICAL.
+    Can be set with both string or integer representation of a log_level
+    number. Can also be any of the following alphanumerics names NONE, DEBUG,
+    INFO, WARNING, ERROR, CRITICAL.
 
     NOTE: Classes using this class need to be of type object.
 
     Example:
         >>> class Config(object):
-        >>>     log_level = OANLogLevel("Warning")
+        >>>     log_level = OANLogLevel()
         >>> config = Config()
         >>> config.log_level = "DEBUG"
         >>> config.log_level = 20
@@ -44,18 +39,13 @@ class OANLogLevel(object):
         20
 
     """
-    value = None
+    # log_level = NOT-SET
+    LOG_LEVELS = ("NONE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 
-    def __init__(self, value):
-        self.__set__(None, value)
+    def __get__(self, instance, objtype):
+        return self.get_var(instance, "log_level")
 
-    def __get__(self, obj, objtype):
-        return self.value
-
-    def __set__(self, obj, value):
-        self.value = self._convert_to_numeric_log_level(value)
-
-    def _convert_to_numeric_log_level(self, log_level):
+    def __set__(self, instance, log_level):
         """
         Convert log_level to integer representation of log_level.
 
@@ -64,17 +54,21 @@ class OANLogLevel(object):
 
         str_log_level = str(log_level)
         if str_log_level.isdigit():
-            return int(log_level)
+            num_value = int(log_level)
         else:
             log_level = log_level.upper()
             self._validate(log_level)
-            return getattr(logging, log_level, 100)
+            num_value = getattr(logging, log_level, 100)
+
+        self.set_var(instance, "log_level", num_value)
 
     def _validate(self, value):
-        if value not in ("NONE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+        """Validates that the a correct log_level string are used."""
+        if value not in self.LOG_LEVELS:
             raise ValueError
 
-class OANFileName(object):
+
+class OANFileName(OANDescriptorObject):
     """
     Represents a filename that can use a default directory.
 
@@ -84,9 +78,11 @@ class OANFileName(object):
 
     Example:
         >>> class Config
-        >>>     file_name1 = OANFileName("/tmp/", "file.txt")
-        >>>     file_name2 = OANFileName("/tmp/", "/file.txt")
+        >>>     file_name1 = OANFileName("/tmp/")
+        >>>     file_name2 = OANFileName("/tmp/")
         >>> config = Config()
+        >>> config.file_name1 = "/file.txt"
+        >>> config.file_name2 = "file.txt"
         >>> print config.file_name1
         /tmp/file.txt
         >>> print config.file_name2
@@ -94,54 +90,71 @@ class OANFileName(object):
 
     """
     default_directory = None
-    path = None
+    #file_name = NOT-SET
 
-    def __init__(self, default_directory, path):
-        if default_directory[-1] != "/":
-            raise Exception("Directory must end with / (%s)" % default_directory)
+    def __init__(self, directory):
+        OANDescriptorObject.__init__(self)
+        if directory[-1] != "/":
+            raise Exception("Directory must end with / (%s)" % directory)
 
-        self.default_directory = default_directory
-        self.__set__(None, path)
+        self.default_directory = directory
 
-    def __get__(self, obj, objtype):
-        return self.path
+    def __get__(self, instance, owner):
+        return self.get_var(instance, "file_name")
 
-    def __set__(self, obj, path):
+    def __set__(self, instance, path):
         if path[0] == "/":
-            self.path = path
+            self.set_var(instance, "file_name", path)
         else:
-            self.path = self.default_directory + path
+            self.set_var(instance, "file_name", self.default_directory + path)
 
-        self.validate()
+        self.validate(instance)
 
-    def validate(self):
+    def validate(self, instance):
         """Validate that folder for path exists"""
-        directory = self.path.rpartition("/")[0] + "/"
+        path = self.get_var(instance, "file_name")
+        directory = path.rpartition("/")[0] + "/"
         if not os.path.exists(directory):
             raise Exception("Directory %s doesn't exist." % directory)
 
+
 class OANConfig(object):
+    """
+    Holding all configurations that can be done to oand.
+
+    Usually reading contents from a config file (oand.conf) but also possible
+    to initialize all data via the constructor and property members.
+
+    Domain_name/bff_domain_name should point to the public ip number,
+    of the oand computer node. This ip/domain are sent to remote nodes,
+    and they will try to connect to it later.
+
+    """
+    # Too many instance attributes
+    # pylint: disable=R0902
+    #   This config class are allowed to have many attributes.
+
     # Config file
-    config = None
+    config = OANFileName(oan.ETC_DIR)
 
     # Name and path of the pidfile
-    pid_file = None
+    pid_file = OANFileName(oan.VAR_DIR)
 
     # log-level of log messages that should be sent to syslog.
     # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
-    syslog_level = None
+    syslog_level = OANLogLevel()
 
     # log-level of log messages that should be sent to stderr.
     # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
-    stderr_level = None
+    stderr_level = OANLogLevel()
 
     # log-level of log messages that should be sent to log file.
     # The log level can be any of NONE, DEBUG, INFO, WARNING, ERROR, CRITICAL.
-    log_level = None
+    log_level = OANLogLevel()
 
     # Defines in which file, logs should be stored to if log-level is higher
     # than none.
-    log_file = None
+    log_file = OANFileName(oan.LOG_DIR)
 
     # This nodes unique id
     node_uuid = None
@@ -165,21 +178,30 @@ class OANConfig(object):
     # This node can't be reached from internet through firewall.
     blocked = None
 
-     # if node will act as blocked node, if True the server vill not listen to incomming connetion.
+    # if node will act as blocked node, if True the server vill not listen to
+    # incomming connetion.
     blocked = None
 
-    def __init__(self, node_uuid = None, node_name = None, domain_name = None, port = None,
-                 bff_name = None, bff_domain_name = None, bff_port = None, blocked = False):
+    # Too many arguments
+    # pylint: disable=R0913
+    #   This config class are allowed to be set with many arguments.
+
+    def __init__(
+        self,
+        node_uuid=None, node_name=None, domain_name=None, port=None,
+        bff_name=None, bff_domain_name=None, bff_port=None,
+        blocked=False
+    ):
         '''
         Createing a Config object.
 
         '''
-        self.config = OANFileName(oan.ETC_DIR, "oand.cfg")
-        self.pid_file = OANFileName(oan.VAR_DIR, "run/oand.pid")
-        self.syslog_level = 100 # OANLogLevel("NONE")
-        self.stderr_level = 100 # OANLogLevel("NONE")
-        self.log_level = 0 # OANLogLevel("DEBUG")
-        self.log_file = OANFileName(oan.LOG_DIR, "oand.log")
+        self.config = "oand.cfg"
+        self.pid_file = "run/oand.pid"
+        self.syslog_level = "NONE"
+        self.stderr_level = "NONE"
+        self.log_level = "DEBUG"
+        self.log_file = "oand.log"
 
         self.node_uuid = node_uuid
 
@@ -194,11 +216,10 @@ class OANConfig(object):
         self.blocked = blocked
 
     def set_from_file(self, filename):
-        '''
-        Initialize Config from a file.
-
-        '''
-        config = ConfigParser.ConfigParser({"log-file" : oan.LOG_DIR + "oand.log"})
+        """Initialize config from a file."""
+        config = ConfigParser.ConfigParser(
+            {"log-file": oan.LOG_DIR + "oand.log"}
+        )
         config.readfp(open(filename))
         if config.has_section("oand"):
             for option in config.options("oand"):
@@ -207,12 +228,14 @@ class OANConfig(object):
                 self.set_attribute(key, value)
 
     def set_from_cmd_line(self, options):
+        """Initialize config from a command line argParser.options."""
         for key in options.__dict__.keys():
             value = getattr(options, key)
             if value:
                 self.set_attribute(key, value)
 
     def set_attribute(self, key, value):
+        """Set an attribute comming from a string."""
         if hasattr(self, key):
             setattr(self, key, value)
         else:
@@ -220,6 +243,7 @@ class OANConfig(object):
                 "Invalid config with key: " + key + " value: " + value)
 
     def log_options(self):
+        """Print all internal variables. (Used for debug purpose)"""
         log.debug("-------- ALL CONFIG OPTIONS ---------")
         log.debug("[oand]")
         for key in self.__dict__.keys():

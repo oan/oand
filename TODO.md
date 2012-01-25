@@ -56,6 +56,9 @@ well written with unit test and comments.
 
 * Execute and modify bin/check
 
+* Mock
+  http://www.voidspace.org.uk/python/mock/getting-started.html
+
 VERSION 0.2
 ===========
 
