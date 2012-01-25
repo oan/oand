@@ -1,0 +1,45 @@
+#!/bin/sh
+
+#
+# General globals
+#
+
+# Source code folder
+DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && cd ../src && pwd )"
+
+#
+# PEP8 - Syntax checking
+#
+# Read more
+#   http://pypi.python.org/pypi/pep8/
+#
+PEP8_INSTALLED="$(which pep8)"
+if [ -z "$PEP8_INSTALLED" ] ; then
+    easy_install pep8
+fi
+
+echo "PEP8 (pep8 --statistics -qq $DIR)"
+pep8 --statistics -qq $DIR
+echo
+echo "To find all problems execute: pep8 --show-source --show-pep8 $DIR"
+
+#
+# pylint - Syntax checking
+#
+# Read more
+#   http://www.logilab.org/857
+#
+
+PYLINT_INSTALLED="$(which pylint)"
+if [ -z "$PYLINT_INSTALLED" ] ; then
+    easy_install pylint
+fi
+
+echo "PEP8 (pep8 --statistics -qq $DIR)"
+find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;
+
+#
+# pyreverse - create uml and other from code
+#
+# http://www.logilab.org/6883
+#pyreverse -o png -p Pyreverse $DIR

@@ -28,11 +28,11 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
-* Test all unit tests.
-
 * Unittest and nicing up passthrou.
 
-* Turn on logging for a unit test or a logfile for each unittest.
+* Go through all unit tests.
+
+* Organize codes in more folders/packages.
 
 * Martin - Go through all network interfaces. Try to connect to OAN with each of them.
   The first internal ip/interface that can connect, will be used to bind the
@@ -40,48 +40,44 @@ well written with unit test and comments.
   node-list.
   https://github.com/systemconsole/syco/blob/master/bin/common/net.py
 
-* Daniel - Check doctest
-  http://docs.python.org/library/doctest.html
-
-* Daniel - Continous testing with git hooks.
-
-* Daniel - Check buildout
-  Check http://peak.telecommunity.com/DevCenter/setuptools
-  Add setup.php??
-  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/setup.py?revision=157&view=markup
-
-* Daniel - Read
-  http://www.ibm.com/developerworks/aix/library/au-cleancode/index.html
-
-* Daniel - Check http://readthedocs.org/
-
-* Daniel - Check http://pypi.python.org/pypi/virtualenv for isolated env
-
-* Daniel - Check http://nedbatchelder.com/code/coverage/
-
-* Martin - Collect statistics from all nodes.
-
 * Decide which threads that are allowed to use certain managers. Or if we
   need more queues/thread-looks.
 
-* Organize codes in more folders/packages.
+* Martin - Collect statistics from all nodes.
 
-* Rename src folder to lib/pkg?? What are others using?
-
-* Test if queues are faster/better than threads locks.
+* An invalid command (send_ping) should print the help text
+  (OANShell.help_send_ping) (all cmds).
 
 * Add unit test, testing many thousand nodes.
 
 * Add comments.
 
-* An invalid command (send_ping) should print the help text
-  (OANShell.help_send_ping) (all cmds).
+* Both read http://www.python.org/dev/peps/pep-0008/
 
-* Daniel - test-all  -v -p *heartbeat* -n -t
-  Only display trace output for unit test files.
+* Execute and modify bin/check
 
 VERSION 0.2
 ===========
+
+* Rename src folder to lib/pkg?? What are others using?
+
+* More to read
+  http://python.net/~goodger/projects/pycon/2007/idiomatic/handout.html
+  http://ivory.idyll.org/articles/advanced-swc/
+
+* Try http://pythoscope.org/tutorial
+
+* Clean python code, gets some ideas?
+  http://darcs.idyll.org/~t/projects/twill/twill/
+
+* Run http://sourceforge.net/projects/pymetrics/ or pygenie
+  on our source code.
+
+* Use http://readthedocs.org/ and http://sphinx.pocoo.org/
+  to create good looking documentation
+
+* test-all  -v -p *heartbeat* -n -t
+  Only display trace output for unit test files.
 
 * A simple http shell, where you can see status of oan.
 
@@ -137,7 +133,37 @@ VERSION 0.2
 * Create UML
   http://yuml.me/1555afce
 
-  # Help
+* Decide if we should use doctest
+  http://docs.python.org/library/doctest.html
+
+* Figure out if we can use git hooks for Continous testing. Or anyother
+  populare python tool
+
+* Daniel - Check buildout
+  Check http://peak.telecommunity.com/DevCenter/setuptools
+  Add setup.php??
+  http://entangled.svn.sourceforge.net/viewvc/entangled/entangled/setup.py?revision=157&view=markup
+
+* Check if http://pypi.python.org/pypi/virtualenv could be useful for us, to
+  isolate the oan environment.
+
+* Use http://nedbatchelder.com/code/coverage/ or similare to verify unit test
+  coverage.
+  http://darcs.idyll.org/~t/projects/figleaf/doc/
+  nosetests -v --with-coverage --cover-package=highlight --with-doctest\
+     --cover-erase --exe
+
+* Check code complexity
+  http://sourceforge.net/projects/pymetrics/
+
+* Run pylint on all code.
+  Add to a script that can easily be executed.
+  http://www.logilab.org/857
+
+* Check for dublicate code
+  http://clonedigger.sourceforge.net/
+
+# Help
 
   http://yuml.me/diagram/scruffy/class/samples
 
