@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """
-Handle communication between threads.
+Safely communicate between threads. It will be used by OANDispatcher,
+OANDatabase and OANNetwork.
 
 """
 
@@ -47,19 +48,22 @@ class OANPassthru(Queue):
         self.on_error= OANEvent()
 
 
-    """
-
-    """
     def execute(self, message):
+        """
+        Put a message on queue, it will not wait for a return value. Sets the
+        back queue to "None"
+        """
         self.put((message, None))
         #log.debug(str(message))
 
 
 
-    """
-
-    """
     def select(self, message):
+        """
+        Put a message on queue, it will wait for the message to be executed
+        and passes the return values back. If it's a exception it will raise
+        the exception to the calling thread.
+        """
         back = Queue()
         self.put((message, back))
         #log.debug(str(message))
@@ -75,20 +79,23 @@ class OANPassthru(Queue):
             yield ret
 
 
-    """
-
-    """
     def get(self):
+        """
+        When a OANMessageWorker picks a message from queue fire
+        the on_message event.
+        """
         (message, back) = Queue.get(self)
         #log.debug(str(message))
         self.on_message(message)
         return (message, back)
 
 
-    """
-
-    """
     def error(self, message, ex, back):
+        """
+        A message raised an exception, fire the on_error event and pass the
+        exception back to the calling thread. "None" on the back queue means
+        no more result.
+        """
         log.debug("Got error %s on %s " % (ex, message))
         self.on_error(message, ex)
 
@@ -96,10 +103,11 @@ class OANPassthru(Queue):
             back.put(ex)
             back.put(None)
 
-    """
-
-    """
     def result(self, ret, back):
+        """
+        If the calling thread is waiting for a response pass it back. "None"
+        on the back queue means no more result.
+        """
         if (back):
             if ret is not None:
                 for rec in ret:
