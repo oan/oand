@@ -17,7 +17,7 @@ from Queue import Queue
 
 from oan.util import log
 from oan.passthru import OANPassthru
-from oan.dispatcher.message import OANMessageShutdown
+from oan.dispatcher.command import OANCommandShutdown
 
 
 class OANMessageWorker(Thread):
@@ -56,7 +56,7 @@ class OANMessageWorker(Thread):
             except Exception as ex:
                 self._passthru.error(message, ex, back)
 
-            if isinstance(message, OANMessageShutdown):
+            if isinstance(message, OANCommandShutdown):
                 # Put back shutdown message for other worker threads
                 q.execute(message)
                 break
@@ -147,7 +147,7 @@ class OANMessageDispatcher:
         Sends a shutdown message to stop all workers. Wait for the workers
         to finished.
         """
-        self._passthru.execute(OANMessageShutdown())
+        self._passthru.execute(OANCommandShutdown())
         for worker in self._workers:
             worker.join()
 

@@ -17,7 +17,8 @@ from Queue import Queue
 
 import oan
 from oan import dispatch, node_mgr
-from oan.dispatcher.message import OANMessageSendToNode, OANMessagePing
+from oan.dispatcher.message import OANMessagePing
+from oan.dispatcher.command import OANCommandSendToNode
 from oan.application import OANApplication
 from oan.config import OANConfig
 
@@ -85,7 +86,7 @@ class TestOANNetwork(OANTestCase):
         # Send a ping between all nodes 5x10 times.
         for n in xrange(4000, 4001):
             for i in xrange(5):
-                dispatch().execute(OANMessageSendToNode.create(
+                dispatch().execute(OANCommandSendToNode.create(
                     UUID('00000000-0000-0000-%s-000000000000' % n),
                     OANMessagePing.create( "N%dP%d" % (n, i), 10 )
                 ))
