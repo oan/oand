@@ -6,6 +6,9 @@
 
 # Source code folder
 DIR="$( cd -P "$( dirname "${BASH_SOURCE[0]}" )" && cd ../src && pwd )"
+if [ -n "$1" ]; then
+	DIR="$1"
+fi
 
 #
 # PEP8 - Syntax checking
@@ -18,10 +21,12 @@ if [ -z "$PEP8_INSTALLED" ] ; then
     easy_install pep8
 fi
 
+echo "========================================"
 echo "PEP8 (pep8 --statistics -qq $DIR)"
+echo "To find all problems execute: pep8 --show-source --show-pep8 $DIR"
 pep8 --statistics -qq $DIR
 echo
-echo "To find all problems execute: pep8 --show-source --show-pep8 $DIR"
+
 
 #
 # pylint - Syntax checking
@@ -35,11 +40,32 @@ if [ -z "$PYLINT_INSTALLED" ] ; then
     easy_install pylint
 fi
 
-echo "PEP8 (pep8 --statistics -qq $DIR)"
+echo
+echo "========================================"
+echo "PYLINT (find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;)"
 find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;
+
+#
+# pychecker
+#
+PYCHECKER_INSTALLED="$(which pychecker)"
+if [ -z "$PYCHECKER_INSTALLED" ] ; then
+    echo "ERROR: Install pychecker, you might find the files "
+    echo "here http://sourceforge.net/projects/pychecker/files/"
+    echo "Uncompress"
+    echo "python setup.py build"
+    echo "python setup.py install"
+fi
+
+echo
+echo "========================================"
+echo "PYCHECKER (find $DIR -name '*.py' -exec pychecker --only {} \;)"
+find $DIR -name '*.py' -exec pychecker --only {} \;
+
 
 #
 # pyreverse - create uml and other from code
 #
 # http://www.logilab.org/6883
 #pyreverse -o png -p Pyreverse $DIR
+
