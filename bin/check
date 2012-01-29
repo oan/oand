@@ -38,10 +38,14 @@ if [ -z "$PYLINT_INSTALLED" ] ; then
     easy_install pylint
 fi
 
-echo
-echo "========================================"
-echo "PYLINT (find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;)"
-find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;
+# Did the installation succeed?
+PYLINT_INSTALLED="$(which pylint)"
+if [ -z "$PYLINT_INSTALLED" ] ; then
+    echo
+    echo "========================================"
+    echo "PYLINT (find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;)"
+    find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;
+fi
 
 #
 # pychecker
