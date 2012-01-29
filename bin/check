@@ -22,10 +22,8 @@ if [ -z "$PEP8_INSTALLED" ] ; then
 fi
 
 echo "========================================"
-echo "PEP8 (pep8 --statistics -qq $DIR)"
-echo "To find all problems execute: pep8 --show-source --show-pep8 $DIR"
-pep8 --statistics -qq $DIR
-echo
+echo "PEP8 (pep8 --statistics  --show-source --show-pep8 $DIR)"
+pep8 --statistics  --show-source --show-pep8 $DIR
 
 
 #
