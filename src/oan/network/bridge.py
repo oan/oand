@@ -22,7 +22,8 @@ from threading import Thread
 
 from oan import dispatch
 from oan.util import log
-from oan.dispatcher.message import OANMessageHandshake, OANMessageStaticGetNodeInfo, OANMessageClose
+from oan.dispatcher.message import OANMessageHandshake, OANMessageClose
+from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 from oan.network.serializer import encode, decode
 
 class OANBridge(asyncore.dispatcher):

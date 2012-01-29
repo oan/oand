@@ -17,45 +17,6 @@ from oan import node_mgr, dispatch
 from oan.network import serializer
 from oan.util import log
 
-class OANMessageShutdown:
-    def execute(self):
-        pass
-
-
-
-class OANMessageStaticGetNodeInfo:
-    @staticmethod
-    def execute():
-        node = node_mgr().get_my_node()
-        yield (
-            node.heartbeat.value,
-            node.oan_id,
-            node.name,
-            node.port,
-            node.host,
-            node.state,
-            node.blocked
-        )
-
-
-class OANMessageSendToNode:
-
-    oan_id = None
-    message = None
-
-    @classmethod
-    def create(cls, oan_id, message):
-        obj = cls()
-        obj.oan_id = oan_id
-        obj.message = message
-        return obj
-
-
-    def execute(self):
-        #log.debug("oan_id: %s, message: %s" % (self.oan_id, str(self.message)))
-        node_mgr().send(self.oan_id, self.message)
-
-
 
 class OANMessageHandshake():
     oan_id = None
@@ -73,7 +34,7 @@ class OANMessageHandshake():
         obj.blocked = blocked
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageHandshake: %s %s %s blocked:%s" % (self.oan_id, self.host, self.port, self.blocked))
         yield node_mgr().create_node(UUID(self.oan_id), self.host, self.port, self.blocked)
 
@@ -89,7 +50,7 @@ class OANMessageClose():
         obj.oan_id = str(oan_id)
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageClose: %s" % (self.oan_id))
 
 from datetime import datetime
@@ -144,7 +105,7 @@ class OANMessagePing:
 
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         """
         A ping is received log it and send it back.
         """
@@ -177,7 +138,7 @@ class OANMessageRelay():
         obj.message = message
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageRelay: %s %s" % (self.destination_oan_id, self.message))
         node_mgr.send(
             UUID(self.destination_oan_id),
@@ -204,7 +165,7 @@ class OANMessageHeartbeat():
         obj.port = node.port
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageHeartbeat: %s %s %s" % (self.oan_id, self.host, self.port))
 
 #####
@@ -244,7 +205,7 @@ class OANMessageNodeSync():
 
         return obj
 
-    def create_list(self):
+    def create_list(self, dispatcher):
         valuelist = []
         hashlist = []
         for node in node_mgr()._nodes.values():
@@ -284,38 +245,6 @@ class OANMessageNodeSync():
                     newnode.heartbeat.value = n[4]
 
 #######
-
-
-
-class OANMessageStaticStoreNodes():
-
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticStoreNodes")
-        node_mgr().store()
-
-class OANMessageStaticLoadNodes():
-
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticLoadNodes")
-        node_mgr().load()
-
-
-class OANMessageStaticHeartbeat():
-
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticHeartbeat")
-        node_mgr().send_heartbeat()
-
-
-class OANMessageStaticSyncNodes():
-
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticSyncNodes")
-        node_mgr().send_node_sync()
 
 
 serializer.add("OANMessageHandshake", OANMessageHandshake)
