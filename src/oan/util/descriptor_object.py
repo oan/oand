@@ -20,13 +20,11 @@ class OANDescriptorObject(object):
     def name(self, name):
         return "%s_%s" % (name, id(self))
 
-
     def get_var(self, instance, name):
         key = self.name(name)
         if key not in instance.__dict__:
             raise AttributeError, key
         return instance.__dict__[key]
-
 
     def set_var(self, instance, name, value):
         instance.__dict__[self.name(name)] = value
