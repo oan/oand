@@ -40,7 +40,7 @@ fi
 
 # Did the installation succeed?
 PYLINT_INSTALLED="$(which pylint)"
-if [ -z "$PYLINT_INSTALLED" ] ; then
+if [ -n "$PYLINT_INSTALLED" ] ; then
     echo
     echo "========================================"
     echo "PYLINT (find $DIR -name '*.py' -exec pylint --reports=n --include-ids=y {} \;)"
