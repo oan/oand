@@ -29,6 +29,9 @@ store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
 * Unittest and nicing up passthrou.
+* Alternative name for OANPassthru = OANMessageQueue??
+
+* Unittest and nicing up OANNetworkNode.
 
 * Go through all unit tests.
 
@@ -61,6 +64,9 @@ well written with unit test and comments.
 
 VERSION 0.2
 ===========
+
+* Read/learn googles python guide
+  http://google-styleguide.googlecode.com/svn/trunk/pyguide.html
 
 * Rename src folder to lib/pkg?? What are others using?
 
