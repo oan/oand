@@ -33,9 +33,11 @@ class OANMessageWorker(Thread):
     """
 
     _passthru = None
+    _dispatcher = None
 
-    def __init__(self, passthru):
+    def __init__(self, dispatcher, passthru):
         Thread.__init__(self)
+        self._dispatcher = dispatcher
         self._passthru = passthru
         Thread.start(self)
 
@@ -51,7 +53,7 @@ class OANMessageWorker(Thread):
             # The thread will block to it gets a message from queue.
             (message, back) = q.get()
             try:
-                ret = message.execute()
+                ret = message.execute(self._dispatcher)
                 self._passthru.result(ret, back)
             except Exception as ex:
                 self._passthru.error(message, ex, back)
@@ -113,7 +115,7 @@ class OANMessageDispatcher:
     _workers = []
     _passthru = None
 
-    def __init__(self, config):
+    def __init__(self, config, node_manager, meta_manager, data_manager):
         self._passthru = OANPassthru()
         self.on_message = self._passthru.on_message
         self.on_error = self._passthru.on_error
@@ -158,7 +160,7 @@ class OANMessageDispatcher:
         worker is idle for a period of time stop the worker.
         """
         for i in xrange(5):
-            worker = OANMessageWorker(self._passthru)
+            worker = OANMessageWorker(self, self._passthru)
             self._workers.append(worker)
 
 

@@ -18,7 +18,6 @@ from oan.network import serializer
 from oan.util import log
 
 
-
 class OANMessageHandshake():
     oan_id = None
     host = None
@@ -35,7 +34,7 @@ class OANMessageHandshake():
         obj.blocked = blocked
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageHandshake: %s %s %s blocked:%s" % (self.oan_id, self.host, self.port, self.blocked))
         yield node_mgr().create_node(UUID(self.oan_id), self.host, self.port, self.blocked)
 
@@ -51,7 +50,7 @@ class OANMessageClose():
         obj.oan_id = str(oan_id)
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageClose: %s" % (self.oan_id))
 
 from datetime import datetime
@@ -106,7 +105,7 @@ class OANMessagePing:
 
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         """
         A ping is received log it and send it back.
         """
@@ -139,7 +138,7 @@ class OANMessageRelay():
         obj.message = message
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageRelay: %s %s" % (self.destination_oan_id, self.message))
         node_mgr.send(
             UUID(self.destination_oan_id),
@@ -166,7 +165,7 @@ class OANMessageHeartbeat():
         obj.port = node.port
         return obj
 
-    def execute(self):
+    def execute(self, dispatcher):
         log.info("OANMessageHeartbeat: %s %s %s" % (self.oan_id, self.host, self.port))
 
 #####
@@ -206,7 +205,7 @@ class OANMessageNodeSync():
 
         return obj
 
-    def create_list(self):
+    def create_list(self, dispatcher):
         valuelist = []
         hashlist = []
         for node in node_mgr()._nodes.values():
