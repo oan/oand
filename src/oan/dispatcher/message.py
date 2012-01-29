@@ -94,16 +94,44 @@ class OANMessageClose():
 
 from datetime import datetime
 
-class OANMessagePing():
+class OANMessagePing:
+    """
+    Sending this message over the network will put the message in the remote
+    dispatcher and "execute" method will be called. It creates a new
+    ping and send it back to the origin node. The ping will bounce back
+    and forward until ping_counter are zero.
+
+
+    oan_id
+        this node oan_id
+
+    ping_id
+        just a id that can be used to identify a ping.
+
+    ping_begin_time
+        the first ping is created
+
+    ping_end_time
+        the last ping is created
+
+    ping_counter
+        number of times the ping will be sent over the network. to get a
+        ping back from remote node set ping_counter to 2
+
+    """
     oan_id = None
     ping_id = None
     ping_begin_time = None
     ping_end_time = None
     ping_counter = None
-    ttl = False # Time to live TODO: should be a datetime
+    ttl = False
+
 
     @classmethod
-    def create(cls, oan_id, ping_id, ping_counter = 1, ping_begin_time = None):
+    def create(cls, oan_id, ping_id, ping_counter = 2, ping_begin_time = None):
+        """
+        creates a ping message.
+        """
         obj = cls()
         obj.oan_id = str(oan_id)
         obj.ping_id = ping_id
@@ -116,7 +144,10 @@ class OANMessagePing():
 
         return obj
 
-    def execute(self, dispatcher):
+    def execute(self):
+        """
+        A ping is received log it and send it back.
+        """
         log.info("Ping [%s][%d] from [%s] %s - %s" % (
             self.ping_id,
             self.ping_counter,
@@ -125,13 +156,10 @@ class OANMessagePing():
             self.ping_end_time
         ))
 
-        #my_oan_id = dispatcher.node_manager.
-        my_oan_id = "xxxx"
-
         if self.ping_counter > 1:
-            dispatcher.node_manager.send(
+            node_manager().send(
                 self.oan_id,
-                OANMessagePing.create(my_oan_id, self.ping_id, self.ping_counter-1, self.ping_begin_time)
+                OANMessagePing.create(node_manager().get_my_node().oan_id, self.ping_id, self.ping_counter-1, self.ping_begin_time)
             )
 
 class OANMessageRelay():

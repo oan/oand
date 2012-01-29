@@ -12,16 +12,15 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from Queue import Queue
-from oan_id import UUID, uuid4
+from uuid import UUID, uuid4
 
 from test.test_case import OANTestCase
 from oan import node_manager
-from oan.loop import OANLoop
 from oan.event import OANEvent
 from oan.application import OANApplication
 from oan.config import OANConfig
 from oan.node_manager import OANNetworkNode, OANNodeManager
-from oan.message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OANMessageHandshake
+from oan.dispatcher.message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OANMessageHandshake
 from oan.database import OANDatabase
 
 class MyTestNode():
