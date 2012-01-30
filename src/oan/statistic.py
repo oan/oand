@@ -11,11 +11,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import time
 import os
-import thread
-
-from datetime import datetime, timedelta
+from datetime import datetime
 
 class OANNetworkNodeStatistic:
     out_transfered = None # total written kilobytes to other nodes

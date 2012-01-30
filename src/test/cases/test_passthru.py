@@ -239,14 +239,3 @@ class TestOANPassthru(OANTestCase):
         self.queue.join()
         self.assertTrue(self.passthru.empty())
         self.assertTrue(self.queue.empty())
-
-
-
-
-
-
-
-
-
-# Test with more workers and passthru at the same time.
-# pep8 pylint

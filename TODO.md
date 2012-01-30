@@ -28,8 +28,9 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
-* Unittest and nicing up passthrou.
-* Alternative name for OANPassthru = OANMessageQueue??
+* Unittest passthrou.
+  # Test with more workers and passthru at the same time.
+  * Alternative name for OANPassthru = OANMessageQueue??
 
 * Unittest and nicing up OANNetworkNode.
 
