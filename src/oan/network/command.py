@@ -15,7 +15,7 @@ import socket
 from oan.util import log
 
 
-class NetworksMessageConnectToNode:
+class NetworksCommandConnectToNode:
     @classmethod
     def create(cls, node):
         obj = cls()
@@ -23,7 +23,7 @@ class NetworksMessageConnectToNode:
         return obj
 
     def execute(self, server):
-        log.debug("NetworksMessageConnectToNode: %s, node: %s" % (server, self.node.oan_id))
+        log.debug("NetworksCommandConnectToNode: %s, node: %s" % (server, self.node.oan_id))
         if self.node.is_disconnected():
             server.connect_to_node(self.node)
 
@@ -32,7 +32,7 @@ class NetworksMessageConnectToNode:
 
 
 '''
-class OANNetworkMessageListen:
+class OANNetworkCommandListen:
     port = None
 
     @classmethod
@@ -42,7 +42,7 @@ class OANNetworkMessageListen:
         return obj
 
     def execute(self, server):
-        log.info("OANNetworkMessageListen")
+        log.info("OANNetworkCommandListen")
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))
         host = s.getsockname()[0]
@@ -54,7 +54,7 @@ class OANNetworkMessageListen:
 '''
 
 '''
-class OANNetworkMessageConnectOan:
+class OANNetworkCommandConnectOan:
     host = None
     port = None
 
@@ -66,14 +66,14 @@ class OANNetworkMessageConnectOan:
         return obj
 
     def execute(self, server):
-        log.info("OANNetworkMessageConnectOan")
+        log.info("OANNetworkCommandConnectOan")
         server.connect_to_oan(self.host, self.port)
 
 
 '''
 
 '''
-class OANNetworkMessageShutdown:
+class OANNetworkComandShutdown:
     def execute(self, server):
         pass
 

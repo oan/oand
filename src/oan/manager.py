@@ -1,8 +1,18 @@
 #!/usr/bin/env python
-'''
+"""
+Represents the manager layer in OAN.
+
 Global object instances that can be used from anywhere in the application.
 
-'''
+Example:
+from oan.manager import node_manager
+from oan import manager
+
+manager.setup(xx)
+node_manager().send(xxx)
+manager.shutdown()
+
+"""
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -11,69 +21,91 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import os
-import sys
-
+# Private module variables
 _network = None
 _database = None
-_dispatch = None
+_dispatcher = None
 _data_manager = None
 _meta_manager = None
 _node_manager = None
 
-#TODO: We should make app global and use app().dispatch instead of dispatch()
-def set_managers(network, database, dispatch, data, meta, node):
-    '''
-    Set all global managers that can be used from anywhere in the app.
+# Exceptions raised by manager module.
+class OANNetworkManagerError(Exception): pass
+class OANDatabaseManagerError(Exception): pass
+class OANDispatcherManagerError(Exception): pass
+class OANDataManagerError(Exception): pass
+class OANMetaManagerError(Exception): pass
+class OANNodeManagerError(Exception): pass
 
-    '''
-    global _network, _database, _dispatch, _data_manager, _meta_manager, _node_manager
+def setup(network, database, dispatcher, data, meta, node):
+    """
+    Set all global managers that can be used from anywhere in oan.
+
+    """
+    global _network, _database, _dispatcher, _data_manager, _meta_manager, _node_manager
 
     _network = network
     _database = database
-    _dispatch = dispatch
+    _dispatcher = dispatcher
     _data_manager = data
     _meta_manager = meta
     _node_manager = node
+
     validate()
+
+def shutdown():
+    """
+    Shutdown all managers.
+
+    """
+    return (
+        _network.shutdown() and
+        _database.shutdown() and
+        _dispatcher.shutdown() and
+        _data_manager.shutdown() and
+        _meta_manager.shutdown() and
+        _node_manager.shutdown()
+    )
 
 def network():
     return _network
 
-def dispatch():
-    return _dispatch
+def dispatcher():
+    return _dispatcher
 
 def database():
     return _database
 
-def data_mgr():
+def data_manager():
     return _data_manager
 
-def meta_mgr():
+def meta_manager():
     return _meta_manager
 
-def node_mgr():
+def node_manager():
     return _node_manager
 
 def validate():
-    '''
+    """
     Validate that all managers are set and have valid data.
 
-    '''
+    """
     if (not _network):
-        raise Exception("network is not valid.")
+        raise OANNetworkManagerError()
 
     if (not _database):
-        raise Exception("database is not valid.")
+        raise OANDatabaseManagerError()
 
-    if (not _dispatch):
-        raise Exception("dispatch is not valid.")
+    if (not _dispatcher):
+        raise OANDispatcherManagerError()
 
     if (not _data_manager):
-        raise Exception("data_manager is not valid.")
+        raise OANDataManagerError()
 
     if (not _meta_manager):
-        raise Exception("meta_manager is not valid.")
+        raise OANMetaManagerError()
 
     if (not _node_manager):
-        raise Exception("node_manager is not valid.")
+        raise OANNodeManagerError()
+
+    return True

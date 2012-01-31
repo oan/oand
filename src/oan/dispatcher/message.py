@@ -13,7 +13,7 @@ __status__ = "Test"
 
 from uuid import UUID
 
-from oan import node_mgr, dispatch
+from oan.manager import node_manager, dispatcher
 from oan.network import serializer
 from oan.util import log
 
@@ -36,7 +36,7 @@ class OANMessageHandshake():
 
     def execute(self, dispatcher):
         log.info("OANMessageHandshake: %s %s %s blocked:%s" % (self.oan_id, self.host, self.port, self.blocked))
-        yield node_mgr().create_node(UUID(self.oan_id), self.host, self.port, self.blocked)
+        yield node_manager().create_node(UUID(self.oan_id), self.host, self.port, self.blocked)
 
 
 
@@ -140,7 +140,7 @@ class OANMessageRelay():
 
     def execute(self, dispatcher):
         log.info("OANMessageRelay: %s %s" % (self.destination_oan_id, self.message))
-        node_mgr.send(
+        node_manager.send(
             UUID(self.destination_oan_id),
             self.message
         )
@@ -186,7 +186,7 @@ class OANMessageNodeSync():
         obj = cls()
         obj.step = step
         obj.node_list = []
-        obj.node_oan_id = str(node_mgr().get_my_node().oan_id)
+        obj.node_oan_id = str(node_manager().get_my_node().oan_id)
 
         if l is None:
             l = obj.create_list()
@@ -208,7 +208,7 @@ class OANMessageNodeSync():
     def create_list(self, dispatcher):
         valuelist = []
         hashlist = []
-        for node in node_mgr()._nodes.values():
+        for node in node_manager()._nodes.values():
             valuelist.append((str(node.oan_id), node.host, node.port, node.blocked, node.heartbeat.value))
 
         valuelist.sort()
@@ -232,16 +232,16 @@ class OANMessageNodeSync():
 
             # if hash is diffrent continue to step 2, send over the list.
             if self.node_list_hash != my_l[0]:
-                node_mgr.send(
+                node_manager.send(
                     UUID(self.node_oan_id),
                     OANMessageNodeSync.create(2, my_l)
                 )
 
         if self.step == 2:
             for n in self.node_list:
-                currentnode = node_mgr.get_node(UUID(n[0]))
+                currentnode = node_manager.get_node(UUID(n[0]))
                 if currentnode.heartbeat < n[4]:
-                    newnode = node_mgr.create_node(UUID(n[0]), n[1], n[2], n[3])
+                    newnode = node_manager.create_node(UUID(n[0]), n[1], n[2], n[3])
                     newnode.heartbeat.value = n[4]
 
 #######

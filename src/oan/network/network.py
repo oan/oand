@@ -12,20 +12,14 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import asyncore
-import socket
-import time
-import thread
-import threading
 from datetime import datetime, timedelta
-from Queue import Queue
 from threading import Thread
 
 from oan.util import log
-from oan.event import OANEvent
 from server import OANServer
-from oan.event import OANEvent
 from oan.passthru import OANPassthru
-from oan.network.message import OANNetworkMessageShutdown
+from oan.network.command import OANNetworkComandShutdown
+
 
 class OANTimer(object):
     checked = None
@@ -39,7 +33,6 @@ class OANTimer(object):
         self.kwargs = kwargs
         self.interval = sec
         self.later(self.interval)
-
 
     def later(self, sec):
         self.expires = datetime.utcnow() + timedelta(seconds = sec)
@@ -97,7 +90,7 @@ class OANNetworkWorker(Thread):
                 except Exception as ex:
                     self._pass.error(message, ex, back)
 
-                if isinstance(message, OANNetworkMessageShutdown):
+                if isinstance(message, OANNetworkComandShutdown):
                     break
 
         self._server.shutdown()
@@ -143,5 +136,5 @@ class OANNetwork:
             return ret
 
     def shutdown(self):
-        self._pass.execute(OANNetworkMessageShutdown())
+        self._pass.execute(OANNetworkComandShutdown())
         self._worker.join()

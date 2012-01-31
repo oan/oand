@@ -20,12 +20,14 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import os
-import types
 import traceback
+from time import gmtime, strftime
+
+# Inherit all functionality from logging. util.log is like a
+# sub module/class for logging.
+from logging import *
 import logging
 import logging.handlers
-from logging import *
-from time import gmtime, strftime
 
 # Loglevel that will not send any logging messages to log handler.
 NONE = 100

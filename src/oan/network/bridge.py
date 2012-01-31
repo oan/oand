@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from Queue import Queue
 from threading import Thread
 
-from oan import dispatch
+from oan.manager import dispatcher
 from oan.util import log
 from oan.dispatcher.message import OANMessageHandshake, OANMessageClose
 from oan.dispatcher.command import OANCommandStaticGetNodeInfo
@@ -57,7 +57,7 @@ class OANBridge(asyncore.dispatcher):
 
 
     def send_handshake(self):
-        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatch().get(OANMessageStaticGetNodeInfo)
+        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANMessageStaticGetNodeInfo)
 
         log.info("OANBridge:send_handshake: %s,%s,%s,%s" % (oan_id, host, port, blocked))
         self.out_buffer = self.send_message(
@@ -73,7 +73,7 @@ class OANBridge(asyncore.dispatcher):
         # firewall might MASQ/NAT to extetnal ip.
         message.host = self.remote_addr[0]
 
-        self.node = dispatch().get(message)
+        self.node = dispatcher().get(message)
         self.out_queue = self.node.out_queue
 
         self.server.add_bridge(self)
@@ -87,7 +87,7 @@ class OANBridge(asyncore.dispatcher):
         Give the remote host a chance to send all messages in queue.
 
         """
-        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatch().get(OANMessageStaticGetNodeInfo)
+        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANMessageStaticGetNodeInfo)
 
         log.info("OANBridge:send_close: %s,%s,%s,%s" % (oan_id, host, port, blocked))
         self.out_buffer = self.send_message(
@@ -98,7 +98,7 @@ class OANBridge(asyncore.dispatcher):
 
     def got_close(self, message):
         log.info("OANBridge:got_close: %s" % (message.oan_id))
-        dispatch().execute(message)
+        dispatcher().execute(message)
 
         if not self.writable():
             self.handle_close()
@@ -142,7 +142,7 @@ class OANBridge(asyncore.dispatcher):
                 elif isinstance(message, OANMessageClose):
                     self.got_close(message)
                 else:
-                    dispatch().execute(message)
+                    dispatcher().execute(message)
 
                 pos = self.in_buffer.find('\n')
 

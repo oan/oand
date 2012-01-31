@@ -13,7 +13,7 @@ __status__ = "Test"
 
 from uuid import UUID
 
-from oan import node_mgr, dispatch
+from oan.manager import node_manager, dispatcher
 from oan.network import serializer
 from oan.util import log
 
@@ -26,14 +26,14 @@ class OANCommandStaticStoreNodes():
     @staticmethod
     def execute(dispatcher):
         log.info("OANMessageStaticStoreNodes")
-        node_mgr().store()
+        node_manager().store()
 
 class OANCommandStaticLoadNodes():
 
     @staticmethod
     def execute(dispatcher):
         log.info("OANMessageStaticLoadNodes")
-        node_mgr().load()
+        node_manager().load()
 
 
 class OANCommandStaticHeartbeat():
@@ -41,7 +41,7 @@ class OANCommandStaticHeartbeat():
     @staticmethod
     def execute(dispatcher):
         log.info("OANMessageStaticHeartbeat")
-        node_mgr().send_heartbeat()
+        node_manager().send_heartbeat()
 
 
 class OANCommandStaticSyncNodes():
@@ -49,13 +49,13 @@ class OANCommandStaticSyncNodes():
     @staticmethod
     def execute(dispatcher):
         log.info("OANMessageStaticSyncNodes")
-        node_mgr().send_node_sync()
+        node_manager().send_node_sync()
 
 
 class OANCommandStaticGetNodeInfo:
     @staticmethod
     def execute(dispatcher):
-        node = node_mgr().get_my_node()
+        node = node_manager().get_my_node()
         yield (
             node.heartbeat.value,
             node.oan_id,

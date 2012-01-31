@@ -23,7 +23,7 @@ import oan
 import oan_id
 import threading
 from threading import Thread, Lock
-from network.oan_network import OANNetwork, OANTimer, OANNetworkMessageListen, OANNetworkMessageConnectOan
+from network.oan_network import OANNetwork, OANTimer, OANNetworkCommandListen, OANNetworkCommandConnectOan
 from Queue import Queue
 
 from oan.util import log
@@ -118,7 +118,7 @@ class TestOANNetwork(OANTestCase):
     def test_listen(self):
         port = 8010
 
-        host = network().get(OANNetworkMessageListen.create(port))
+        host = network().get(OANNetworkCommandListen.create(port))
         connected = False
         for i in xrange(1,10):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -150,7 +150,7 @@ class TestOANNetwork(OANTestCase):
 
     def test_connect_oan(self):
         self.timer_connect = OANTimer(2, self.my_timer_connect)
-        self.message_bff_connect = OANNetworkMessageConnectOan.create('localhost', 4000)
+        self.message_bff_connect = OANNetworkCommandConnectOan.create('localhost', 4000)
 
         network().on_bridge_added(self.my_bridge_added)
         network().add_timer(self.timer_connect)
@@ -199,11 +199,11 @@ class TestOANNetwork(OANTestCase):
         self.got_message_queue = Queue()
 
         m = OANTestStatic
-        dispatch().on_message.append(self.got_message)
-        dispatch().execute(m)
+        dispatcher().on_message.append(self.got_message)
+        dispatcher().execute(m)
 
         self.assertEqual(got_message_queue.get(), m)
-        dispatch().on_message.remove(self.got_message)
+        dispatcher().on_message.remove(self.got_message)
 
 
     '''
@@ -213,7 +213,7 @@ class TestOANNetwork(OANTestCase):
         # generate a lot of inc and dec message that will be executed, sum should be zero
         network().generate()
         # stop the dispatcher and wait for threads to finish
-        dispatch().stop()
+        dispatcher().stop()
         self.assertEqual(counter().get_value(), 0)
 
     """

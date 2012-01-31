@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
-Test cases for oan.statistic.py
+"""
+Test cases for oan.dispatcher.dispatcher
 
-'''
+"""
 
 __author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -11,29 +11,25 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import time
-
-from uuid import UUID
 from threading import Thread, Lock
-from Queue import Queue
 
 from oan.util import log
-from oan.dispatcher import OANMessageDispatcher
+from oan.dispatcher.dispatcher import OANDispatcher
 from test.test_case import OANTestCase
 
-
-"""
-A global counter object to test thread lock. all threads and messages
-will call this object.
-"""
 _counter = None
 def counter():
+    """
+    A global counter object to test thread lock. All threads and messages
+    will call this object.
+
+    """
     return _counter
 
 class OANTestCounter:
     """
-    Simulates a manager or statistic object that should be access throw dispatcher,
-    this objects must be thread safe. USE Lock.
+    Simulates a manager or statistic object that should be accessed through
+    a dispatcher, this objects must be thread safe. USE Lock.
 
     """
     _value = 0
@@ -119,14 +115,14 @@ class OANTestMessageGenerator(Thread):
         log.info("Generated done %s on %s:" % (self._cls.__name__, self.name))
 
 
-class TestOANMessageDispatcherThreads(OANTestCase):
+class TestOANDispatcherThreads(OANTestCase):
 
     _dispatcher = None
 
     def setUp(self):
         global _counter
         _counter = OANTestCounter()
-        self._dispatcher = OANMessageDispatcher(None)
+        self._dispatcher = OANDispatcher(None)
 
 
     def tearDown(self):

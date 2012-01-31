@@ -19,14 +19,14 @@ import datetime
 from uuid import UUID
 from Queue import Queue
 
-from oan import network, database, dispatch
+from oan.manager import network, database, dispatcher
 from oan.util import log
 from oan.heartbeat import OANHeartbeat
 from oan.dispatcher.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay, OANMessagePing
 from oan.statistic import OANNetworkNodeStatistic
 from oan.database import OANDatabase
 from oan.network.network_node import OANNetworkNode
-from oan.network.message import NetworksMessageConnectToNode
+from oan.network.command import NetworksCommandConnectToNode
 
 class OANNodeManager():
     # Node server to connect and send message to other node servers
@@ -170,7 +170,7 @@ class OANNodeManager():
                   #  node.out_queue.put(message)
 
                 if node.is_disconnected():
-                    network().execute(NetworksMessageConnectToNode.create(node))
+                    network().execute(NetworksCommandConnectToNode.create(node))
         else:
             log.info("OANNodeManager:Error node is missing %s" % oan_id)
             log.info(self._nodes)

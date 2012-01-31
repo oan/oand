@@ -16,7 +16,7 @@ from uuid import UUID
 from Queue import Queue
 
 import oan
-from oan import dispatch, node_mgr
+from oan.manager import dispatcher, node_manager
 from oan.dispatcher.message import OANMessagePing
 from oan.dispatcher.command import OANCommandSendToNode
 from oan.application import OANApplication
@@ -63,10 +63,10 @@ class TestOANNetwork(OANTestCase):
 
     def create_node(self):
         """Create known nodes (instead of loading from db"""
-        node_mgr().create_node(UUID('00000000-0000-0000-4000-000000000000'), self.get_local_host(), 4000, False)
-        node_mgr().create_node(UUID('00000000-0000-0000-4001-000000000000'), self.get_local_host(), 4001, False)
-        node_mgr().create_node(UUID('00000000-0000-0000-4002-000000000000'), self.get_local_host(), 4002, False)
-        node_mgr().create_node(UUID('00000000-0000-0000-4003-000000000000'), self.get_local_host(), 4003, False)
+        node_manager().create_node(UUID('00000000-0000-0000-4000-000000000000'), self.get_local_host(), 4000, False)
+        node_manager().create_node(UUID('00000000-0000-0000-4001-000000000000'), self.get_local_host(), 4001, False)
+        node_manager().create_node(UUID('00000000-0000-0000-4002-000000000000'), self.get_local_host(), 4002, False)
+        node_manager().create_node(UUID('00000000-0000-0000-4003-000000000000'), self.get_local_host(), 4003, False)
 
     def got_message(self, message):
         if isinstance(message, OANMessagePing):
@@ -76,7 +76,7 @@ class TestOANNetwork(OANTestCase):
 
 
     def create_watcher(self):
-        dispatch().on_message.append(self.got_message)
+        dispatcher().on_message.append(self.got_message)
 
 
 
@@ -86,7 +86,7 @@ class TestOANNetwork(OANTestCase):
         # Send a ping between all nodes 5x10 times.
         for n in xrange(4000, 4001):
             for i in xrange(5):
-                dispatch().execute(OANCommandSendToNode.create(
+                dispatcher().execute(OANCommandSendToNode.create(
                     UUID('00000000-0000-0000-%s-000000000000' % n),
                     OANMessagePing.create( "N%dP%d" % (n, i), 10 )
                 ))
@@ -228,7 +228,7 @@ class TestOANNetwork(OANTestCase):
 #         network = OANNetwork()
 #         network.on_receive.append(ping_received)
 
-#         message_listen = OANNetworkMessageListen.create(1337))
+#         message_listen = OANNetworkCommandListen.create(1337))
 #         network.execute(message_listen)
 
 
@@ -250,7 +250,7 @@ class TestOANNetwork(OANTestCase):
 #         node.send(message_ping)
 
 #         if node.is_disconnected():
-#             message_connect = NetworksMessageConnectToNode.create(node))
+#             message_connect = NetworksCommandConnectToNode.create(node))
 #             network.execute(message_connect)
 
 #         message_ping_received = ping_queue.get()
@@ -264,7 +264,7 @@ class TestOANNetwork(OANTestCase):
 #     # def test_ping(self):
 #     #     message_ping = MessagePing.create("unittest-ping", ping_counter = 5):
 #     #     oan_id = UUID("00000000-0000-cccc-0000-000000000000")
-#     #     node_mgr().send(oan_id, message_ping)
+#     #     node_manager().send(oan_id, message_ping)
 
 #     #     message_ping_received = ping_queue.get()
 

@@ -59,40 +59,31 @@ class OANNetworkNode:
         obj.statistic = OANNetworkNodeStatistic()
         return obj
 
-    def update(self, host = None, port = None, blocked = None, state = None):
-        #with self._lock:
-        #TODO
-        # with lock
-        #   if host not None:
-        #       self.host = host
-        pass
-
+    #@synchronized
     def get(self):
-        with self._lock:
-            return (self.host, self.port, self.blocked, self.state)
+        return (self.host, self.port, self.blocked, self.state)
 
+    #@synchronized
+    def is_disconnected(self):
+        return self.state == OANNetworkNodeState.disconnected
+
+    #@synchronized
+    def update(self, host = None, port = None, blocked = None, state = None):
+        self._host = host
+        self._port = port
+        self._blocked = blocked
+        self._state = state
+
+    #@synchronized
     def send(self, message):
         self.out_queue.put(message)
 
-    def is_disconnected(self):
-        with self._lock:
-            return self.state == OANNetworkNodeState.disconnected
-
+    #@synchronized
     def unserialize(self, data):
-        with self._lock:
-            self.host, self.port, self.blocked, subdata = data
-            self.statistic = OANNetworkNodeStatistic()
-            self.statistic.unserialize(subdata)
+        self.host, self.port, self.blocked, subdata = data
+        self.statistic = OANNetworkNodeStatistic()
+        self.statistic.unserialize(subdata)
 
+    #@synchronized
     def serialize(self):
-        with self._lock:
-            return(self.host, self.port, self.blocked, self.statistic.serialize())
-
-    def __str__(self):
-        with self._lock:
-            return 'OANNetworkNode(%s, %s, %s) queue(%s) hb(%s) stat(%s)' % (
-                self.oan_id, self.host, self.port,
-                self.out_queue.qsize(),
-                self.heartbeat.time,
-                self.statistic
-            )
+        return(self.host, self.port, self.blocked, self.statistic.serialize())
