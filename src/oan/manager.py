@@ -58,7 +58,9 @@ def shutdown():
     Shutdown all managers.
 
     """
-    return (
+    global _network, _database, _dispatcher, _data_manager, _meta_manager, _node_manager
+
+    status = (
         _network.shutdown() and
         _database.shutdown() and
         _dispatcher.shutdown() and
@@ -66,6 +68,15 @@ def shutdown():
         _meta_manager.shutdown() and
         _node_manager.shutdown()
     )
+
+    _network = None
+    _database = None
+    _dispatcher = None
+    _data_manager = None
+    _meta_manager = None
+    _node_manager = None
+
+    return status
 
 def network():
     return _network
