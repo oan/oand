@@ -34,7 +34,6 @@ class OANDatabaseMessageExecute:
         obj._arg = arg or tuple()
         return obj
 
-
     def execute(self, cursor):
         if isinstance(self._arg, list):
             cursor.executemany(self._sql, self._arg)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-network thread that handles all the network traffic
+Network thread that handles all the network traffic
 
 '''
 
@@ -47,7 +47,6 @@ class OANTimer(object):
         return False
 
 
-
 class OANNetworkWorker(Thread):
 
     # === Private === #
@@ -63,14 +62,11 @@ class OANNetworkWorker(Thread):
         self._timers = []
         Thread.start(self)
 
-
     def add_timer(self, timer):
         self._timers.append(timer)
 
-
     def remove_timer(self, timer):
         self._timers.remove(timer)
-
 
     def run(self):
         q = self._pass
@@ -99,17 +95,13 @@ class OANNetworkWorker(Thread):
 
 
 class OANNetwork:
-
-    # === Event === #
+    # Events
     on_receive = None
-
     on_send = None
-
     on_message = None
-
     on_error = None
 
-    # === Private === #
+    # Private variables
     _worker = None
     _pass = None
 

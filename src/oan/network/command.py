@@ -1,9 +1,7 @@
 #!/usr/bin/env python
-'''
+"""
 
-
-'''
-
+"""
 __author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
 __maintainer__ = "martin.palmer.develop@gmail.com"
@@ -28,10 +26,6 @@ class NetworksCommandConnectToNode:
             server.connect_to_node(self.node)
 
 
-'''
-
-
-'''
 class OANNetworkCommandListen:
     port = None
 
@@ -51,9 +45,6 @@ class OANNetworkCommandListen:
         server.listen(host, int(self.port))
 
 
-'''
-
-'''
 class OANNetworkCommandConnectOan:
     host = None
     port = None
@@ -70,9 +61,6 @@ class OANNetworkCommandConnectOan:
         server.connect_to_oan(self.host, self.port)
 
 
-'''
-
-'''
 class OANNetworkComandShutdown:
     def execute(self, server):
         pass

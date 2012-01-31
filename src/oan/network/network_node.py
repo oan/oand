@@ -25,10 +25,7 @@ class OANNetworkNodeState(object):
 
 
 class OANNetworkNode:
-    """
-    Thread safe network node representation.
-
-    """
+    """Thread safe network node representation."""
     oan_id = None
     name = None
     host = None
