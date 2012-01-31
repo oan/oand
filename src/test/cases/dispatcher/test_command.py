@@ -21,7 +21,6 @@ from oan.node_manager import OANNodeManager
 from oan.dispatcher.dispatcher import OANDispatcher
 from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 
-
 class TestOANDispatcher(OANTestCase):
     _dispatcher = None
 

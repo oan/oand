@@ -9,8 +9,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import socket
 from oan.util import log
+from oan.util.network import get_local_host
 
 
 class NetworksCommandConnectToNode:
@@ -37,11 +37,7 @@ class OANNetworkCommandListen:
 
     def execute(self, server):
         log.info("OANNetworkCommandListen")
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        host = s.getsockname()[0]
-        s.close()
-
+        host = get_local_host()
         server.listen(host, int(self.port))
 
 

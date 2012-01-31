@@ -102,6 +102,8 @@ class OANNetwork:
     on_error = None
 
     # Private variables
+
+    # Will only have one worke due to asyncore.
     _worker = None
     _pass = None
 
