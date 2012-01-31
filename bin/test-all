@@ -91,7 +91,7 @@ def start_logging():
     log_file = get_base_dir() + "log/unittest.log"
     open(log_file, 'w').close()
     log.setup(
-        log.NONE, log.NONE, log.DEBUG,
+        log.NONE, log.NONE, log.NONE,
         log_file
     )
 

@@ -45,23 +45,28 @@ class OANDispatcherWorker(Thread):
         Thread main loop executed until it receives a shutdown message.
 
         """
-        q = self._passthru
+        passthru = self._passthru
 
         log.info("Start dispatcher worker %s" % self.name)
 
         while True:
             # The thread will block until it gets a message from queue.
-            (message, back) = q.get()
+            (message, back) = passthru.get()
             try:
                 ret = message.execute()
                 self._passthru.result(ret, back)
 
+            # Catching too general exception Exception
+            # pylint: disable=W0703
+            #   We don't know the types of exceptions that on_error might
+            #   raise, so catch them all and send them on the "back" queue
+            #   for result method to handle.
             except Exception as ex:
                 self._passthru.error(message, ex, back)
 
             if isinstance(message, OANCommandShutdown):
                 # Put back shutdown message for other worker threads
-                q.execute(message)
+                passthru.execute(message)
                 break
 
         log.info("Stop dispatcher worker %s" % self.name)

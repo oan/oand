@@ -39,7 +39,7 @@ def setup(syslog_level, stderr_level, log_level, log_file_name):
 
     # The logging filter will be done by the handlers. The general level will
     # log all everything.
-    my_logger.setLevel(0)
+    my_logger.setLevel(min(syslog_level, stderr_level, log_level))
 
     # Add information/tags that can be used on the log entries.
     f = ContextFilter()

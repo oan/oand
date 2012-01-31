@@ -13,23 +13,21 @@ __status__ = "Test"
 
 import asyncore
 import socket
-import thread
 import sys
-from uuid import UUID
-from datetime import datetime, timedelta
-from Queue import Queue
-from threading import Thread
 
 from oan.manager import dispatcher
 from oan.util import log
 from oan.dispatcher.message import OANMessageHandshake, OANMessageClose
-from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 from oan.network.serializer import encode, decode
+from oan.dispatcher.command import OANCommandStaticGetNodeInfo
+
 
 class OANBridge(asyncore.dispatcher):
-
     server = None
-    node = None # node that the bridge leading to... is None until handshake is done.
+
+    # Remote node that the bridge connected to.
+    # is None until handshake is done.
+    node = None
     remote_addr = None
 
     out_queue = None
@@ -54,17 +52,13 @@ class OANBridge(asyncore.dispatcher):
         log.info("OANBridge:handle_accept")
         self.send_handshake()
 
-
-
     def send_handshake(self):
-        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANMessageStaticGetNodeInfo)
+        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANCommandStaticGetNodeInfo)
 
         log.info("OANBridge:send_handshake: %s,%s,%s,%s" % (oan_id, host, port, blocked))
         self.out_buffer = self.send_message(
             OANMessageHandshake.create(oan_id, host, port, blocked)
         )
-
-
 
     def got_handshake(self, message):
         log.info("OANBridge:got_handshake: %s,%s,%s" % (message.oan_id, message.host, message.port))
@@ -78,8 +72,6 @@ class OANBridge(asyncore.dispatcher):
 
         self.server.add_bridge(self)
 
-
-
     def send_close(self):
         """
         Ask remote to close socket.
@@ -87,14 +79,12 @@ class OANBridge(asyncore.dispatcher):
         Give the remote host a chance to send all messages in queue.
 
         """
-        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANMessageStaticGetNodeInfo)
+        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANCommandStaticGetNodeInfo)
 
         log.info("OANBridge:send_close: %s,%s,%s,%s" % (oan_id, host, port, blocked))
         self.out_buffer = self.send_message(
             OANMessageClose.create(oan_id)
         )
-
-
 
     def got_close(self, message):
         log.info("OANBridge:got_close: %s" % (message.oan_id))
@@ -102,8 +92,6 @@ class OANBridge(asyncore.dispatcher):
 
         if not self.writable():
             self.handle_close()
-
-
 
     def send_message(self, message):
         raw_message = encode(message)
@@ -159,7 +147,6 @@ class OANBridge(asyncore.dispatcher):
         return ((len(self.out_buffer) > 0) or (self.out_queue is not None and not self.out_queue.empty()))
 
     def readable(self):
-        #print "OANBridge:readable"
         return True
 
     def handle_write(self):
@@ -199,5 +186,3 @@ class OANBridge(asyncore.dispatcher):
     def shutdown(self):
         log.info("OANBridge:shutdown")
         self.out_queue.put(None)
-
-

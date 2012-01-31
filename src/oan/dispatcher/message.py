@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """
-Messages that are sent to the "local" dispatcher.
+Messages that are sent to the "remote" dispatcher.
+
+A message are created on node 1 and executed in the dispatcher of a remote
+node.
 
 """
 
@@ -12,8 +15,9 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from uuid import UUID
+from datetime import datetime
 
-from oan.manager import node_manager, dispatcher
+from oan.manager import node_manager
 from oan.network import serializer
 from oan.util import log
 
@@ -34,10 +38,14 @@ class OANMessageHandshake():
         obj.blocked = blocked
         return obj
 
-    def execute(self, dispatcher):
-        log.info("OANMessageHandshake: %s %s %s blocked:%s" % (self.oan_id, self.host, self.port, self.blocked))
-        yield node_manager().create_node(UUID(self.oan_id), self.host, self.port, self.blocked)
-
+    def execute(self):
+        log.info(
+            "OANMessageHandshake: %s %s:%s blocked: %s" %
+            (self.oan_id, self.host, self.port, self.blocked)
+        )
+        yield node_manager().create_node(
+            UUID(self.oan_id), self.host, self.port, self.blocked
+        )
 
 
 class OANMessageClose():
@@ -50,10 +58,9 @@ class OANMessageClose():
         obj.oan_id = str(oan_id)
         return obj
 
-    def execute(self, dispatcher):
+    def execute(self):
         log.info("OANMessageClose: %s" % (self.oan_id))
 
-from datetime import datetime
 
 class OANMessagePing:
     """
@@ -62,22 +69,21 @@ class OANMessagePing:
     ping and send it back to the origin node. The ping will bounce back
     and forward until ping_counter are zero.
 
-
     oan_id
-        this node oan_id
+        this nodes oan_id.
 
     ping_id
-        just a id that can be used to identify a ping.
+        just an id that can be used to identify a ping.
 
     ping_begin_time
-        the first ping is created
+        the first ping is created.
 
     ping_end_time
-        the last ping is created
+        the last ping is created.
 
     ping_counter
-        number of times the ping will be sent over the network. to get a
-        ping back from remote node set ping_counter to 2
+        number of times the ping will be sent over the network. To get a
+        ping back from remote node set ping_counter to 2.
 
     """
     oan_id = None
@@ -87,12 +93,9 @@ class OANMessagePing:
     ping_counter = None
     ttl = False
 
-
     @classmethod
     def create(cls, oan_id, ping_id, ping_counter = 2, ping_begin_time = None):
-        """
-        creates a ping message.
-        """
+        """creates a ping message."""
         obj = cls()
         obj.oan_id = str(oan_id)
         obj.ping_id = ping_id
@@ -105,10 +108,8 @@ class OANMessagePing:
 
         return obj
 
-    def execute(self, dispatcher):
-        """
-        A ping is received log it and send it back.
-        """
+    def execute(self):
+        """A ping is received log it and send it back."""
         log.info("Ping [%s][%d] from [%s] %s - %s" % (
             self.ping_id,
             self.ping_counter,
@@ -123,12 +124,12 @@ class OANMessagePing:
                 OANMessagePing.create(node_manager().get_my_node().oan_id, self.ping_id, self.ping_counter-1, self.ping_begin_time)
             )
 
+
 class OANMessageRelay():
     oan_id = None
     destination_oan_id = None
     message = None
     ttl = False
-
 
     @classmethod
     def create(cls, oan_id, destination_oan_id, message):
@@ -138,20 +139,21 @@ class OANMessageRelay():
         obj.message = message
         return obj
 
-    def execute(self, dispatcher):
+    def execute(self):
         log.info("OANMessageRelay: %s %s" % (self.destination_oan_id, self.message))
         node_manager.send(
             UUID(self.destination_oan_id),
             self.message
         )
 
+
 class OANMessageHeartbeat():
-    '''
+    """
 
 
     The heartbeat touch will be done in bridge read and write.
 
-    '''
+    """
     oan_id = None
     host = None
     port = None
@@ -165,13 +167,13 @@ class OANMessageHeartbeat():
         obj.port = node.port
         return obj
 
-    def execute(self, dispatcher):
+    def execute(self):
         log.info("OANMessageHeartbeat: %s %s %s" % (self.oan_id, self.host, self.port))
 
 #####
 
-# remove expired nodes, sync with lastest info.
-# maybe need to create this message in node_manager thread. or copy the nodes dict before calling this
+# Remove expired nodes, sync with lastest info. maybe need to create this
+# message in node_manager thread. or copy the nodes dict before calling this
 # function.
 
 class OANMessageNodeSync():
@@ -205,7 +207,7 @@ class OANMessageNodeSync():
 
         return obj
 
-    def create_list(self, dispatcher):
+    def create_list(self):
         valuelist = []
         hashlist = []
         for node in node_manager()._nodes.values():
@@ -244,8 +246,8 @@ class OANMessageNodeSync():
                     newnode = node_manager.create_node(UUID(n[0]), n[1], n[2], n[3])
                     newnode.heartbeat.value = n[4]
 
-#######
 
+# Messages that will be possible to send to a remote node.
 
 serializer.add("OANMessageHandshake", OANMessageHandshake)
 serializer.add("OANMessageClose", OANMessageClose)

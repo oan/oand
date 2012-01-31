@@ -28,7 +28,7 @@ class TestOANDispatcherEvent(OANTestCase):
     _got_message_queue = None
 
     def setUp(self):
-        self._dispatcher = OANDispatcher(None)
+        self._dispatcher = OANDispatcher()
         # subscribe on_message event
         self._dispatcher.on_message.append(self._got_message)
         self._got_message_queue = Queue()
