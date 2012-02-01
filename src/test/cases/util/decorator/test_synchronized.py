@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
-Test cases for util.decorator
+"""
+Test cases for synchronized_class decorator in oan.util.decorator.synchronized
 
-'''
+"""
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -11,49 +11,47 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from threading import Thread, Lock
+from threading import Thread
 import time
 
 from test.test_case import OANTestCase
 from oan.util.decorator.synchronized import synchronized
 
-class thread_safe(object):
-    @synchronized
-    def get_id(self):
-        return self.id
+
+class ThreadSafe(object):
+    """Will get a threading.Lock by @synchronized"""
+    _id = None
 
     @synchronized
-    def set_id(self, id):
+    def check_sync(self, id):
         self._id = id
+        # If not synced, another thread will be able to update self._id
+        time.sleep(0.01)
+
+        if self._id != id:
+            raise Exception("Not in sync (%s, %s)"  % (self._id, id))
+
+# Shared by all threads
+safe = ThreadSafe()
+
 
 class MyThread(Thread):
+    n = None
     def __init__(self, n):
         Thread.__init__(self)
         self.n = n
 
     def run(self):
-        """ Print out some stuff.
-
-        The method sleeps for a second each iteration.  If another thread
-        were running, it would execute then.
-        But since the only active threads are all synchronized on the same
-        lock, no other thread will run.
-        """
-
         for i in range(5):
-            #print 'Thread %d: Start %d...' % (self.n, i),
-            time.sleep(0.1)
-            #print '...stop [%d].' % self.n
+            safe.check_sync(i * self.n)
 
-class TestLogging(OANTestCase):
+
+class TestSynchronizedClass(OANTestCase):
     def test_sync(self):
-        self.assertTrue(True)
+        threads = [MyThread(i) for i in xrange(10)]
 
-        threads = [MyThread(i) for i in range(10)]
         for t in threads:
             t.start()
-        self.assertTrue(True)
 
         for t in threads:
             t.join()
-        self.assertTrue(True)

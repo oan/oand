@@ -44,10 +44,6 @@ class TestManager(OANTestCase):
         self.assertEqual(node_manager(), "node_manager")
 
     def test_shutdown(self):
-        # class shutdown_mock():
-        #     def shutdown(self):
-        #         return True
-
         mock_shutdown = mock.Mock()
         mock_shutdown.shutdown.return_value = True
 
@@ -60,5 +56,6 @@ class TestManager(OANTestCase):
             mock_shutdown
         )
         self.assertTrue(manager.shutdown())
+
         mock_shutdown.shutdown.return_value = False
         self.assertFalse(manager.shutdown())
