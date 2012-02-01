@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
-Test cases for oan.statistic.py
+"""
+Test cases for oan.dispatcher.dispatcher
 
-'''
+"""
 
 __author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -11,13 +11,9 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import time
-
-from uuid import UUID
 from Queue import Queue
 
-from oan.util import log
-from oan.dispatcher import OANMessageDispatcher
+from oan.dispatcher.dispatcher import OANDispatcher
 from test.test_case import OANTestCase
 
 class OANTestMessageStaticEvent:
@@ -25,33 +21,31 @@ class OANTestMessageStaticEvent:
     def execute():
         pass
 
-class TestOANMessageDispatcherEvent(OANTestCase):
+
+class TestOANDispatcherEvent(OANTestCase):
 
     _dispatcher = None
     _got_message_queue = None
 
-
     def setUp(self):
-        self._dispatcher = OANMessageDispatcher(None)
+        self._dispatcher = OANDispatcher()
         # subscribe on_message event
         self._dispatcher.on_message.append(self._got_message)
         self._got_message_queue = Queue()
-
 
     def tearDown(self):
         self._dispatcher.shutdown()
         # unsubscribe on_message event
         self._dispatcher.on_message.remove(self._got_message)
 
-
     def _got_message(self, message):
         """
-        When a message is processed this function will be called.
-        it puts the message in a test queue just to signal the
-        assertEqual that waits on the queue.
+        When a message raises an exception this function will be called.
+        It puts the exception in a test queue to send a signal to
+        assertEqual that waits for the queue.
+
         """
         self._got_message_queue.put(message)
-
 
     def test_events(self):
         # execute the message

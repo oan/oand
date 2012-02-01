@@ -12,9 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 
-from datetime import datetime, timedelta
 from threading import Thread, Lock
-from Queue import Queue
 import time
 import sqlite3
 from uuid import UUID
@@ -25,13 +23,9 @@ from oan.util import log
 from oan.passthru import OANPassthru
 
 
-
 class OANDatabaseMessageExecute:
-
     _sql = None
     _arg = None
-
-
 
     @classmethod
     def create(cls, sql, arg = None):
@@ -39,8 +33,6 @@ class OANDatabaseMessageExecute:
         obj._sql = sql
         obj._arg = arg or tuple()
         return obj
-
-
 
     def execute(self, cursor):
         if isinstance(self._arg, list):
@@ -52,13 +44,9 @@ class OANDatabaseMessageExecute:
         return self._sql
 
 
-
 class OANDatabaseMessageSelect:
-
     _sql = None
     _arg = None
-
-
 
     @classmethod
     def create(cls, sql, arg = None):
@@ -66,8 +54,6 @@ class OANDatabaseMessageSelect:
         obj._sql = sql
         obj._arg = arg or tuple()
         return obj
-
-
 
     def execute(self, cursor):
         cursor.execute(self._sql, self._arg)
@@ -77,7 +63,6 @@ class OANDatabaseMessageSelect:
 
     def __str__(self):
         return self._sql
-
 
 
 class OANDatabaseMessageCreateTable:
@@ -90,8 +75,6 @@ class OANDatabaseMessageCreateTable:
         obj._table = table
         return obj
 
-
-
     def execute(self, cursor):
         cursor.execute("""
             create table if not exists %s (
@@ -101,15 +84,10 @@ class OANDatabaseMessageCreateTable:
         """ % self._table)
 
 
-
-
 class OANDatabaseMessageShutdown:
-
 
     def execute(self, cursor):
         pass
-
-
 
 
 class OANDatabaseWorker(Thread):
@@ -124,8 +102,6 @@ class OANDatabaseWorker(Thread):
         self._pass = passthru
         self._db_name = db_name
         Thread.start(self)
-
-
 
     def run(self):
         q = self._pass
@@ -164,9 +140,7 @@ class OANDatabaseWorker(Thread):
         log.info("Stop database worker %s" % self.name)
 
 
-
 class OANDatabase:
-
     _config = None
     _worker = None
     _pass = None
@@ -180,8 +154,6 @@ class OANDatabase:
         self._pass = OANPassthru()
         self._worker = OANDatabaseWorker(self._pass, "%s%s.db" % (oan.VAR_DIR, self._config.node_uuid))
 
-
-
     def create(self, cls):
         with self._lock:
             if cls.__name__ not in self._tables:
@@ -193,27 +165,17 @@ class OANDatabase:
 
                 self._tables[cls.__name__] = cls
 
-
-
     def insert(self, obj):
         self.insert_all((obj, ))
-
-
 
     def insert_all(self, objs):
         self._execute("insert", objs)
 
-
-
     def replace(self, obj):
         self.replace_all((obj, ))
 
-
-
     def replace_all(self, objs):
         self._execute("replace", objs)
-
-
 
     def count(self, cls):
         self.create(cls)
@@ -226,9 +188,6 @@ class OANDatabase:
 
         return 0
 
-
-
-
     def delete(self, cls, oid):
         self.create(cls)
         for status in self._pass.select(
@@ -239,16 +198,12 @@ class OANDatabase:
         ):
             pass
 
-
-
     def delete_all(self, cls):
         self.create(cls)
         for status in self._pass.select(
             OANDatabaseMessageExecute.create("delete from %s" % (cls.__name__))
         ):
             pass
-
-
 
     def select(self, cls, guid):
         self.create(cls)
@@ -261,8 +216,6 @@ class OANDatabase:
             obj.unserialize(json.loads(data))
             return obj
 
-
-
     def select_all(self, cls):
         self.create(cls)
 
@@ -273,13 +226,9 @@ class OANDatabase:
             obj.unserialize(json.loads(data))
             yield obj
 
-
-
     def shutdown(self):
         self._pass.execute(OANDatabaseMessageShutdown())
         self._worker.join()
-
-
 
     def _execute(self, cmd, objs):
         to_save = []

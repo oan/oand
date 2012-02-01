@@ -17,7 +17,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from oan.util import log
-from oan import network, database, dispatch, node_mgr, meta_mgr, data_mgr, set_managers
+from oan.manager import network, database, dispatcher, node_manager, meta_manager, data_manager, setup
 from oan.daemon_base import OANDaemonBase
 from oan.node_manager import OANNodeManager
 from oan.meta_manager import OANMetaManager
@@ -28,9 +28,9 @@ from oan.dispatcher.command import (OANCommandStaticHeartbeat,
     OANCommandStaticLoadNodes, OANCommandStaticStoreNodes,
     OANCommandStaticSyncNodes, OANCommandStaticGetNodeInfo)
 
-from oan.dispatcher import OANMessageDispatcher
+from oan.dispatcher.dispatcher import OANDispatcher
 from oan.network.network import OANNetwork, OANTimer
-from oan.network.message import OANNetworkMessageListen
+from oan.network.command import OANNetworkCommandListen
 
 
 class OANApplication():
@@ -44,10 +44,10 @@ class OANApplication():
     def run(self):
         log.info("Starting Open Archive Network for " + self.config.node_name)
 
-        set_managers(
+        setup(
             OANNetwork(),
             OANDatabase(self.config),
-            OANMessageDispatcher(self.config),
+            OANDispatcher(self.config),
             "None", #OANDataManager("../var/data.dat"),
             "None", #OANMetaManager(),
             OANNodeManager(self.config)
@@ -55,8 +55,8 @@ class OANApplication():
 
         self._setup_timers()
 
-        dispatch().execute(OANCommandStaticLoadNodes)
-        network().execute(OANNetworkMessageListen.create(self.config.node_port))
+        dispatcher().execute(OANCommandStaticLoadNodes)
+        network().execute(OANNetworkCommandListen.create(self.config.node_port))
 
 
     # TODO: is it possible to catch the SIG when killing a deamon and call this function.
@@ -64,7 +64,7 @@ class OANApplication():
         log.info("Stopping Open Archive Network")
 
         network().shutdown()
-        dispatch().shutdown()
+        dispatcher().shutdown()
         database().shutdown()
 
 
@@ -77,20 +77,20 @@ class OANApplication():
 
     def run_every_minute(self):
         log.debug("run_every_minute")
-        dispatch().execute(OANCommandStaticHeartbeat)
+        dispatcher().execute(OANCommandStaticHeartbeat)
 
-        #node_mgr().send_heartbeat()
-        node_mgr().dump()
+        #node_manager().send_heartbeat()
+        node_manager().dump()
 
 
 
     def run_every_day(self):
         log.debug("run_every_day")
-        dispatch().execute(OANCommandStaticStoreNodes)
-        dispatch().execute(OANCommandStaticSyncNodes)
+        dispatcher().execute(OANCommandStaticStoreNodes)
+        dispatcher().execute(OANCommandStaticSyncNodes)
 
     def get_node_info(self):
-        return dispatch().get(OANCommandStaticGetNodeInfo)
+        return dispatcher().get(OANCommandStaticGetNodeInfo)
 
 
 

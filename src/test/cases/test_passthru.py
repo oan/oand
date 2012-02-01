@@ -53,6 +53,19 @@ class MessageSelectAddToQueue(object):
         yield (self.value, value)
 
 
+class MessageSelectYieldAddToQueue(object):
+    value = None
+    queue = None
+
+    def __init__(self, queue, value):
+        self.queue = queue
+        self.value = value
+
+    def execute(self, value):
+        self.queue.put(self.value)
+        yield self.value
+
+
 class MockWorker(Thread):
     _pass = None
 
@@ -81,12 +94,12 @@ class MockWorker(Thread):
 class TestOANPassthru(OANTestCase):
     queue = None
     passthru = None
-    worker = None
+    workers = None
 
     def setUp(self):
         self.queue = Queue()
         self.passthru = OANPassthru()
-        self.worker = MockWorker(self.passthru)
+        self.workers = [MockWorker(self.passthru) for i in xrange(1)]
 
     def tearDown(self):
         self.queue.join()
@@ -98,8 +111,9 @@ class TestOANPassthru(OANTestCase):
         self.passthru.join()
         self.passthru = None
 
-        self.worker.join()
-        self.worker = None
+        for worker in self.workers[:]:
+            worker.join()
+            self.workers.remove(worker)
 
     def on_error(self, message, exception):
         self.queue.put(message)
@@ -237,5 +251,20 @@ class TestOANPassthru(OANTestCase):
             self.queue.task_done()
 
         self.queue.join()
+        self.assertTrue(self.passthru.empty())
+        self.assertTrue(self.queue.empty())
+
+    def test_select_return(self):
+        """Select "message" return a value."""
+        result = self.passthru.select(MessageSelectYieldAddToQueue(
+            self.queue, 47
+        ))
+
+        for val in result:
+            self.assertEqual(val, 47)
+
+        self.assertEqual(self.queue.get(), 47)
+        self.queue.task_done()
+
         self.assertTrue(self.passthru.empty())
         self.assertTrue(self.queue.empty())

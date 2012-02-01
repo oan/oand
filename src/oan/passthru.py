@@ -12,6 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from Queue import Queue
+from types import GeneratorType
 
 from oan.util import log
 from oan.event import OANEvent
@@ -151,8 +152,11 @@ class OANPassthru(Queue):
         #   The architecture is clearer if the is a method.
         if (back):
             if ret is not None:
-                for rec in ret:
-                    back.put(rec)
+                if type(ret) == GeneratorType:
+                    for rec in ret:
+                        back.put(rec)
+                else:
+                    back.put(ret)
 
             back.put(None)
             log.debug(str(back.__class__))

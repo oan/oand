@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """
-Messages that are sent to the "local" dispatcher.
+Commands that are sent to the "local" dispatcher.
+
+A command are created on node 1 and executed on node1.
 
 """
 
@@ -11,51 +13,47 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from uuid import UUID
-
-from oan import node_mgr, dispatch
-from oan.network import serializer
+from oan.manager import node_manager
 from oan.util import log
+
 
 class OANCommandShutdown:
     def execute(self):
         pass
 
-class OANCommandStaticStoreNodes():
 
+class OANCommandStaticStoreNodes():
     @staticmethod
-    def execute(dispatcher):
+    def execute():
         log.info("OANMessageStaticStoreNodes")
-        node_mgr().store()
+        node_manager().store()
+
 
 class OANCommandStaticLoadNodes():
-
     @staticmethod
-    def execute(dispatcher):
+    def execute():
         log.info("OANMessageStaticLoadNodes")
-        node_mgr().load()
+        node_manager().load()
 
 
 class OANCommandStaticHeartbeat():
-
     @staticmethod
-    def execute(dispatcher):
+    def execute():
         log.info("OANMessageStaticHeartbeat")
-        node_mgr().send_heartbeat()
+        node_manager().send_heartbeat()
 
 
 class OANCommandStaticSyncNodes():
-
     @staticmethod
-    def execute(dispatcher):
+    def execute():
         log.info("OANMessageStaticSyncNodes")
-        node_mgr().send_node_sync()
+        node_manager().send_node_sync()
 
 
 class OANCommandStaticGetNodeInfo:
     @staticmethod
-    def execute(dispatcher):
-        node = node_mgr().get_my_node()
+    def execute():
+        node = node_manager().get_my_node()
         yield (
             node.heartbeat.value,
             node.oan_id,
@@ -68,7 +66,6 @@ class OANCommandStaticGetNodeInfo:
 
 
 class OANCommandSendToNode:
-
     oan_id = None
     message = None
 
@@ -79,13 +76,8 @@ class OANCommandSendToNode:
         obj.message = message
         return obj
 
-
-    def execute(self, dispatcher):
-        node_manager = dispatcher.node_manager
-
-        #log.debug("oan_id: %s, message: %s" % (self.oan_id, str(self.message)))
-        node_manager.send(self.oan_id, self.message)
-
-
-
-
+    def execute(self, ):
+        log.debug("oan_id: %s, message: %s" % (
+            self.oan_id, str(self.message))
+        )
+        node_manager().send(self.oan_id, self.message)

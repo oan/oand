@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
+"""
 Test cases for synchronized_class decorator in oan.util.decorator.synchronized
 
-'''
+"""
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -55,4 +55,3 @@ class TestSynchronizedClass(OANTestCase):
 
         for t in threads:
             t.join()
-

@@ -1,9 +1,6 @@
 #!/usr/bin/env python
-'''
-
-
-'''
-
+"""
+"""
 __author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
 __maintainer__ = "martin.palmer.develop@gmail.com"
@@ -11,22 +8,15 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import asyncore
-import socket
-import time
-import os
-import datetime
-from uuid import UUID
-from Queue import Queue
 
-from oan import network, database, dispatch
+from uuid import UUID
+
+from oan.manager import network, database
 from oan.util import log
-from oan.heartbeat import OANHeartbeat
-from oan.dispatcher.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay, OANMessagePing
-from oan.statistic import OANNetworkNodeStatistic
-from oan.database import OANDatabase
+from oan.dispatcher.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay
 from oan.network.network_node import OANNetworkNode
-from oan.network.message import NetworksMessageConnectToNode
+from oan.network.command import NetworksCommandConnectToNode
+
 
 class OANNodeManager():
     # Node server to connect and send message to other node servers
@@ -42,8 +32,13 @@ class OANNodeManager():
     def __init__(self, config):
         self.config = config
 
-    # load all nodes in to memory, later on load only the best 1000 nodes.
     def load(self):
+        """
+        Load all nodes in to memory
+
+        Later on load only the best 1000 nodes.
+
+        """
         for node in database().select_all(OANNetworkNode):
             log.info(node)
             self._nodes[node.oan_id] = node
@@ -97,8 +92,8 @@ class OANNodeManager():
         else:
             log.info("OANNodeManager:Error my node is already set")
 
+    #@syncronized
     def get_my_node(self):
-        #with self._lock:
         return self._my_node
 
     def get_statistic(self):
@@ -170,7 +165,7 @@ class OANNodeManager():
                   #  node.out_queue.put(message)
 
                 if node.is_disconnected():
-                    network().execute(NetworksMessageConnectToNode.create(node))
+                    network().execute(NetworksCommandConnectToNode.create(node))
         else:
             log.info("OANNodeManager:Error node is missing %s" % oan_id)
             log.info(self._nodes)

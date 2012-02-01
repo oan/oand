@@ -16,7 +16,7 @@ import oan_id
 from Queue import Queue
 
 from test.test_case import OANTestCase
-from oan import dispatch, node_manager
+from oan.manager import dispatcher, node_manager
 from oan.loop import OANLoop
 from oan.event import OANEvent
 from oan.node_manager import OANNodeManager
@@ -57,20 +57,20 @@ class TestOANBlocked(OANTestCase):
             self.queue.put(message)
 
     def create_watcher(self):
-        dispatch().on_message += [self.got_message]
+        dispatcher().on_message += [self.got_message]
 
     def create_node(self):
         pass
-        #node_mgr().create_node('oo:hh:18', 'localhost', 4008)
+        #node_manager().create_node('oo:hh:18', 'localhost', 4008)
 
     def test_message_relay(self):
         # send a ping to a blocked node
 
-        while not node_mgr().exist_node(oan_id.UUID('00000000-0000-bbbb-4008-000000000000')):
+        while not node_manager().exist_node(oan_id.UUID('00000000-0000-bbbb-4008-000000000000')):
             time.sleep(10)
 
         log.info("send ping")
-        node_mgr().send(oan_id.UUID('00000000-0000-bbbb-4008-000000000000'),
+        node_manager().send(oan_id.UUID('00000000-0000-bbbb-4008-000000000000'),
                                       OANMessagePing.create( "my relay ping", 2))
                                            # send ping back and forward (2)
 

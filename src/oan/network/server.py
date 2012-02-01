@@ -13,18 +13,11 @@ __status__ = "Test"
 
 import asyncore
 import socket
-import time
-import datetime
-import thread
-from Queue import Queue
-from threading import Thread
 
-import oan
 from oan.util import log
 from bridge import OANBridge
 from oan.event import OANEvent
 from oan.network.network_node import OANNetworkNodeState
-
 
 
 class OANListen(asyncore.dispatcher):
@@ -36,8 +29,6 @@ class OANListen(asyncore.dispatcher):
         self.bind((host, port))
         self.listen(5)
         log.info("Start listening on %s:%d" % (host, port))
-
-
 
     def handle_accept(self):
         #print "OanServer:handle_accept"
@@ -58,49 +49,57 @@ class OANListen(asyncore.dispatcher):
         log.info("OanServer:handle_close")
         self.close()
 
-
-
     def handle_error(self):
         log.info("OanServer:handle_error")
         asyncore.dispatcher.handle_error(self)
 
 
-
-
-# make OANServer.connect_to_node thread safe alternative OANNodeManager
 class OANServer(object):
+    """
+     Make OANServer.connect_to_node thread safe alternative OANNodeManager
 
-    bridges = {} #bridges to other nodes
+    EVENTS:
 
-    _listen = None
+    on_bridge_added
+        Callback event that will be triggered when a bridge is added
+        to the server.
 
-    '''
-        use:
+        Example:
         def my_bridge_added(bridge)
             pass
 
-        loop.on_bridge_added += (my_bridge_added, )
-    '''
+        server.on_bridge_added.append(my_bridge_added)
+
+    on_bridge_removed
+        Callback event that will be triggered when a bridge is removed
+        from the server.
+
+        Example:
+        def my_bridge_removed(bridge)
+            pass
+
+        server.on_bridge_removed.append(my_bridge_removed)
+
+    on_bridge_removed
+        Callback event that will be triggered when the bridge is idling.
+
+        Example:
+        def my_bridge_idle(bridge)
+            pass
+
+        server.on_bridge_idle.append(my_bridge_idle)
+    """
+    #Events
     on_bridge_added = OANEvent()
-
-    '''
-        use:
-        def on_bridge_removed(bridge)
-            pass
-
-        loop.on_bridge_removed += (on_bridge_removed, )
-    '''
     on_bridge_removed = OANEvent()
-
-
-    '''
-        use:
-        def on_bridge_idle(bridge)
-            pass
-
-        loop.on_bridge_idle += (on_bridge_idle, )
-    '''
     on_bridge_idle = OANEvent()
+
+    # Private variables
+
+    #bridges to other nodes
+    bridges = {}
+
+    _listen = None
 
     def add_bridge(self, bridge):
         #print "OanServer:add_bridge"
@@ -120,7 +119,6 @@ class OANServer(object):
         if (bridge.node.oan_id in self.bridges):
             self.on_bridge_idle(bridge)
 
-
     def connect_to_node(self, node):
         log.info("Connect to %s:%s" % (node.host, node.port))
         node.state = OANNetworkNodeState.connecting
@@ -134,8 +132,6 @@ class OANServer(object):
 
     def listen(self, host, port):
         self._listen = OANListen(host, port)
-
-
 
     def shutdown(self):
         if self._listen and self._listen.accepting:
