@@ -88,7 +88,10 @@ class OANPassthru(Queue):
         """
         back = Queue()
         self.put((message, back))
-        log.debug(str(message))
+
+        if __debug__:
+            log.debug(str(message))
+
         while True:
             ret = back.get()
 
@@ -123,7 +126,8 @@ class OANPassthru(Queue):
         queue if this was a "select" message.
 
         """
-        log.debug("Got error %s on %s " % (ex, message))
+        if __debug__:
+            log.debug("Got error %s on %s " % (ex, message))
 
         try:
             if not self.on_error.empty():
@@ -159,4 +163,6 @@ class OANPassthru(Queue):
                     back.put(ret)
 
             back.put(None)
-            log.debug(str(back.__class__))
+
+            if __debug__:
+                log.debug(str(back.__class__))
