@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
-Test cases for oan.statistic.py
+"""
+Test cases for oan.dispatcher.dispatcher
 
-'''
+"""
 
 __author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -11,19 +11,14 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import time
-
-from uuid import UUID
 from Queue import Queue
 
-from oan.util import log
-from oan.dispatcher import OANMessageDispatcher
+from oan.dispatcher.dispatcher import OANDispatcher
 from test.test_case import OANTestCase
 
+
 class OANTestMessageException:
-    """
-    A test message that will raise a exception.
-    """
+    """A test message that will raise an exception."""
     exception = None
 
     @classmethod
@@ -36,35 +31,31 @@ class OANTestMessageException:
         raise self.exception
 
 
-
-class TestOANMessageDispatcherError(OANTestCase):
-
+class TestOANDispatcherError(OANTestCase):
     _dispatcher = None
     _got_error_queue = None
 
     def setUp(self):
-        self._dispatcher = OANMessageDispatcher(None)
+        self._dispatcher = OANDispatcher()
         # subscribe on_message event
         self._dispatcher.on_error.append(self._got_error)
         self._got_error_queue = Queue()
-
 
     def tearDown(self):
         self._dispatcher.shutdown()
         # unsubscribe on_message event
         self._dispatcher.on_error.remove(self._got_error)
 
-
     def _got_error(self, message, ex):
         """
         When a message raises an exception this function will be called.
-        it puts the exception in a test queue just to signal the
-        assertEqual that waits on the queue.
+        It puts the exception in a test queue to send a signal to
+        assertEqual that waits for the queue.
+
         """
         self._got_error_queue.put(ex)
 
     def test_error(self):
-
         #Test exception with execute method and on_error event
         ex = Exception("my test exception")
         self._dispatcher.execute(OANTestMessageException.create(ex))

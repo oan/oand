@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-network thread that handles all the network traffic
+Network thread that handles all the network traffic
 
 '''
 
@@ -12,20 +12,14 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import asyncore
-import socket
-import time
-import thread
-import threading
 from datetime import datetime, timedelta
-from Queue import Queue
 from threading import Thread
 
 from oan.util import log
-from oan.event import OANEvent
 from server import OANServer
-from oan.event import OANEvent
 from oan.passthru import OANPassthru
-from oan.network.message import OANNetworkMessageShutdown
+from oan.network.command import OANNetworkComandShutdown
+
 
 class OANTimer(object):
     checked = None
@@ -40,7 +34,6 @@ class OANTimer(object):
         self.interval = sec
         self.later(self.interval)
 
-
     def later(self, sec):
         self.expires = datetime.utcnow() + timedelta(seconds = sec)
 
@@ -52,7 +45,6 @@ class OANTimer(object):
             return True
 
         return False
-
 
 
 class OANNetworkWorker(Thread):
@@ -70,14 +62,11 @@ class OANNetworkWorker(Thread):
         self._timers = []
         Thread.start(self)
 
-
     def add_timer(self, timer):
         self._timers.append(timer)
 
-
     def remove_timer(self, timer):
         self._timers.remove(timer)
-
 
     def run(self):
         q = self._pass
@@ -97,7 +86,7 @@ class OANNetworkWorker(Thread):
                 except Exception as ex:
                     self._pass.error(message, ex, back)
 
-                if isinstance(message, OANNetworkMessageShutdown):
+                if isinstance(message, OANNetworkComandShutdown):
                     break
 
         self._server.shutdown()
@@ -106,17 +95,15 @@ class OANNetworkWorker(Thread):
 
 
 class OANNetwork:
-
-    # === Event === #
+    # Events
     on_receive = None
-
     on_send = None
-
     on_message = None
-
     on_error = None
 
-    # === Private === #
+    # Private variables
+
+    # Will only have one worke due to asyncore.
     _worker = None
     _pass = None
 
@@ -143,5 +130,5 @@ class OANNetwork:
             return ret
 
     def shutdown(self):
-        self._pass.execute(OANNetworkMessageShutdown())
+        self._pass.execute(OANNetworkComandShutdown())
         self._worker.join()

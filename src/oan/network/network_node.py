@@ -25,10 +25,7 @@ class OANNetworkNodeState(object):
 
 
 class OANNetworkNode:
-    """
-    Thread safe network node representation.
-
-    """
+    """Thread safe network node representation."""
     oan_id = None
     name = None
     host = None
@@ -61,9 +58,6 @@ class OANNetworkNode:
 
     @synchronized
     def update(self, host = None, port = None, blocked = None, state = None):
-        #with self._lock:
-        #TODO
-        # with lock
         #   if host not None:
         #       self.host = host
         pass

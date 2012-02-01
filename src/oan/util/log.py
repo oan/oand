@@ -20,12 +20,14 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import os
-import types
 import traceback
+from time import gmtime, strftime
+
+# Inherit all functionality from logging. util.log is like a
+# sub module/class for logging.
+from logging import *
 import logging
 import logging.handlers
-from logging import *
-from time import gmtime, strftime
 
 # Loglevel that will not send any logging messages to log handler.
 NONE = 100
@@ -37,7 +39,7 @@ def setup(syslog_level, stderr_level, log_level, log_file_name):
 
     # The logging filter will be done by the handlers. The general level will
     # log all everything.
-    my_logger.setLevel(0)
+    my_logger.setLevel(min(syslog_level, stderr_level, log_level))
 
     # Add information/tags that can be used on the log entries.
     f = ContextFilter()

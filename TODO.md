@@ -34,6 +34,8 @@ well written with unit test and comments.
 
 * Unittest and nicing up OANNetworkNode.
 
+* @synchronized(lock) decorator.
+
 * Go through all unit tests.
 
 * Organize codes in more folders/packages.
@@ -162,6 +164,9 @@ VERSION 0.2
   http://darcs.idyll.org/~t/projects/figleaf/doc/
   nosetests -v --with-coverage --cover-package=highlight --with-doctest\
      --cover-erase --exe
+
+* make number of workers dynamic start a new if all are used, it a
+  worker is idle for a period of time stop the worker.
 
 * Check code complexity
   http://sourceforge.net/projects/pymetrics/

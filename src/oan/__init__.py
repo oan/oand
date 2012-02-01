@@ -15,4 +15,4 @@ ETC_DIR = BASE_DIR + "etc/"
 LOG_DIR = BASE_DIR + "log/"
 
 # todo: Should be moved to dispatcher??
-from manager import *
+#from manager import *
