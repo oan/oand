@@ -31,7 +31,6 @@ well written with unit test and comments.
 * Unittest passthrou with more workers and passthru at
   the same time.
 
-* @synchronized(lock) decorator.
 * config.node_id = oan_id
 
 * Only uuuid in oan_id

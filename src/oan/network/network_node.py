@@ -13,6 +13,7 @@ __status__ = "Test"
 
 from threading import Lock
 from Queue import Queue
+from uuid import UUID
 
 from oan.heartbeat import OANHeartbeat
 from oan.statistic import OANNetworkNodeStatistic
@@ -56,7 +57,7 @@ class OANNetworkNode:
     _lock = None
 
     def __init__(self, oan_id):
-        self._oan_id = oan_id
+        self._oan_id = UUID(oan_id)
         self._state = OANNetworkNodeState.DISCONNECTED
         self._heartbeat = OANHeartbeat()
         self.out_queue = Queue(1000)

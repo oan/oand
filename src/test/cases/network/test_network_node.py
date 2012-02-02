@@ -16,13 +16,17 @@ from test.test_case import OANTestCase
 from oan.network.network_node import OANNetworkNode, OANNetworkNodeState
 
 class TestOANNetworkNode(OANTestCase):
+    def test_network_node_invalid_uuid(self):
+        with self.assertRaises(ValueError):
+            OANNetworkNode("invalid-id")
+
     def test_network_node_empty(self):
-        nn = OANNetworkNode("oan_id")
+        nn = OANNetworkNode("00000000-0000-dead-0000-000000000000")
 
         (name, host, port, blocked, state, heartbeat) = nn.get()
 
         self.assertTrue(nn.out_queue.empty())
-        self.assertEqual(nn.oan_id, "oan_id")
+        self.assertEqual(str(nn.oan_id), "00000000-0000-dead-0000-000000000000")
         self.assertEqual(host, None)
         self.assertEqual(port, None)
         self.assertEqual(blocked, None)
@@ -31,12 +35,15 @@ class TestOANNetworkNode(OANTestCase):
         self.assertTrue(nn.is_offline())
 
     def test_network_node_create(self):
-        nn = OANNetworkNode.create("oan_id", "localhost", "1337", False)
+        nn = OANNetworkNode.create(
+            "00000000-0000-dead-0000-000000000000",
+            "localhost", "1337", False
+        )
 
         (name, host, port, blocked, state, heartbeat) = nn.get()
 
         self.assertTrue(nn.out_queue.empty())
-        self.assertEqual(nn.oan_id, "oan_id")
+        self.assertEqual(str(nn.oan_id), "00000000-0000-dead-0000-000000000000")
         self.assertEqual(host, "localhost")
         self.assertEqual(port, 1337)
         self.assertEqual(blocked, False)
@@ -45,7 +52,11 @@ class TestOANNetworkNode(OANTestCase):
         self.assertTrue(nn.is_offline())
 
     def test_network_node_update(self):
-        nn = OANNetworkNode.create("oan_id", "localhost", "1337", False)
+        nn = OANNetworkNode.create(
+            "00000000-0000-dead-0000-000000000000",
+            "localhost", "1337", False
+        )
+
         nn.update(
             "your-node", "remotehost", "1338",
             True, OANNetworkNodeState.CONNECTING,
@@ -55,7 +66,7 @@ class TestOANNetworkNode(OANTestCase):
         (name, host, port, blocked, state, heartbeat) = nn.get()
 
         self.assertTrue(nn.out_queue.empty())
-        self.assertEqual(nn.oan_id, "oan_id")
+        self.assertEqual(str(nn.oan_id), "00000000-0000-dead-0000-000000000000")
         self.assertEqual(host, "remotehost")
         self.assertEqual(port, 1338)
         self.assertEqual(blocked, True)
@@ -64,7 +75,11 @@ class TestOANNetworkNode(OANTestCase):
         self.assertFalse(nn.is_offline())
 
     def test_network_node_serialize(self):
-        nn = OANNetworkNode.create("oan_id", "localhost", "1337", False)
+        nn = OANNetworkNode.create(
+            "00000000-0000-dead-0000-000000000000",
+            "localhost", "1337", False
+        )
+
         nn.update(
             "your-node", "remotehost", "1338",
             True, OANNetworkNodeState.CONNECTING,
@@ -72,13 +87,13 @@ class TestOANNetworkNode(OANTestCase):
         )
         data = nn.serialize()
 
-        nn2 = OANNetworkNode("new_id")
+        nn2 = OANNetworkNode("00000000-0000-babe-0000-000000000000")
         nn2.unserialize(data)
 
         (name, host, port, blocked, state, heartbeat) = nn2.get()
 
         self.assertTrue(nn.out_queue.empty())
-        self.assertEqual(nn2.oan_id, "new_id")
+        self.assertEqual(str(nn2.oan_id), "00000000-0000-babe-0000-000000000000")
         self.assertEqual(host, "remotehost")
         self.assertEqual(port, 1338)
         self.assertEqual(blocked, True)
@@ -90,7 +105,10 @@ class TestOANNetworkNode(OANTestCase):
         class TestMessage(object):
             value = None
 
-        nn = OANNetworkNode("oan_id")
+        nn = OANNetworkNode.create(
+            "00000000-0000-dead-0000-000000000000",
+            "localhost", "1337", False
+        )
         self.assertTrue(nn.out_queue.empty())
 
         message = TestMessage()
