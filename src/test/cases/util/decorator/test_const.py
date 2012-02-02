@@ -11,17 +11,26 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from test.test_case import OANTestCase
+# from test.test_case import OANTestCase
 
-from oan.util.decorator.const import const
+# from oan.util.decorator.const import const
 
-class Constants(object):
-    @const
-    VAR=12
+# class Constants(object):
+#     @const
+#     VAR=12
 
-    @constant
-    def FOO():
-        return 0xBAADFACE
+#     VAR = const(12)
+
+#     @const
+#     def FOO():
+#         return 0xBAADFACE
+
+# @const
+# class OANNetworkNodeState(object):
+#     DISCONNECTED, CONNECTING, CONNECTED = range(1, 4)
+
+# class OANNetworkNodeState(OANConst):
+#     DISCONNECTED, CONNECTING, CONNECTED = range(1, 4)
 
 # class TestLogging(OANTestCase):
 
