@@ -101,7 +101,7 @@ class OANResource():
     name = None
     content = None
     heartbeat = None
-    node_uuids = []
+    oan_ids = []
 
     def __init__(self):
         self.heartbeat = OANHeartbeat()

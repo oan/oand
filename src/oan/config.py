@@ -157,7 +157,7 @@ class OANConfig(object):
     log_file = OANFileName(oan.LOG_DIR)
 
     # This nodes unique id
-    node_uuid = None
+    oan_id = None
 
     # The name of the server oand is running on. This has no connection
     # to the hostname in the OS, it's just for reference.
@@ -188,7 +188,7 @@ class OANConfig(object):
 
     def __init__(
         self,
-        node_uuid=None, node_name=None, domain_name=None, port=None,
+        oan_id=None, node_name=None, domain_name=None, port=None,
         bff_name=None, bff_domain_name=None, bff_port=None,
         blocked=False
     ):
@@ -203,7 +203,7 @@ class OANConfig(object):
         self.log_level = "DEBUG"
         self.log_file = "oand.log"
 
-        self.node_uuid = node_uuid
+        self.oan_id = oan_id
 
         self.node_name = node_name
         self.node_domain_name = domain_name

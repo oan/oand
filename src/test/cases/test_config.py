@@ -25,7 +25,7 @@ class TestOANConfig(OANTestCase):
     opts["pid_file"] = "/var/run/oand.pid"
     opts["log_file"] = oan.BASE_DIR + "log/unittest-oand.log"
 
-    opts['node_uuid'] = "1"
+    opts['oan_id'] = "1"
     opts["node_name"] = "this-is-a-node-name"
     opts["node_domain_name"] = "www.cybercow.se"
     opts["node_port"] = "4000"
@@ -36,7 +36,7 @@ class TestOANConfig(OANTestCase):
 
     def setUp(self):
         self._config = OANConfig(
-            self.opts["node_uuid"],
+            self.opts["oan_id"],
             self.opts["node_name"],
             self.opts["node_domain_name"],
             self.opts["node_port"],
@@ -48,7 +48,7 @@ class TestOANConfig(OANTestCase):
 
     def test_config(self):
         cnf = self._config
-        self.assertEqual(cnf.node_uuid, self.opts["node_uuid"])
+        self.assertEqual(cnf.oan_id, self.opts["oan_id"])
         self.assertEqual(cnf.node_name, self.opts["node_name"])
         self.assertEqual(cnf.node_domain_name, self.opts["node_domain_name"])
         self.assertEqual(cnf.node_port, self.opts["node_port"])

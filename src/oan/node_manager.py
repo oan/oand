@@ -43,8 +43,8 @@ class OANNodeManager():
             log.info(node)
             self._nodes[node.oan_id] = node
 
-        if UUID(self.config.node_uuid) in self._nodes:
-            my_node = self._nodes[UUID(self.config.node_uuid)]
+        if UUID(self.config.oan_id) in self._nodes:
+            my_node = self._nodes[UUID(self.config.oan_id)]
             my_node.host  = self.config.node_domain_name
             my_node.port = int(self.config.node_port)
             my_node.blocked = self.config.blocked
@@ -52,7 +52,7 @@ class OANNodeManager():
             log.info(my_node)
         else:
             my_node = self.create_node(
-                UUID(self.config.node_uuid),
+                UUID(self.config.oan_id),
                 self.config.node_domain_name,
                 self.config.node_port,
                 self.config.blocked

@@ -11,8 +11,6 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from time import sleep
-
 from oan.application import OANDaemon
 from oan.config import OANConfig
 
@@ -25,9 +23,9 @@ def start_test_network():
 
     for config in configs.itervalues():
         if config.blocked:
-            print "Start node [%s][%s] blocked." % (config.node_name, config.node_uuid)
+            print "Start node [%s][%s] blocked." % (config.node_name, config.oan_id)
         else:
-            print "Start node [%s][%s] on port %s." % (config.node_name, config.node_uuid, config.node_port)
+            print "Start node [%s][%s] on port %s." % (config.node_name, config.oan_id, config.node_port)
 
         OANDaemon(config).restart()
 
@@ -36,9 +34,9 @@ def stop_test_network():
 
     for config in configs.itervalues():
         if config.blocked:
-            print "Stop node [%s][%s] blocked." % (config.node_name, config.node_uuid)
+            print "Stop node [%s][%s] blocked." % (config.node_name, config.oan_id)
         else:
-            print "Stop node [%s][%s] on port %s." % (config.node_name, config.node_uuid, config.node_port)
+            print "Stop node [%s][%s] on port %s." % (config.node_name, config.oan_id, config.node_port)
 
         OANDaemon(config).stop()
 

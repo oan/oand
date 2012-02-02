@@ -152,7 +152,7 @@ class OANDatabase:
         self._tables = {}
         self._lock = Lock()
         self._pass = OANPassthru()
-        self._worker = OANDatabaseWorker(self._pass, "%s%s.db" % (oan.VAR_DIR, self._config.node_uuid))
+        self._worker = OANDatabaseWorker(self._pass, "%s%s.db" % (oan.VAR_DIR, self._config.oan_id))
 
     def create(self, cls):
         with self._lock:

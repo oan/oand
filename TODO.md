@@ -28,12 +28,12 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
-* Unittest passthrou with more workers and passthru at
-  the same time.
-
 * config.node_id = oan_id
 
-* Only uuuid in oan_id
+* Check encode/decode for oan_id compatiblity.
+
+* Unittest passthrou with more workers and passthru at
+  the same time.
 
 * Go through all unit tests.
 

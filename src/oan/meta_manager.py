@@ -20,15 +20,15 @@ class OANMetaManager():
     def __init__(self):
         self.resourceRoot = OANResourceRoot()
 
-    def update_root_node_uuids(self):
+    def update_root_oan_ids(self):
         '''
-        Update node_uuids on resourceRoot with node_manager node_uuids.
+        Update oan_ids on resourceRoot with node_manager oan_ids.
 
-        The resourceRoot root folder should have all known node_uuids on the
+        The resourceRoot root folder should have all known oan_ids on the
         oan network.
 
         '''
-        self.resourceRoot.get("/").node_uuids.extend(node_manager().node_uuids)
+        self.resourceRoot.get("/").oan_ids.extend(node_manager().oan_ids)
 
     def get(self, path):
         '''
@@ -36,8 +36,8 @@ class OANMetaManager():
 
         '''
         if not self.resourceRoot.exist(path) or self.resourceRoot.get("/").heartbeat.is_expired():
-            node_uuids = self.resourceRoot.get_known_parent(path).node_uuids
-            for result in node_manager().get_remote_resources(node_uuids, path):
+            oan_ids = self.resourceRoot.get_known_parent(path).oan_ids
+            for result in node_manager().get_remote_resources(oan_ids, path):
                 pass
                 #self.resourceRoot.set(path, res)
 
@@ -58,6 +58,6 @@ class OANMetaManager():
     #                     nodes[node.oan_id] = []
     #                 nodes[node.oan_id].append(res.oan_id)
 
-    #     for node_uuids, resUuids in nodes.iteritems():
-    #         resList = self.networkNodeManager.get_resource(node_uuids, resUuids)
+    #     for oan_ids, resUuids in nodes.iteritems():
+    #         resList = self.networkNodeManager.get_resource(oan_ids, resUuids)
     #         self.resourceRoot.merge(resList)
