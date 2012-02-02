@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
+"""
 Test heartbeat
 
-'''
+"""
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -17,10 +17,6 @@ from oan.heartbeat import *
 class TestOANHeartbeat(OANTestCase):
 
     def test_heartbeat(self):
-        '''
-        Also called from test_resources
-
-        '''
         hb = OANHeartbeat()
 
         self.assertEqual(hb.is_idle(), True)
@@ -85,6 +81,51 @@ class TestOANHeartbeat(OANTestCase):
         self.assertFalse(low > high)
         self.assertFalse(high < low)
         self.assertFalse(high == low)
+
+    def test_heartbeat_state(self):
+        hb = OANHeartbeat()
+
+
+        self.assertEqual(hb.has_state(OANHeartbeat.IDLE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.EXPIRED), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.OFFLINE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.DEAD), False)
+
+        hb.value = "2106-06-06T06:06:06Z"
+        self.assertEqual(hb.has_state(OANHeartbeat.IDLE), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.EXPIRED), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.OFFLINE), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.DEAD), False)
+
+        hb.touch()
+        self.assertEqual(hb.has_state(OANHeartbeat.IDLE), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.EXPIRED), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.OFFLINE), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.DEAD), False)
+
+        hb.set_idle()
+        self.assertEqual(hb.has_state(OANHeartbeat.IDLE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.EXPIRED), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.OFFLINE), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.DEAD), False)
+
+        hb.set_expired()
+        self.assertEqual(hb.has_state(OANHeartbeat.IDLE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.EXPIRED), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.OFFLINE), False)
+        self.assertEqual(hb.has_state(OANHeartbeat.DEAD), False)
+
+        hb.set_offline()
+        self.assertEqual(hb.has_state(OANHeartbeat.IDLE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.EXPIRED), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.OFFLINE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.DEAD), False)
+
+        hb.set_dead()
+        self.assertEqual(hb.has_state(OANHeartbeat.IDLE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.EXPIRED), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.OFFLINE), True)
+        self.assertEqual(hb.has_state(OANHeartbeat.DEAD), True)
 
 if __name__ == '__main__':
     unittest.main()

@@ -14,6 +14,7 @@ __status__ = "Test"
 from test.test_case import OANTestCase
 
 from oan.network.network_node import OANNetworkNode, OANNetworkNodeState
+from oan.heartbeat import OANHeartbeat
 
 class TestOANNetworkNode(OANTestCase):
     def test_network_node_invalid_uuid(self):
@@ -32,7 +33,7 @@ class TestOANNetworkNode(OANTestCase):
         self.assertEqual(blocked, None)
         self.assertEqual(state, OANNetworkNodeState.DISCONNECTED)
         self.assertTrue(nn.is_disconnected())
-        self.assertTrue(nn.is_offline())
+        self.assertTrue(nn.has_heartbeat_state(OANHeartbeat.OFFLINE))
 
     def test_network_node_create(self):
         nn = OANNetworkNode.create(
@@ -49,7 +50,7 @@ class TestOANNetworkNode(OANTestCase):
         self.assertEqual(blocked, False)
         self.assertEqual(state, OANNetworkNodeState.DISCONNECTED)
         self.assertTrue(nn.is_disconnected())
-        self.assertTrue(nn.is_offline())
+        self.assertTrue(nn.has_heartbeat_state(OANHeartbeat.OFFLINE))
 
     def test_network_node_update(self):
         nn = OANNetworkNode.create(
@@ -72,7 +73,7 @@ class TestOANNetworkNode(OANTestCase):
         self.assertEqual(blocked, True)
         self.assertEqual(state, OANNetworkNodeState.CONNECTING)
         self.assertFalse(nn.is_disconnected())
-        self.assertFalse(nn.is_offline())
+        self.assertFalse(nn.has_heartbeat_state(OANHeartbeat.OFFLINE))
 
     def test_network_node_serialize(self):
         nn = OANNetworkNode.create(
@@ -99,7 +100,7 @@ class TestOANNetworkNode(OANTestCase):
         self.assertEqual(blocked, True)
         self.assertEqual(state, OANNetworkNodeState.DISCONNECTED)
         self.assertTrue(nn2.is_disconnected())
-        self.assertFalse(nn2.is_offline())
+        self.assertFalse(nn2.has_heartbeat_state(OANHeartbeat.OFFLINE))
 
     def test_network_node_queue(self):
         class TestMessage(object):

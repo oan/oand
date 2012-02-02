@@ -153,6 +153,6 @@ class OANNetworkNode:
         return self._state == OANNetworkNodeState.DISCONNECTED
 
     @synchronized
-    def is_offline(self):
-        """No communication has been done with this node for x minutes."""
-        return self._heartbeat.is_offline()
+    def has_heartbeat_state(self, state):
+        """What is the known online state of the node."""
+        return self._heartbeat.has_state(state)

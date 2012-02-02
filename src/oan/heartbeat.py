@@ -32,8 +32,11 @@ class OANHeartbeat(object):
     """
     _value = None
 
+    # Constants used with has_state()
+    NOT_EXPIRED, IDLE, EXPIRED, OFFLINE, DEAD = range(1, 6)
+
     IDLE_MIN = 1 # test value 0.1
-    EXPIRE_MIN = 5 # test value 0.2
+    EXPIRED_MIN = 5 # test value 0.2
     OFFLINE_MIN = 10
     DEAD_MIN = 525600
 
@@ -70,7 +73,7 @@ class OANHeartbeat(object):
         self._value = (datetime.utcnow() - timedelta(minutes = self.IDLE_MIN, seconds = 1))
 
     def set_expired(self):
-        self._value = (datetime.utcnow() - timedelta(minutes = self.EXPIRE_MIN, seconds = 1))
+        self._value = (datetime.utcnow() - timedelta(minutes = self.EXPIRED_MIN, seconds = 1))
 
     def set_offline(self):
         self._value = (datetime.utcnow() - timedelta(minutes = self.OFFLINE_MIN, seconds = 1))
@@ -85,8 +88,8 @@ class OANHeartbeat(object):
         min - Number of minutes the heatbeat is valid.)
 
         """
-        expire_date = datetime.utcnow() - timedelta(minutes = min)
-        if (expire_date < self._value):
+        expired_date = datetime.utcnow() - timedelta(minutes = min)
+        if (expired_date < self._value):
             return False
 
         return True
@@ -114,7 +117,7 @@ class OANHeartbeat(object):
         True
 
         """
-        return self._is_touched(self.EXPIRE_MIN)
+        return self._is_touched(self.EXPIRED_MIN)
 
     def is_offline(self):
         """
@@ -141,6 +144,23 @@ class OANHeartbeat(object):
 
         """
         return self._is_touched(self.DEAD_MIN)
+
+    def has_state(self, state):
+        """Check if heartbeat is in state."""
+        if state == OANHeartbeat.NOT_EXPIRED:
+            return not self.is_expired()
+
+        elif state == OANHeartbeat.IDLE:
+            return self.is_idle()
+
+        elif state == OANHeartbeat.EXPIRED:
+            return self.is_expired()
+
+        elif state == OANHeartbeat.OFFLINE:
+            return self.is_offline()
+
+        elif state == OANHeartbeat.DEAD:
+            return self.is_dead()
 
     def __cmp__(self, other):
         left = self._value
