@@ -13,8 +13,7 @@ __license__ = "We pwn it all."
 __version__ = "0.2"
 __status__ = "Test"
 
-from threading import Lock
-
+class NoLockObjectError(Exception): pass
 
 def synchronized(obj):
     """
@@ -32,13 +31,11 @@ def synchronized(obj):
             pass
 
     """
-
     def wrap(self, *args, **kw):
         if hasattr(self, "_lock"):
             lock = getattr(self, "_lock")
         else:
-            lock = Lock()
-            setattr(self, "_lock", lock)
+            raise NoLockObjectError()
 
         lock.acquire()
         try:

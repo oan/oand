@@ -12,6 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from threading import Thread
+from threading import Lock
 import time
 
 from test.test_case import OANTestCase
@@ -21,6 +22,8 @@ from oan.util.decorator.synchronized import synchronized
 class ThreadSafe(object):
     """Will get a threading.Lock by @synchronized"""
     _id = None
+
+    _lock = Lock()
 
     @synchronized
     def check_sync(self, id):
