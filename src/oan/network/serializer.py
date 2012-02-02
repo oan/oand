@@ -1,17 +1,17 @@
 #!/usr/bin/env python
-'''
-Serialize an object to a JSON.
+"""
+Serialize/unserialize an object to and from a JSON.
 
 Example:
 c1 = Test("c1", "file 1")
 
-txt = OANSerializer.encode(c1)
-obj = OANSerializer.decode(txt)
+serializer.add("Test", Test)
+txt = serializer.encode(c1)
+obj = serializer.decode(txt)
 
-self.assertEqual(obj.name, "c1")
-self.assertEqual(obj.content, "file 1")
+@TODO: Alternative name for encode/decode serialize/unserialize
 
-'''
+"""
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -22,27 +22,33 @@ __status__ = "Test"
 
 from json import JSONEncoder, JSONDecoder
 
-# Classes that should be possible to encode and decode.
-#from resources import Resource, Folder, File
-#from heartbeat import HeartBeat
+# Contains classes that should be possible to encode and decode.
 _cls_list = {}
 
-def add(name, cls):
-    _cls_list[name] = cls
+
+def add(cls):
+    """Add a class that should be possible to encode/decode."""
+    _cls_list[cls.__name__] = cls
+
 
 def encode(obj):
-    return JSONEncoder(default = _encode_hook).encode(obj)
+    """Encode/Serialize an object to a JSON."""
+    return JSONEncoder(default=_encode_hook).encode(obj)
+
 
 def decode(obj):
-    return JSONDecoder(object_hook = _decode_hook).decode(obj)
+    """Dencode/Unserialize an object from a JSON."""
+    return JSONDecoder(object_hook=_decode_hook).decode(obj)
+
 
 def _encode_hook(obj):
     if obj.__class__.__name__ not in _cls_list:
         if not isinstance(obj, _cls_list[obj.__class__.__name__]):
             raise TypeError("%r is not JSON serializable" % (obj))
 
-    setattr(obj, 'class_name',  obj.__class__.__name__)
+    obj.class_name = obj.__class__.__name__
     return obj.__dict__
+
 
 def _decode_hook(value):
     obj = _cls_list[value['class_name']]()

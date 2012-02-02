@@ -22,7 +22,7 @@ from oan.util.decorator.synchronized import synchronized
 
 class OANNetworkNodeState(object):
     """States a network node connection can be in."""
-    DISCONNECTED, CONNECTING, CONNECTED  = range(1, 4)
+    DISCONNECTED, CONNECTING, CONNECTED = range(1, 4)
 
 
 class OANNetworkNode:
@@ -65,6 +65,7 @@ class OANNetworkNode:
 
     @classmethod
     def create(cls, oan_id, host, port, blocked):
+        """Create a useable node."""
         obj = cls(oan_id)
         obj._host, obj._port, obj._blocked = host, int(port), blocked
         obj._statistic = OANNetworkNodeStatistic()
@@ -72,8 +73,8 @@ class OANNetworkNode:
 
     @synchronized
     def update(self,
-        name = None, host = None, port = None,
-        blocked = None, state = None, heartbeat = None
+        name=None, host=None, port=None,
+        blocked=None, state=None, heartbeat=None
     ):
         """
         Used to update a node in a threadsafe way.
@@ -82,12 +83,18 @@ class OANNetworkNode:
         node.update(port=1338)
 
         """
-        if name != None: self._name = name
-        if host != None: self._host = host
-        if port != None: self._port = int(port)
-        if blocked != None: self._blocked = blocked
-        if state != None: self._state = state
-        if heartbeat != None: self._heartbeat.set_value(heartbeat)
+        if name != None:
+            self._name = name
+        if host != None:
+            self._host = host
+        if port != None:
+            self._port = int(port)
+        if blocked != None:
+            self._blocked = blocked
+        if state != None:
+            self._state = state
+        if heartbeat != None:
+            self._heartbeat.set_value(heartbeat)
 
     @property
     def oan_id(self):
@@ -108,6 +115,7 @@ class OANNetworkNode:
 
     @synchronized
     def unserialize(self, data):
+        """Recreate node from dict produced by serialize."""
         self._name = data["name"]
         self._host = data["host"]
         self._port = data["port"]
@@ -119,13 +127,17 @@ class OANNetworkNode:
 
     @synchronized
     def serialize(self):
+        """
+        Return a dict that can be used to recreate this node with serialize.
+
+        """
         return {
-            "name" : self._name,
-            "host" : self._host,
-            "port" : self._port,
-            "blocked" : self._blocked,
-            "heartbeat" : self._heartbeat.value,
-            "statistic" : self._statistic.serialize()
+            "name": self._name,
+            "host": self._host,
+            "port": self._port,
+            "blocked": self._blocked,
+            "heartbeat": self._heartbeat.value,
+            "statistic": self._statistic.serialize()
         }
 
     @synchronized

@@ -249,9 +249,9 @@ class OANMessageNodeSync():
 
 # Messages that will be possible to send to a remote node.
 
-serializer.add("OANMessageHandshake", OANMessageHandshake)
-serializer.add("OANMessageClose", OANMessageClose)
-serializer.add("OANMessageHeartbeat", OANMessageHeartbeat)
-serializer.add("OANMessageNodeSync", OANMessageNodeSync)
-serializer.add("OANMessageRelay", OANMessageRelay)
-serializer.add("OANMessagePing", OANMessagePing)
+serializer.add(OANMessageHandshake)
+serializer.add(OANMessageClose)
+serializer.add(OANMessageHeartbeat)
+serializer.add(OANMessageNodeSync)
+serializer.add(OANMessageRelay)
+serializer.add(OANMessagePing)

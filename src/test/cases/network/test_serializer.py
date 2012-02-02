@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
-Test OANSerializer.
+"""
+Test oan.network.serializer.
 
-'''
+"""
 
 __author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -11,8 +11,9 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import unittest
-import OANSerializer
+from test.test_case import OANTestCase
+
+from oan.network import serializer
 
 class Test(object):
     def __init__(self, name= None, content = None):
@@ -22,18 +23,15 @@ class Test(object):
     def get_name(self):
         return self.name
 
-OANSerializer.add("Test", Test)
+serializer.add(Test)
 
-class TestOANSerializer(unittest.TestCase):
+class TestOANSerializer(OANTestCase):
 
     def test_exist(self):
         c1 = Test("c1", "file 1")
 
-        txt = OANSerializer.encode(c1)
-        obj = OANSerializer.decode(txt)
+        txt = serializer.encode(c1)
+        obj = serializer.decode(txt)
 
         self.assertEqual(obj.get_name(), "c1")
         self.assertEqual(obj.content, "file 1")
-
-if __name__ == '__main__':
-    unittest.main()
