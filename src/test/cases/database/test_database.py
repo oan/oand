@@ -15,7 +15,7 @@ from uuid import UUID, uuid4
 
 from test.test_case import OANTestCase
 from oan.config import OANConfig
-from oan.database import OANDatabase
+from oan.database.database import OANDatabase
 
 class MyTestNode():
     oan_id = None

@@ -21,55 +21,62 @@ from oan.dispatcher.message import OANMessagePing
 from oan.dispatcher.command import OANCommandSendToNode
 from oan.application import OANApplication
 from oan.config import OANConfig
-
 from oan.util.network import get_local_host
 
+from oan.network.network import OANNetwork
 
 class TestOANNetwork(OANTestCase):
-    """
+    def test_it(self):
+        network = OANNetwork()
+        network.shutdown()
 
-    TODO: Test and see what happends if n1 connects to n2 at same time as n2
-    connect to n1.
+        self.assertTrue(True)
 
-    """
-    queue = None
-    app = None
+# class TestOANNetwork(OANTestCase):
+#     """
 
-    def setUp(self):
-        self.queue = Queue()
+#     TODO: Test and see what happends if n1 connects to n2 at same time as n2
+#     connect to n1.
 
-        self.app = OANApplication(OANConfig(
-            '00000000-0000-0000-8000-000000000000',
-            "TestOAN",
-            "localhost",
-            str(8000)
-        ))
+#     """
+#     queue = None
+#     app = None
 
-        self.app.run()
-        self.create_node()
-        self.create_watcher()
+#     def setUp(self):
+#         self.queue = Queue()
 
-    def tearDown(self):
-        self.app.stop()
-        self.queue = None
+#         self.app = OANApplication(OANConfig(
+#             '00000000-0000-0000-DEAD-000000000000',
+#             "TestOAN",
+#             "localhost",
+#             str(8000)
+#         ))
 
-    def create_node(self):
-        """Create known nodes (instead of loading from db"""
-        node_manager().create_node(UUID('00000000-0000-0000-4000-000000000000'), get_local_host(), 4000, False)
-        node_manager().create_node(UUID('00000000-0000-0000-4001-000000000000'), get_local_host(), 4001, False)
-        node_manager().create_node(UUID('00000000-0000-0000-4002-000000000000'), get_local_host(), 4002, False)
-        node_manager().create_node(UUID('00000000-0000-0000-4003-000000000000'), get_local_host(), 4003, False)
+#         self.app.run()
+#         #self.create_node()
+#         self.create_watcher()
 
-    def got_message(self, message):
-        if isinstance(message, OANMessagePing):
-            if message.ping_counter == 1:
-                self.queue.put(message)
+#     def tearDown(self):
+#         self.app.stop()
+#         self.queue = None
 
-    def create_watcher(self):
-        dispatcher().on_message.append(self.got_message)
+#     # def create_node(self):
+#     #     """Create known nodes (instead of loading from db"""
+#     #     node_manager().create_node(UUID('00000000-0000-0000-4000-000000000000'), get_local_host(), 4000, False)
+#     #     node_manager().create_node(UUID('00000000-0000-0000-4001-000000000000'), get_local_host(), 4001, False)
+#     #     node_manager().create_node(UUID('00000000-0000-0000-4002-000000000000'), get_local_host(), 4002, False)
+#     #     node_manager().create_node(UUID('00000000-0000-0000-4003-000000000000'), get_local_host(), 4003, False)
 
-    # def test_message_ping(self):
-    #     self.assertTrue(True)
+#     def got_message(self, message):
+#         if isinstance(message, OANMessagePing):
+#             if message.ping_counter == 1:
+#                 self.queue.put(message)
+
+#     def create_watcher(self):
+#         dispatcher().on_message.append(self.got_message)
+
+#     def test_message_ping(self):
+#         self.assertTrue(True)
 
     #     # Send a ping between all nodes 5x10 times.
     #     for n in xrange(4000, 4001):

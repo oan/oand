@@ -23,13 +23,13 @@ from oan.node_manager import OANNodeManager
 from oan.meta_manager import OANMetaManager
 from oan.data_manager import OANDataManager
 from oan.config import OANConfig
-from oan.database import OANDatabase
+from oan.database.database import OANDatabase
 from oan.dispatcher.command import (OANCommandStaticHeartbeat,
     OANCommandStaticLoadNodes, OANCommandStaticStoreNodes,
     OANCommandStaticSyncNodes, OANCommandStaticGetNodeInfo)
 
 from oan.dispatcher.dispatcher import OANDispatcher
-from oan.network.network import OANNetwork, OANTimer
+from oan.network.network import OANNetwork, OANNetworkTimer
 from oan.network.command import OANNetworkCommandListen
 
 
@@ -39,15 +39,13 @@ class OANApplication():
     def __init__(self, config):
         self.config = config
 
-
-
     def run(self):
         log.info("Starting Open Archive Network for " + self.config.node_name)
 
         setup(
             OANNetwork(),
             OANDatabase(self.config),
-            OANDispatcher(self.config),
+            OANDispatcher(),
             "None", #OANDataManager("../var/data.dat"),
             "None", #OANMetaManager(),
             OANNodeManager(self.config)
@@ -58,7 +56,6 @@ class OANApplication():
         dispatcher().execute(OANCommandStaticLoadNodes)
         network().execute(OANNetworkCommandListen.create(self.config.node_port))
 
-
     # TODO: is it possible to catch the SIG when killing a deamon and call this function.
     def stop(self):
         log.info("Stopping Open Archive Network")
@@ -67,11 +64,9 @@ class OANApplication():
         dispatcher().shutdown()
         database().shutdown()
 
-
-
     def _setup_timers(self):
-        network().add_timer(OANTimer(5, self.run_every_minute))
-        network().add_timer(OANTimer(20, self.run_every_day))
+        network().add_timer(OANNetworkTimer(5, self.run_every_minute))
+        network().add_timer(OANNetworkTimer(20, self.run_every_day))
 
 
 

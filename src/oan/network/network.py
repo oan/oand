@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-'''
+"""
 Network thread that handles all the network traffic
 
-'''
+"""
 
 __author__ = "martin.palmer.develop@gmail.com"
 __copyright__ = "Copyright 2011, Amivono AB"
@@ -21,35 +21,56 @@ from oan.passthru import OANPassthru
 from oan.network.command import OANNetworkComandShutdown
 
 
-class OANTimer(object):
-    checked = None
-    expires = None
-    callback = None
-    interval = None
+class OANNetworkTimer(object):
+    """
+    Execute a callback function every X seconds.
+
+    check() should be executed every second to be able to internally execute
+    callbacks that has an expired timer.
+
+    """
+    _interval = None
+    _callback = None
+    _args = None
+    _kwargs = None
+
+    _expires = None
 
     def __init__(self, sec, callback, *args, **kwargs):
-        self.callback = callback
-        self.args = args
-        self.kwargs = kwargs
-        self.interval = sec
-        self.later(self.interval)
+        self._interval = sec
+        self._callback = callback
+        self._args = args
+        self._kwargs = kwargs
 
-    def later(self, sec):
-        self.expires = datetime.utcnow() + timedelta(seconds = sec)
+        self._calc_expire()
 
     def check(self):
-        self.checked = datetime.utcnow()
-        if (self.expires < self.checked):
-            self.callback(*self.args, **self.kwargs)
-            self.later(self.interval)
-            return True
+        """Execute callback if the timer has expired."""
+        checked = datetime.utcnow()
+        if (self._expires < checked):
+            self._callback(*self._args, **self._kwargs)
+            self._calc_expire()
 
-        return False
+    def _calc_expire(self):
+        """Calculate and set the next time the cmd should be executed."""
+        self._expires = datetime.utcnow() + timedelta(seconds = self._interval)
 
 
 class OANNetworkWorker(Thread):
+    """
+    Handles the main network loop.
 
-    # === Private === #
+    Polls the network passthru queue for new commands/messages that needs
+    to be executed.
+
+    Polls the network queue through asyncore for new connections and sends
+    them internally in asyncore code to the OANListen object.
+
+    Controll if OANNetworkTimer callbacks should be executed.
+
+    """
+
+    # Private variables
     _timers = None
     _pass = None
     _server = None
@@ -63,12 +84,15 @@ class OANNetworkWorker(Thread):
         Thread.start(self)
 
     def add_timer(self, timer):
+        """Add a OANNetworkTimer to be executed by the main network loop."""
         self._timers.append(timer)
 
     def remove_timer(self, timer):
+        """Remove a OANNetworkTimer from the main network loop."""
         self._timers.remove(timer)
 
     def run(self):
+        """Main network loop"""
         q = self._pass
         log.info("Start network worker %s" % self.name)
 
@@ -95,17 +119,45 @@ class OANNetworkWorker(Thread):
 
 
 class OANNetwork:
+    """
+    Handle communication between nodes through commands and messages.
+
+    EVENTS:
+
+    on_message  Callback event that will be triggered when a message is poped
+                from the queue.
+
+                Example:
+                def got_message(self, message):
+                    print "got message"
+
+                on_message.append(got_message)
+
+
+    on_error    Callback event that will be called when worker thread got
+                any error, for example when the message execute raises an
+                exception.
+
+                Example:
+                def got_error(self, message, exception):
+                    print "got error", exception
+
+                on_error.append(got_error)
+
+    """
     # Events
-    on_receive = None
-    on_send = None
     on_message = None
     on_error = None
 
+    # TODO: Not implemented.
+    #on_receive = None
+    #on_send = None
+
     # Private variables
 
-    # Will only have one worke due to asyncore.
-    _worker = None
+    # Will only have one worker because only one asyncore.loop can exist.
     _pass = None
+    _worker = None
 
     def __init__(self):
         self._pass = OANPassthru()
@@ -114,21 +166,27 @@ class OANNetwork:
         self.on_error = self._pass.on_error
 
     def add_timer(self, timer):
+        """Add a OANNetworkTimer to be executed by the main network loop."""
         self._worker.add_timer(timer)
 
     def remove_timer(self, timer):
+        """Remove a OANNetworkTimer from the main network loop."""
         self._worker.remove_timer(timer)
 
-    def execute(self, message):
-        self._pass.execute(message)
+    def execute(self, command):
+        """Execute a command via worker thread."""
+        self._pass.execute(command)
 
-    def select(self, message):
-       return self._pass.select(message)
+    def select(self, command):
+        """Execute a command via worker thread, return yielded result."""
+        return self._pass.select(command)
 
-    def get(self, message):
-        for ret in self._pass.select(message):
+    def get(self, command):
+        """Execute a command via worker thread, return first row of result."""
+        for ret in self._pass.select(command):
             return ret
 
     def shutdown(self):
+        """Shutdown the network communication and all it's threads."""
         self._pass.execute(OANNetworkComandShutdown())
         self._worker.join()

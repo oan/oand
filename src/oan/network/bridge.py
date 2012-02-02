@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 '''
-RPC bridge to queue and send request between oan client and server.
+RPC bridge to queue and send messages between oan client and server.
 
 '''
 
@@ -25,8 +25,7 @@ from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 class OANBridge(asyncore.dispatcher):
     server = None
 
-    # Remote node that the bridge connected to.
-    # is None until handshake is done.
+    # Remote node that the bridge is connected to.
     node = None
     remote_addr = None
 
@@ -97,6 +96,8 @@ class OANBridge(asyncore.dispatcher):
         raw_message = encode(message)
         if self.node is not None:
             log.info("send_message: %s to %s" % (message.__class__.__name__, self.node.oan_id))
+            # TODO: This should be on the incomming, when the send has
+            #       succeded???
             self.node.heartbeat.touch()
 
         return raw_message + '\n'

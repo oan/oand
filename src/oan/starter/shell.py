@@ -27,6 +27,7 @@ import readline
 
 from en_text import *
 from oan.application import OANApplication, OANDaemon
+from oan.util import log
 
 class OANShell(cmd.Cmd):
     """Creating an interactive shell used to communicate with oand."""
@@ -111,7 +112,10 @@ class OANShell(cmd.Cmd):
         except Exception as e:
             print e
             print "Unexpected error:", sys.exc_info()[0]
-            log.debug_tb("Unexpected error:", sys.exc_info()[0])
+            traceback.print_tb(sys.exc_info()[2])
+
+            # TODO: add exception to log, sys.exc_info()[0])
+            log.trace("Unexpected error:")
             return self.cmdloop("")
 
     #

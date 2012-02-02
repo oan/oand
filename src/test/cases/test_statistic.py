@@ -30,7 +30,7 @@ from oan.config import OANConfig
 from oan.message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OANMessageHandshake
 
 from Queue import Queue
-from oan.database import OANDatabase
+from oan.database.database import OANDatabase
 
 '''
 from bson.binary import Binary, UUIDLegacy

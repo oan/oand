@@ -54,15 +54,27 @@ class OANCommandStaticGetNodeInfo:
     @staticmethod
     def execute():
         node = node_manager().get_my_node()
-        yield (
-            node.heartbeat.value,
-            node.oan_id,
-            node.name,
-            node.port,
-            node.host,
-            node.state,
-            node.blocked
-        )
+        if node == None:
+            yield ("Invalid node")
+        else:
+            (
+                name,
+                host,
+                port,
+                blocked,
+                state,
+                heartbeat
+            ) = node.get()
+
+            yield (
+                node.oan_id,
+                name,
+                host,
+                port,
+                blocked,
+                state,
+                heartbeat
+            )
 
 
 class OANCommandSendToNode:

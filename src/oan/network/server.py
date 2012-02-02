@@ -21,6 +21,12 @@ from oan.network.network_node import OANNetworkNodeState
 
 
 class OANListen(asyncore.dispatcher):
+    """
+    Listens for new socket connections.
+
+    Uses together with asyncore.loop() in OANNetworkWorker.
+
+    """
     def __init__(self, host, port):
         asyncore.dispatcher.__init__(self)
 
@@ -31,32 +37,38 @@ class OANListen(asyncore.dispatcher):
         log.info("Start listening on %s:%d" % (host, port))
 
     def handle_accept(self):
-        #print "OanServer:handle_accept"
-        pair = self.accept()
-        if pair is None:
-            pass
-        else:
-            try:
-                sock, addr = pair
-                log.info('OanServer: accepting connection from %s' % repr(addr))
-                bridge = OANBridge(self, sock)
-                bridge.remote_addr = addr
-                bridge.handle_accept()
-            except Exception, e:
-                log.info('OanServer: invalid peer connected from %s [%s]' % (repr(addr), e))
+        """
+        Create a new OANBridge to remote node when a connection is accepted.
+
+        """
+        log.debug("OANListen:handle_accept")
+        try:
+            pair = self.accept()
+            if pair is None:
+                return
+
+            sock, addr = pair
+            log.info('OANListen: accepting connection from %s' % repr(addr))
+            bridge = OANBridge(self, 2)
+            bridge.remote_addr = addr
+            bridge.handle_accept()
+        except Exception, e:
+            log.info('OANListen: invalid peer connected from %s [%s]' % (repr(addr), e))
 
     def handle_close(self):
-        log.info("OanServer:handle_close")
+        log.info("OANListen:handle_close")
         self.close()
 
     def handle_error(self):
-        log.info("OanServer:handle_error")
+        log.info("OANListen:handle_error")
         asyncore.dispatcher.handle_error(self)
 
 
 class OANServer(object):
     """
-     Make OANServer.connect_to_node thread safe alternative OANNodeManager
+
+
+    TODO: Make OANServer.connect_to_node thread safe alternative OANNodeManager
 
     EVENTS:
 
@@ -88,34 +100,35 @@ class OANServer(object):
             pass
 
         server.on_bridge_idle.append(my_bridge_idle)
+
     """
-    #Events
+    # Events
     on_bridge_added = OANEvent()
     on_bridge_removed = OANEvent()
     on_bridge_idle = OANEvent()
 
     # Private variables
 
-    #bridges to other nodes
+    # Bridges to other nodes
     bridges = {}
 
     _listen = None
 
     def add_bridge(self, bridge):
-        #print "OanServer:add_bridge"
+        log.debug("OanServer:add_bridge")
         bridge.node.state = OANNetworkNodeState.CONNECTED
         self.bridges[bridge.node.oan_id] = bridge
         self.on_bridge_added(bridge)
 
     def remove_bridge(self, bridge):
-        #print "OanServer:remove_bridge"
+        log.debug("OanServer:remove_bridge")
         if (bridge.node.oan_id in self.bridges):
             bridge.node.state = OANNetworkNodeState.DISCONNECTED
             del self.bridges[bridge.node.oan_id]
             self.on_bridge_removed(bridge)
 
     def idle_bridge(self, bridge):
-        #print "OanServer:idle_bridge"
+        log.debug("OanServer:idle_bridge")
         if (bridge.node.oan_id in self.bridges):
             self.on_bridge_idle(bridge)
 

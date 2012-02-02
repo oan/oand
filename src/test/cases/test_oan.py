@@ -20,7 +20,7 @@ from test.test_case import OANTestCase
 # from oan.meta_manager import OANMetaManager
 # from oan.data_manager import OANDataManager
 # from oan.loop import OANLoop
-# from oan.database import OANDatabase
+# from oan.database.database import OANDatabase
 # from oan.config import OANConfig
 # from oan.message import OANDispatcher
 
