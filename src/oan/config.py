@@ -246,7 +246,9 @@ class OANConfig(object):
         """Print all internal variables. (Used for debug purpose)"""
         log.debug("-------- ALL CONFIG OPTIONS ---------")
         log.debug("[oand]")
-        for key in self.__dict__.keys():
+        keys = self.__dict__.keys()
+        keys.sort()
+        for key in keys:
             value = getattr(self, key)
             log.debug("\t%s: %s" % (key, value))
         log.debug("-------------------------------------")

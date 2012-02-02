@@ -11,6 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import sys
 import asyncore
 from datetime import datetime, timedelta
 from threading import Thread
@@ -77,6 +78,7 @@ class OANNetworkWorker(Thread):
 
     def __init__(self, passthru):
         Thread.__init__(self)
+        self.name = "Network-" + self.name
 
         self._server = OANServer()
         self._pass = passthru
@@ -109,6 +111,7 @@ class OANNetworkWorker(Thread):
                     self._pass.result(ret, back)
                 except Exception as ex:
                     self._pass.error(message, ex, back)
+                    self._pass.error(message, ex, back, sys.exc_info())
 
                 if isinstance(message, OANNetworkComandShutdown):
                     break

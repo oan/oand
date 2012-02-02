@@ -99,6 +99,7 @@ class OANDatabaseWorker(Thread):
 
     def __init__(self, passthru, db_name):
         Thread.__init__(self)
+        self.name = "Database-" + self.name
         self._pass = passthru
         self._db_name = db_name
         Thread.start(self)
@@ -124,7 +125,7 @@ class OANDatabaseWorker(Thread):
                 if not isinstance(message, OANDatabaseMessageSelect):
                     cnx.rollback()
 
-                self._pass.error(message, ex, back)
+                self._pass.error(message, ex, back, sys.exc_info())
 
 
             elapsed = (time.time() - start)

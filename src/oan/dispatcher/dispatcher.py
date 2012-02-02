@@ -11,6 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import sys
 from threading import Thread
 
 from oan.util import log
@@ -37,6 +38,7 @@ class OANDispatcherWorker(Thread):
 
     def __init__(self, passthru):
         Thread.__init__(self)
+        self.name = "Dispatcher-" + self.name
         self._passthru = passthru
         Thread.start(self)
 
@@ -62,7 +64,7 @@ class OANDispatcherWorker(Thread):
             #   raise, so catch them all and send them on the "back" queue
             #   for result method to handle.
             except Exception as ex:
-                self._passthru.error(message, ex, back)
+                self._passthru.error(message, ex, back, sys.exc_info())
 
             if isinstance(message, OANCommandShutdown):
                 # Put back shutdown message for other worker threads

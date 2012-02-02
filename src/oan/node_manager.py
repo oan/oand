@@ -10,12 +10,16 @@ __status__ = "Test"
 
 
 from uuid import UUID
+from threading import Lock
+
+
 
 from oan.manager import network, database
 from oan.util import log
 from oan.dispatcher.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay
 from oan.network.network_node import OANNetworkNode
 from oan.network.command import NetworksCommandConnectToNode
+from oan.util.decorator.synchronized import synchronized
 
 
 class OANNodeManager():
@@ -28,6 +32,8 @@ class OANNodeManager():
 
     # Info about my own node.
     _my_node = None
+
+    _lock = Lock()
 
     def __init__(self, config):
         self.config = config
@@ -52,7 +58,7 @@ class OANNodeManager():
             log.info(my_node)
         else:
             my_node = self.create_node(
-                UUID(self.config.oan_id),
+                self.config.oan_id,
                 self.config.node_domain_name,
                 self.config.node_port,
                 self.config.blocked
@@ -92,7 +98,7 @@ class OANNodeManager():
         else:
             log.info("OANNodeManager:Error my node is already set")
 
-    #@syncronized
+    @synchronized
     def get_my_node(self):
         return self._my_node
 

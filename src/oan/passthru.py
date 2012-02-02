@@ -117,7 +117,7 @@ class OANPassthru(Queue):
             self.on_message(message)
         return (message, back)
 
-    def error(self, message, ex, back):
+    def error(self, message, ex, back, exc_info):
         """
         Called by worker if any error is found when executing a message.
 
@@ -127,7 +127,7 @@ class OANPassthru(Queue):
 
         """
         if __debug__:
-            log.debug("Got error %s on %s " % (ex, message))
+            log.trace("Got error %s on %s " % (ex, message), exc_info=exc_info)
 
         try:
             if not self.on_error.empty():
@@ -153,7 +153,7 @@ class OANPassthru(Queue):
         """
         # Method could be a function
         # pylint: disable=R0201
-        #   The architecture is clearer if the is a method.
+        #   The architecture is clearer if this is a class method.
         if (back):
             if ret is not None:
                 if type(ret) == GeneratorType:

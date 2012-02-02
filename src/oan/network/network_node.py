@@ -57,7 +57,12 @@ class OANNetworkNode:
     _lock = None
 
     def __init__(self, oan_id):
-        self._oan_id = UUID(oan_id)
+
+        if isinstance(oan_id, UUID):
+            self._oan_id = oan_id
+        else:
+            self._oan_id = UUID(oan_id)
+
         self._state = OANNetworkNodeState.DISCONNECTED
         self._heartbeat = OANHeartbeat()
         self.out_queue = Queue(1000)

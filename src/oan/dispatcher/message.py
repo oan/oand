@@ -163,8 +163,14 @@ class OANMessageHeartbeat():
     def create(cls, node):
         obj = cls()
         obj.oan_id = str(node.oan_id)
-        obj.host = node.host
-        obj.port = node.port
+        (
+            dummy,
+            obj.host,
+            obj.port,
+            dummy,
+            dummy,
+            dummy
+        ) = node.get()
         return obj
 
     def execute(self):
@@ -211,7 +217,16 @@ class OANMessageNodeSync():
         valuelist = []
         hashlist = []
         for node in node_manager()._nodes.values():
-            valuelist.append((str(node.oan_id), node.host, node.port, node.blocked, node.heartbeat.value))
+            (
+                name,
+                host,
+                port,
+                blocked,
+                state,
+                heartbeat
+            ) = node.get()
+            oan_id = str(node.oan_id)
+            valuelist.append((oan_id, host, port, blocked, heartbeat))
 
         valuelist.sort()
 
