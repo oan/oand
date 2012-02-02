@@ -13,70 +13,90 @@ __status__ = "Test"
 
 from test.test_case import OANTestCase
 
-from oan.network.network_node import OANNetworkNode
+from oan.network.network_node import OANNetworkNode, OANNetworkNodeState
 
 class TestOANNetworkNode(OANTestCase):
-    def test_network_node(self):
+    def test_network_node_empty(self):
         nn = OANNetworkNode("oan_id")
 
+        (name, host, port, blocked, state, heartbeat) = nn.get()
+
+        self.assertTrue(nn.out_queue.empty())
         self.assertEqual(nn.oan_id, "oan_id")
-        self.assertEqual(nn.host, None)
-        self.assertEqual(nn.port, None)
-        self.assertEqual(nn.blocked, None)
+        self.assertEqual(host, None)
+        self.assertEqual(port, None)
+        self.assertEqual(blocked, None)
+        self.assertEqual(state, OANNetworkNodeState.DISCONNECTED)
         self.assertTrue(nn.is_disconnected())
-        self.assertTrue(nn.heartbeat.is_offline())
+        self.assertTrue(nn.is_offline())
 
     def test_network_node_create(self):
-        nn = OANNetworkNode.create(
-            "oan_id",
-            "localhost",
-            "1337",
-            False
-        )
+        nn = OANNetworkNode.create("oan_id", "localhost", "1337", False)
+
+        (name, host, port, blocked, state, heartbeat) = nn.get()
+
+        self.assertTrue(nn.out_queue.empty())
         self.assertEqual(nn.oan_id, "oan_id")
-        self.assertEqual(nn.host, "localhost")
-        self.assertEqual(nn.port, "1337")
-        self.assertEqual(nn.blocked, False)
+        self.assertEqual(host, "localhost")
+        self.assertEqual(port, 1337)
+        self.assertEqual(blocked, False)
+        self.assertEqual(state, OANNetworkNodeState.DISCONNECTED)
         self.assertTrue(nn.is_disconnected())
-        self.assertTrue(nn.heartbeat.is_offline())
-        print nn
+        self.assertTrue(nn.is_offline())
 
+    def test_network_node_update(self):
+        nn = OANNetworkNode.create("oan_id", "localhost", "1337", False)
+        nn.update(
+            "your-node", "remotehost", "1338",
+            True, OANNetworkNodeState.CONNECTING,
+            "2107-07-07T07:07:07Z"
+        )
 
-"""
-    def validate_network_node(self, nn):
+        (name, host, port, blocked, state, heartbeat) = nn.get()
+
+        self.assertTrue(nn.out_queue.empty())
         self.assertEqual(nn.oan_id, "oan_id")
-        self.assertEqual(nn.oan_id, "oan_id")
-        self.assertEqual(nn.name, "name")
-        self.assertEqual(nn.domain_name, "domain_name")
-        self.assertEqual(nn.port, "port")
-        self.assertEqual(nn.heartbeat.value, "2006-06-06T06:06:06Z")
+        self.assertEqual(host, "remotehost")
+        self.assertEqual(port, 1338)
+        self.assertEqual(blocked, True)
+        self.assertEqual(state, OANNetworkNodeState.CONNECTING)
+        self.assertFalse(nn.is_disconnected())
+        self.assertFalse(nn.is_offline())
 
-        self.assertEqual(nn.connection_url, "domain_name:port")
-        self.assertTrue(nn.is_valid())
-"""
+    def test_network_node_serialize(self):
+        nn = OANNetworkNode.create("oan_id", "localhost", "1337", False)
+        nn.update(
+            "your-node", "remotehost", "1338",
+            True, OANNetworkNodeState.CONNECTING,
+            "2107-07-07T07:07:07Z"
+        )
+        data = nn.serialize()
 
-"""
-    def test_get_dict(self):
-        nn = OANNetworkNode("oan_id", "name", "domain_name", "port")
+        nn2 = OANNetworkNode("new_id")
+        nn2.unserialize(data)
 
-        param = {}
-        param['oan_id'] = "oan_id"
-        param['name'] = "name"
-        param['domain_name'] = "domain_name"
-        param['port'] = "port"
-        param['last_heartbeat'] = "2006-06-06T06:06:06Z"
+        (name, host, port, blocked, state, heartbeat) = nn2.get()
 
-        self.assertEqual(nn.get_dict(), param)
+        self.assertTrue(nn.out_queue.empty())
+        self.assertEqual(nn2.oan_id, "new_id")
+        self.assertEqual(host, "remotehost")
+        self.assertEqual(port, 1338)
+        self.assertEqual(blocked, True)
+        self.assertEqual(state, OANNetworkNodeState.DISCONNECTED)
+        self.assertTrue(nn2.is_disconnected())
+        self.assertFalse(nn2.is_offline())
 
-    def test_create_from_dict(self):
-        param = {}
-        param['oan_id'] = "oan_id"
-        param['name'] = "name"
-        param['domain_name'] = "domain_name"
-        param['port'] = "port"
-        param['last_heartbeat'] = "2006-06-06T06:06:06Z"
+    def test_network_node_queue(self):
+        class TestMessage(object):
+            value = None
 
-        nn = OANNetworkNode.create_from_dict(param)
-        self.validate_network_node(nn)
-"""
+        nn = OANNetworkNode("oan_id")
+        self.assertTrue(nn.out_queue.empty())
 
+        message = TestMessage()
+        message.value = "test"
+        nn.send(message)
+
+        pop_message = nn.out_queue.get()
+        self.assertTrue(isinstance(pop_message, TestMessage))
+        self.assertEqual(pop_message.value, message.value)

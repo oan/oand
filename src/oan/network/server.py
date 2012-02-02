@@ -103,14 +103,14 @@ class OANServer(object):
 
     def add_bridge(self, bridge):
         #print "OanServer:add_bridge"
-        bridge.node.state = OANNetworkNodeState.connected
+        bridge.node.state = OANNetworkNodeState.CONNECTED
         self.bridges[bridge.node.oan_id] = bridge
         self.on_bridge_added(bridge)
 
     def remove_bridge(self, bridge):
         #print "OanServer:remove_bridge"
         if (bridge.node.oan_id in self.bridges):
-            bridge.node.state = OANNetworkNodeState.disconnected
+            bridge.node.state = OANNetworkNodeState.DISCONNECTED
             del self.bridges[bridge.node.oan_id]
             self.on_bridge_removed(bridge)
 
@@ -121,7 +121,7 @@ class OANServer(object):
 
     def connect_to_node(self, node):
         log.info("Connect to %s:%s" % (node.host, node.port))
-        node.state = OANNetworkNodeState.connecting
+        node.state = OANNetworkNodeState.CONNECTING
         bridge = OANBridge(self)
         bridge.connect(node.host, node.port)
 

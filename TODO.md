@@ -32,8 +32,6 @@ well written with unit test and comments.
   # Test with more workers and passthru at the same time.
   * Alternative name for OANPassthru = OANMessageQueue??
 
-* Unittest and nicing up OANNetworkNode.
-
 * @synchronized(lock) decorator.
 
 * Go through all unit tests.

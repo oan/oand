@@ -107,7 +107,7 @@ class OANApplication():
 
     #         connected = False
     #         for bridges in server.bridges.values():
-    #             if bridges.node.state == OANNetworkNodeState.connected:
+    #             if bridges.node.state == OANNetworkNodeState.CONNECTED:
     #                 connected = True
     #                 loop().remove_timer(self.timer_connect)
     #                 log.info("Connected to bff %s:%s" % (host, port))

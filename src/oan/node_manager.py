@@ -81,7 +81,7 @@ class OANNodeManager():
             node.port = int(port)
             node.blocked = blocked
         else:
-            node = OANNetworkNode.create(oan_id, host, int(port), blocked)
+            node = OANNetworkNode.create(oan_id, host, port, blocked)
             self._nodes[oan_id] = node
 
         return node

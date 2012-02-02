@@ -27,7 +27,6 @@ from oan.event import OANEvent
 
 from oand import OANApplication
 from oan.config import OANConfig
-from oan.node_manager import OANNetworkNode, OANNodeManager
 from oan.message import OANMessagePing, OANMessageHeartbeat, OANMessageClose, OANMessageHandshake
 
 from Queue import Queue

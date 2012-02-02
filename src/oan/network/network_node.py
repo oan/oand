@@ -18,77 +18,140 @@ from oan.heartbeat import OANHeartbeat
 from oan.statistic import OANNetworkNodeStatistic
 from oan.util.decorator.synchronized import synchronized
 
+
 class OANNetworkNodeState(object):
-    """The different states a network node can be in.
-    TODO uppercase"""
-    connecting, connected, disconnected = range(1, 4)
+    """States a network node connection can be in."""
+    DISCONNECTED, CONNECTING, CONNECTED  = range(1, 4)
 
 
 class OANNetworkNode:
     """Thread safe network node representation."""
-    oan_id = None
-    name = None
-    host = None
-    port = None
+
+    # All messages that should be sent to the node through the network.
+    out_queue = None
+
+    # A unique UUID representing this node.
+    _oan_id = None
+
+    # A non unique name which the node is known as.
+    _name = None
+
+    # The external ip-number or domain for node.
+    _host = None
+
+    # The port on which the node listening for oan connections.
+    _port = None
 
     # A blocked node can't be reached from internet through the firewall.
-    blocked = None
+    _blocked = None
 
-    state = None
+    # The current connection state of bridge connection between
+    # local node and this remote node.
+    _state = None
 
-    heartbeat = None
-    statistic = None
+    _heartbeat = None
+    _statistic = None
 
-    out_queue = None
+    # Synchronize the node instance when accessed by several threads.
     _lock = None
 
     def __init__(self, oan_id):
-        self.oan_id = oan_id
-        self.state = OANNetworkNodeState.disconnected
-        self.heartbeat = OANHeartbeat()
+        self._oan_id = oan_id
+        self._state = OANNetworkNodeState.DISCONNECTED
+        self._heartbeat = OANHeartbeat()
         self.out_queue = Queue(1000)
         self._lock = Lock()
 
     @classmethod
     def create(cls, oan_id, host, port, blocked):
         obj = cls(oan_id)
-        obj.host, obj.port, obj.blocked = host, port, blocked
-        obj.statistic = OANNetworkNodeStatistic()
+        obj._host, obj._port, obj._blocked = host, int(port), blocked
+        obj._statistic = OANNetworkNodeStatistic()
         return obj
 
     @synchronized
-    def update(self, host = None, port = None, blocked = None, state = None):
-        #   if host not None:
-        #       self.host = host
-        pass
+    def update(self,
+        name = None, host = None, port = None,
+        blocked = None, state = None, heartbeat = None
+    ):
+        """
+        Used to update a node in a threadsafe way.
+
+        Example:
+        node.update(port=1338)
+
+        """
+        if name != None: self._name = name
+        if host != None: self._host = host
+        if port != None: self._port = int(port)
+        if blocked != None: self._blocked = blocked
+        if state != None: self._state = state
+        if heartbeat != None: self._heartbeat.set_value(heartbeat)
+
+    @property
+    def oan_id(self):
+        """A unique UUID representing this node."""
+        return self._oan_id
 
     @synchronized
     def get(self):
-        return (self.host, self.port, self.blocked, self.state)
-
-    @synchronized
-    def send(self, message):
-        self.out_queue.put(message)
-
-    @synchronized
-    def is_disconnected(self):
-        return self.state == OANNetworkNodeState.disconnected
+        """Return a tuple with all node values."""
+        return (
+            self._name,
+            self._host,
+            self._port,
+            self._blocked,
+            self._state,
+            self._heartbeat.value
+        )
 
     @synchronized
     def unserialize(self, data):
-        self.host, self.port, self.blocked, subdata = data
-        self.statistic = OANNetworkNodeStatistic()
-        self.statistic.unserialize(subdata)
+        self._name = data["name"]
+        self._host = data["host"]
+        self._port = data["port"]
+        self._blocked = data["blocked"]
+        self._heartbeat.set_value(data["heartbeat"])
+        self._state = OANNetworkNodeState.DISCONNECTED
+        self._statistic = OANNetworkNodeStatistic()
+        self._statistic.unserialize(data["statistic"])
 
     @synchronized
     def serialize(self):
-        return(self.host, self.port, self.blocked, self.statistic.serialize())
+        return {
+            "name" : self._name,
+            "host" : self._host,
+            "port" : self._port,
+            "blocked" : self._blocked,
+            "heartbeat" : self._heartbeat.value,
+            "statistic" : self._statistic.serialize()
+        }
 
     @synchronized
     def __str__(self):
         return 'OANNetworkNode(%s, %s, %s) queue(%s) hb(%s) stat(%s)' % (
-            self.oan_id, self.host, self.port,
+            self._oan_id, self._host, self._port,
             self.out_queue.qsize(),
-            self.heartbeat.time,
-            self.statistic
+            self._heartbeat.time,
+            self._statistic
         )
+
+    def send(self, message):
+        """
+        Send a message to this node.
+
+        The message will be added to an internal queue that are polled by
+        the network worker.
+
+        """
+        self.out_queue.put(message)
+
+    @synchronized
+    def is_disconnected(self):
+        """The network connection to this node is not active."""
+        return self._state == OANNetworkNodeState.DISCONNECTED
+
+    @synchronized
+    def is_offline(self):
+        """No communication has been done with this node for x minutes."""
+        return self._heartbeat.is_offline()
