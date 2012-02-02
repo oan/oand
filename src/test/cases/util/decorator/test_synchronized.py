@@ -16,7 +16,14 @@ from threading import Lock
 import time
 
 from test.test_case import OANTestCase
-from oan.util.decorator.synchronized import synchronized
+from oan.util.decorator.synchronized import synchronized, NoLockObjectError
+
+class ThreadSafeCrash(object):
+    """Don't have the required lock object."""
+
+    @synchronized
+    def check_sync(self):
+        pass
 
 
 class ThreadSafe(object):
@@ -49,7 +56,12 @@ class MyThread(Thread):
             safe.check_sync(i * self.n)
 
 
-class TestSynchronizedClass(OANTestCase):
+class TestSynchronized(OANTestCase):
+    def test_NoLockObjectError(self):
+        with self.assertRaises(NoLockObjectError):
+            obj = ThreadSafeCrash()
+            obj.check_sync()
+
     def test_sync(self):
         threads = [MyThread(i) for i in xrange(10)]
 
