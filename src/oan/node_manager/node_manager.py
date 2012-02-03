@@ -8,12 +8,9 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-
-from uuid import UUID
 from threading import Lock
 
-
-
+from oan.heartbeat import OANHeartbeat
 from oan.manager import network, database
 from oan.util import log
 from oan.dispatcher.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay
@@ -21,11 +18,8 @@ from oan.network.network_node import OANNetworkNode
 from oan.network.command import NetworksCommandConnectToNode
 from oan.util.decorator.synchronized import synchronized
 
-
 class OANNodeManager():
-    # Node server to connect and send message to other node servers
-    config = None
-    server = None
+    _config = None
 
     # A dictionary with all nodes in the OAN.
     _nodes = {}
@@ -33,88 +27,46 @@ class OANNodeManager():
     # Info about my own node.
     _my_node = None
 
-    _lock = Lock()
+    # Synchronize the node instance when accessed by several threads.
+    _lock = None
+
 
     def __init__(self, config):
-        self.config = config
+        self._config = config
+        self._lock = Lock()
 
+
+    @synchronized
     def load(self):
-        """
-        Load all nodes in to memory
-
-        Later on load only the best 1000 nodes.
-
-        """
+        """ Load all nodes in to memory and set _my_node"""
         for node in database().select_all(OANNetworkNode):
-            log.info(node)
-            self._nodes[node.oan_id] = node
+            self._update_node(node)
 
-        if UUID(self.config.oan_id) in self._nodes:
-            my_node = self._nodes[UUID(self.config.oan_id)]
-            my_node.host  = self.config.node_domain_name
-            my_node.port = int(self.config.node_port)
-            my_node.blocked = self.config.blocked
-
-            log.info(my_node)
+        if self._config.oan_id in self._nodes:
+            self._set_my_node(self._nodes[self._config.oan_id])
         else:
-            my_node = self.create_node(
-                self.config.oan_id,
-                self.config.node_domain_name,
-                self.config.node_port,
-                self.config.blocked
-            )
+            self._create_my_node()
 
-        self.add_node(my_node)
-        self.set_my_node(my_node)
-
-    # store all nodes in to database
+    @synchronized
     def store(self):
         database().replace_all(self._nodes.values())
 
-    def dump(self):
-        log.info("------ dump begin ------")
-        for n in self._nodes.values():
-            log.info("\t %s" % n)
-        log.info("------ dump end ------")
 
+    @synchronized
     def create_node(self, oan_id, host, port, blocked):
-        #if not isinstance(oan_id, UUID):
-         #    print "OANNodeManager:Error oan_id must be UUID instance"
+        return self._create_node(oan_id, host, port, blocked)
 
-        if self.exist_node(oan_id):
-            node = self._nodes[oan_id]
-            node.host = host
-            node.port = int(port)
-            node.blocked = blocked
-        else:
-            node = OANNetworkNode.create(oan_id, host, port, blocked)
-            self._nodes[oan_id] = node
-
-        return node
-
-    def set_my_node(self, node):
-        if self._my_node is None:
-            self._my_node = node
-        else:
-            log.info("OANNodeManager:Error my node is already set")
 
     @synchronized
     def get_my_node(self):
         return self._my_node
 
-    def get_statistic(self):
-        return self._my_node.statistic
 
-    def add_node(self, node):
-        self._nodes[node.oan_id] = node
-        return node
-
-    def exist_node(self, oan_id):
-        return (oan_id in self._nodes)
-
+    @synchronized
     def get_node(self, oan_id):
         return self._nodes[oan_id]
 
+    '''
     #TODO: remove dead nodes in database
     def remove_dead_nodes(self):
         for n in self._nodes.values():
@@ -125,17 +77,17 @@ class OANNodeManager():
     #TODO: maybe should send heartbeat to blocked nodes to test. once a week or so.
     def send_heartbeat(self):
         heartbeat = OANMessageHeartbeat.create(self._my_node)
-        for n in self._nodes.values():
-            if n.oan_id != self._my_node.oan_id and not n.blocked:
-                if n.heartbeat.is_expired():
-                    self.send(n.oan_id, heartbeat)
+        for n in self._get_nodes():
+            if not n.blocked:
+                self.send(n.oan_id, heartbeat)
 
     #TODO sync ony with open nodes
     def send_node_sync(self):
         node_sync = OANMessageNodeSync.create()
-        for n in self._nodes.values():
+        for n in self._get_nodes():
             if n.oan_id != self._my_node.oan_id:
                 self.send(n.oan_id, node_sync)
+    '''
 
     #TODO: not all message should be relay
     def send(self, oan_id, message):
@@ -191,5 +143,77 @@ class OANNodeManager():
 
     def shutdown(self):
         pass
+
+
+    def get_nodes(self):
+        """
+        Returns all nodes that is not expired, this i use for sending
+        heartbeat and node_sync etc.
+
+        DISCUSS: make heartbeat._is_touch public and send in a parameter
+                 heartbeat.EXPIRED_MIN to this function get_nodes(self, min = OANHeartbeat.EXPIRED_MIN):
+
+                 make heartbeat.EXPIRED_MIN to a static variable.
+
+        """
+
+        print self._nodes
+        ret = []
+        for n in self._nodes.values():
+            if n.oan_id != self._my_node.oan_id:
+                ret.append(n)
+
+        return ret
+
+    def dump(self):
+        log.info("------ dump begin ------")
+        for n in self._nodes.values():
+            log.info("\t %s" % n)
+        log.info("------ dump end ------")
+
+
+    def _create_node(self, oan_id, host, port, blocked):
+        if oan_id in self._nodes:
+            node = self._nodes[oan_id]
+            node.update(host = host, port = port,
+                        blocked = blocked)
+        else:
+            node = OANNetworkNode.create(oan_id, host, port, blocked)
+            self._nodes[oan_id] = node
+
+        return node
+
+    def _update_node(self, node):
+        if node.oan_id in self._nodes:
+            n = self._nodes[node.oan_id]
+            n.update(host = node.host, port = node.port,
+                        blocked = node.blocked)
+        else:
+            self._nodes[node.oan_id] = node
+
+    def _set_my_node(self, node):
+        if self._my_node is None:
+            node.update(
+                host = self._config.node_domain_name,
+                port = int(self._config.node_port),
+                blocked = self._config.blocked)
+
+            self._my_node = node
+        else:
+            log.info("OANNodeManager:Error my node is already set")
+
+
+    def _create_my_node(self):
+        if self._my_node is None:
+            node = self._create_node(
+                self._config.oan_id,
+                self._config.node_domain_name,
+                int(self._config.node_port),
+                self._config.blocked
+            )
+
+            self._my_node = node
+        else:
+            log.info("OANNodeManager:Error my node is already set")
 
 

@@ -18,6 +18,7 @@ import sqlite3
 from uuid import UUID
 import json
 
+import sys
 import oan
 from oan.util import log
 from oan.passthru import OANPassthru

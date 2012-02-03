@@ -16,7 +16,7 @@ from test.test_case import OANTestCase
 # import oan
 # from oan.manager import loop, database, dispatcher, node_manager
 
-# from oan.node_manager import OANNodeManager
+# from oan.node_manager.node_manager import OANNodeManager
 # from oan.meta_manager import OANMetaManager
 # from oan.data_manager import OANDataManager
 # from oan.loop import OANLoop

@@ -17,12 +17,14 @@ from test.test_case import OANTestCase
 from oan import manager
 from oan.manager import dispatcher, node_manager
 from oan.config import OANConfig
-from oan.node_manager import OANNodeManager
+from oan.node_manager.node_manager import OANNodeManager
+from oan.network.network_node import OANNetworkNodeState
 from oan.dispatcher.dispatcher import OANDispatcher
 from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 
-class TestOANDispatcher(OANTestCase):
-    _dispatcher = None
+class TestOANCommand(OANTestCase):
+
+    mock_database = None
 
     def setUp(self):
         mock_shutdown = mock.Mock()
@@ -46,6 +48,7 @@ class TestOANDispatcher(OANTestCase):
             mock_shutdown,
             OANNodeManager(config)
         )
+
         node_manager().load()
 
     def tearDown(self):
@@ -68,5 +71,5 @@ class TestOANDispatcher(OANTestCase):
         self.assertEqual(name, None)
         self.assertEqual(port, 9000)
         self.assertEqual(host, "localhost")
-        self.assertEqual(state, 3)
+        self.assertEqual(state, OANNetworkNodeState.disconnected)
         self.assertEqual(blocked, False)

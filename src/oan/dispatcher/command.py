@@ -22,34 +22,6 @@ class OANCommandShutdown:
         pass
 
 
-class OANCommandStaticStoreNodes():
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticStoreNodes")
-        node_manager().store()
-
-
-class OANCommandStaticLoadNodes():
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticLoadNodes")
-        node_manager().load()
-
-
-class OANCommandStaticHeartbeat():
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticHeartbeat")
-        node_manager().send_heartbeat()
-
-
-class OANCommandStaticSyncNodes():
-    @staticmethod
-    def execute():
-        log.info("OANMessageStaticSyncNodes")
-        node_manager().send_node_sync()
-
-
 class OANCommandStaticGetNodeInfo:
     @staticmethod
     def execute():

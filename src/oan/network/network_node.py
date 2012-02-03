@@ -58,6 +58,7 @@ class OANNetworkNode:
 
     def __init__(self, oan_id):
 
+        # I don't like this autoconvert things :-)
         if isinstance(oan_id, UUID):
             self._oan_id = oan_id
         else:

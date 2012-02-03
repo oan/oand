@@ -17,7 +17,7 @@ import logging
 from oan.resource import *
 from oan.config import OANConfig
 from oan.meta_manager import OANMetaManager
-from oan.node_manager import OANNodeManager
+from oan.node_manager.node_manager import OANNodeManager
 
 class TestResources(OANTestCase):
     def setUp(self):
