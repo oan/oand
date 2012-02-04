@@ -38,7 +38,7 @@ class OANDispatcherWorker(Thread):
 
     def __init__(self, passthru):
         Thread.__init__(self)
-        self.name = "Dispatcher-" + self.name
+        self.name = "DISP-" + self.name.replace("Thread-", "")
         self._passthru = passthru
         Thread.start(self)
 

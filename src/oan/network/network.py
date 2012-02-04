@@ -78,7 +78,7 @@ class OANNetworkWorker(Thread):
 
     def __init__(self, passthru):
         Thread.__init__(self)
-        self.name = "Network-" + self.name
+        self.name = "NETW-" + self.name.replace("Thread-", "")
 
         self._server = OANServer()
         self._pass = passthru

@@ -25,6 +25,7 @@ class OANCommandShutdown:
 class OANCommandStaticGetNodeInfo:
     @staticmethod
     def execute():
+        log.info("OANCommandStaticGetNodeInfo:execute")
         node = node_manager().get_my_node()
         if node == None:
             yield ("Invalid node")
@@ -61,6 +62,7 @@ class OANCommandSendToNode:
         return obj
 
     def execute(self, ):
+        log.info("OANCommandSendToNode:execute")
         log.debug("oan_id: %s, message: %s" % (
             self.oan_id, str(self.message))
         )
