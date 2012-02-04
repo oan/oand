@@ -20,21 +20,21 @@ from oan.util import log
 class OANCommandStaticStoreNodes():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticStoreNodes")
+        log.info("OANMessageStaticStoreNodes:execute")
         node_manager().store()
 
 
 class OANCommandStaticLoadNodes():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticLoadNodes")
+        log.info("OANMessageStaticLoadNodes:execute")
         node_manager().load()
 
 
 class OANCommandStaticHeartbeat():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticHeartbeat")
+        log.info("OANMessageStaticHeartbeat:execute")
 
         heartbeat = OANMessageHeartbeat.create(node_manager().get_my_node())
         for n in node_manager().get_nodes():
@@ -45,5 +45,5 @@ class OANCommandStaticHeartbeat():
 class OANCommandStaticSyncNodes():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticSyncNodes")
+        log.info("OANMessageStaticSyncNodes:execute")
         node_manager().send_node_sync()

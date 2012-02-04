@@ -39,7 +39,8 @@ level_convert = {
     "INFO": "INF",
     "WARNING": "WAR",
     "ERROR": "ERR",
-    "CRITICAL": "CRI"
+    "CRITICAL": "CRI",
+    "Level 11": "TRA"
 }
 
 
