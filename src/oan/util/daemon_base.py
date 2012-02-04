@@ -16,7 +16,9 @@ __status__ = "Test"
 
 
 import sys, os, time, atexit
-from signal import SIGTERM
+from signal import SIGTERM, signal
+
+class OANSigtermError(Exception): """Raised in run when program is stopped."""
 
 
 class OANDaemonBase:
@@ -103,6 +105,7 @@ class OANDaemonBase:
 
         # Start the daemon
         if (self.daemonize()):
+            self._register_signal()
             self.run()
             sys.exit(0)
 
@@ -173,6 +176,14 @@ class OANDaemonBase:
 
         """
 
+    # @staticmethod
+    # def shutdown(signum, frame):
+    #     """
+    #     You should override this method when you subclass Daemon. It will be
+    #     called when the daemon is stopped/killed.
+
+    #     """
+
     def _pid_exists(self, pid):
         """
         Check whether pid exists in the current process table.
@@ -188,3 +199,11 @@ class OANDaemonBase:
             return e.errno == errno.EPERM
         else:
             return True
+
+    @staticmethod
+    def shutdown(signum, frame):
+        raise OANSigtermError()
+
+    def _register_signal(self):
+        signal(SIGTERM, self.shutdown)
+
