@@ -1,16 +1,30 @@
 #!/usr/bin/env python
+"""
+Test cases for util.daemon_base
 
-# Downloaded from
-# http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
+Downloaded from
+http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
+
+"""
+
+__author__ = "daniel.lindh@cybercow.se"
+__copyright__ = "Copyright 2011, Amivono AB"
+__maintainer__ = "daniel.lindh@cybercow.se"
+__license__ = "We pwn it all."
+__version__ = "0.1"
+__status__ = "Test"
+
 
 import sys, os, time, atexit
 from signal import SIGTERM
+
 
 class OANDaemonBase:
     """
     A generic daemon class.
 
     Usage: subclass the Daemon class and override the run() method
+
     """
     def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         self.stdin = stdin
@@ -23,6 +37,7 @@ class OANDaemonBase:
         do the UNIX double-fork magic, see Stevens' "Advanced
         Programming in the UNIX Environment" for details (ISBN 0201563177)
         http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
+
         """
         try:
             pid = os.fork()
@@ -71,6 +86,7 @@ class OANDaemonBase:
     def start(self):
         """
         Start the daemon
+
         """
         # Check for a pidfile to see if the daemon already runs
         try:
@@ -93,6 +109,7 @@ class OANDaemonBase:
     def stop(self):
         """
         Stop the daemon
+
         """
         # Get the pid from the pidfile
         try:
@@ -122,27 +139,16 @@ class OANDaemonBase:
 
     def restart(self):
         """
-        Restart the daemon
+        Restart the daemon.
+
         """
         self.stop()
         self.start()
 
-    def pid_exists(self, pid):
-        """Check whether pid exists in the current process table."""
-        import os, errno
-
-        if pid < 0:
-            return False
-        try:
-            os.kill(pid, 0)
-        except OSError, e:
-            return e.errno == errno.EPERM
-        else:
-            return True
-
     def status(self):
         """
-        Stop of the daemon
+        Stop of the daemon.
+
         """
         # Get the pid from the pidfile
         try:
@@ -153,7 +159,7 @@ class OANDaemonBase:
             pid = None
 
         if (pid):
-            if (self.pid_exists(pid)):
+            if (self._pid_exists(pid)):
                 print "oand (pid  %s) is running..." % pid
             else:
                 print "oand dead but pid file exists"
@@ -162,6 +168,23 @@ class OANDaemonBase:
 
     def run(self):
         """
-        You should override this method when you subclass Daemon. It will be called after the process has been
-        daemonized by start() or restart().
+        You should override this method when you subclass Daemon. It will be
+        called after the process has been daemonized by start() or restart().
+
         """
+
+    def _pid_exists(self, pid):
+        """
+        Check whether pid exists in the current process table.
+
+        """
+        import os, errno
+
+        if pid < 0:
+            return False
+        try:
+            os.kill(pid, 0)
+        except OSError, e:
+            return e.errno == errno.EPERM
+        else:
+            return True

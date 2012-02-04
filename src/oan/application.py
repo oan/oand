@@ -18,7 +18,7 @@ __status__ = "Test"
 
 from oan.util import log
 from oan.manager import network, database, dispatcher, node_manager, meta_manager, data_manager, setup
-from oan.daemon_base import OANDaemonBase
+from oan.util.daemon_base import OANDaemonBase
 from oan.node_manager.node_manager import OANNodeManager
 from oan.meta_manager import OANMetaManager
 from oan.data_manager import OANDataManager
