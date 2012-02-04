@@ -99,7 +99,7 @@ class OANDatabaseWorker(Thread):
 
     def __init__(self, passthru, db_name):
         Thread.__init__(self)
-        self.name = "Database-" + self.name
+        self.name = "DATA-" + self.name.replace("Thread-", "")
         self._pass = passthru
         self._db_name = db_name
         Thread.start(self)

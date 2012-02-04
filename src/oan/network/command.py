@@ -21,7 +21,7 @@ class NetworksCommandConnectToNode:
         return obj
 
     def execute(self, server):
-        log.debug("NetworksCommandConnectToNode: %s, node: %s" % (server, self.node.oan_id))
+        log.debug("NetworksCommandConnectToNode:execute: %s, node: %s" % (server, self.node.oan_id))
         if self.node.is_disconnected():
             server.connect_to_node(self.node)
 
@@ -36,7 +36,7 @@ class OANNetworkCommandListen:
         return obj
 
     def execute(self, server):
-        log.info("OANNetworkCommandListen")
+        log.info("OANNetworkCommandListen:execute")
         host = get_local_host()
         server.listen(host, int(self.port))
 
@@ -53,7 +53,7 @@ class OANNetworkCommandConnectOan:
         return obj
 
     def execute(self, server):
-        log.info("OANNetworkCommandConnectOan")
+        log.info("OANNetworkCommandConnectOan:execute")
         server.connect_to_oan(self.host, self.port)
 
 

@@ -25,34 +25,35 @@ class OANCommandShutdown:
 class OANCommandStaticStoreNodes():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticStoreNodes")
+        log.info("OANMessageStaticStoreNodes:execute")
         node_manager().store()
 
 
 class OANCommandStaticLoadNodes():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticLoadNodes")
+        log.info("OANMessageStaticLoadNodes:execute")
         node_manager().load()
 
 
 class OANCommandStaticHeartbeat():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticHeartbeat")
+        log.info("OANMessageStaticHeartbeat:execute")
         node_manager().send_heartbeat()
 
 
 class OANCommandStaticSyncNodes():
     @staticmethod
     def execute():
-        log.info("OANMessageStaticSyncNodes")
+        log.info("OANMessageStaticSyncNodes:execute")
         node_manager().send_node_sync()
 
 
 class OANCommandStaticGetNodeInfo:
     @staticmethod
     def execute():
+        log.info("OANCommandStaticGetNodeInfo:execute")
         node = node_manager().get_my_node()
         if node == None:
             yield ("Invalid node")
@@ -89,6 +90,7 @@ class OANCommandSendToNode:
         return obj
 
     def execute(self, ):
+        log.info("OANCommandSendToNode:execute")
         log.debug("oan_id: %s, message: %s" % (
             self.oan_id, str(self.message))
         )

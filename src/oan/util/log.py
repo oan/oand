@@ -32,8 +32,57 @@ import logging.handlers
 # Loglevel that will not send any logging messages to log handler.
 NONE = 100
 
+
+# Gives shorter logging lines.
+level_convert = {
+    "DEBUG": "DBG",
+    "INFO": "INF",
+    "WARNING": "WAR",
+    "ERROR": "ERR",
+    "CRITICAL": "CRI"
+}
+
+
+# Format of log output, used together with ContextFilter
+FORMATTER="%(small_time)s [%(small_levelname)-3s][%(threadName)-6s] " \
+          "%(extra)s %(message)s %(trace)s"
+
+
+SYSLOG_FORMATTER="%(time)s %(hostname)s oand[%(process)d]: " \
+                 "%(levelname)-8s %(message)s"
+
+
+class ContextFilter(Filter):
+    """Filter which injects contextual information into the log."""
+
+    def filter(self, record):
+        record.hostname = os.uname()[1]
+        record.time = strftime("%d %b %H:%M:%S", gmtime())
+        record.small_time = strftime("%H:%M:%S", gmtime())
+        record.small_levelname = level_convert[record.levelname]
+        #record.levelname_ex = "[%s][%s]" % (record.levelname, record.threadName)
+        record.extra = ""
+        # Text to display on debugging messages.
+        if record.levelno == DEBUG:
+            record.extra = "(%s:%s:%s)" % (
+                record.filename,
+                record.funcName, record.lineno
+            )
+
+        #
+        record.trace = ""
+        if record.levelno == DEBUG+1:
+            record.trace = "\n"
+            for row in traceback.format_stack()[:-6]:
+                record.trace += row
+
+        return True
+
+
 def setup(syslog_level, stderr_level, log_level, log_file_name):
     """Setup all logging handlers"""
+    _set_main_thread_name()
+
     my_logger = getLogger()
     my_logger.handlers = []
 
@@ -49,7 +98,9 @@ def setup(syslog_level, stderr_level, log_level, log_file_name):
     _setup_stderr(my_logger, stderr_level)
     _setup_file_log(my_logger, log_level, log_file_name)
     info("-----------------------------------------")
-    info("Start logging")
+
+    info("Start logging.")
+
 
 def trace(msg, *args, **kwargs):
     """
@@ -58,64 +109,44 @@ def trace(msg, *args, **kwargs):
     """
     log(logging.DEBUG+1, msg, *args, **kwargs)
 
-class ContextFilter(Filter):
-    """Filter which injects contextual information into the log."""
 
-    def filter(self, record):
-        record.hostname = os.uname()[1]
-        record.time = strftime("%d %b %H:%M:%S", gmtime())
-        record.levelname_ex = "[" + record.levelname + "]"
+def _set_main_thread_name():
+    """Set the name of the current (main) thread, for nicer logging."""
+    import threading
+    threading.current_thread().name="Main"
 
-        # Text to display on debugging messages.
-        if record.levelno == DEBUG:
-            record.levelname_ex = "%s (%s - %s - %s:%s)" % (
-                record.levelname_ex,
-                record.threadName, record.filename,
-                record.funcName, record.lineno
-            )
-
-        #
-        record.trace = ""
-        if record.levelno == DEBUG+1:
-            record.trace = "\n"
-            for row in traceback.format_stack()[:-6]:
-                record.trace += row
-
-        return True
 
 def _setup_syslog(my_logger, log_level):
     """Add syslog logging"""
-    syslog_formatter = Formatter(
-        '%(time)s %(hostname)s oand[%(process)d]: %(levelname)-8s %(message)s'
-    )
+    syslog_formatter = Formatter(SYSLOG_FORMATTER)
 
     handler = logging.handlers.SysLogHandler()
     handler.setLevel(log_level)
     handler.setFormatter(syslog_formatter)
     my_logger.addHandler(handler)
 
+
 def _setup_stderr(my_logger, log_level):
     """Add stderr logging."""
-    formatter = Formatter(
-        '%(time)s %(levelname_ex)-9s %(message)s %(trace)s'
-    )
+    formatter = Formatter(FORMATTER)
 
     handler = StreamHandler()
     handler.setLevel(log_level)
     handler.setFormatter(formatter)
     my_logger.addHandler(handler)
 
+
 def _setup_file_log(my_logger, log_level, file_name):
     """Add file logging"""
-    formatter = Formatter(
-        '%(time)s %(levelname_ex)-9s %(message)s %(trace)s'
-    )
+    formatter = Formatter(FORMATTER)
+
     handler = logging.handlers.RotatingFileHandler(
         file_name, maxBytes=2000000, backupCount=100
     )
     handler.setLevel(log_level)
     handler.setFormatter(formatter)
     my_logger.addHandler(handler)
+
 
 if __name__ == '__main__':
     def main():
