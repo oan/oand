@@ -79,6 +79,7 @@ class TestOANNodeManager(OANTestCase):
 
     def tearDown(self):
         manager.shutdown()
+        self._mock_database = None
 
     def create_node(self, port, minute_delta):
         node = OANNetworkNode.create(
@@ -108,13 +109,18 @@ class TestOANNodeManager(OANTestCase):
 
     def test_load(self):
         test_nodes = self.create_nodes()
+
         self._mock_database.select_all.return_value.__iter__.return_value = \
             iter(test_nodes)
 
         node_manager().load()
+        nodes = node_manager().get_nodes()
 
-        #nodes = node_manager().get_nodes()
-        #self.assertEqual(test_nodes, nodes)
+        for n in test_nodes:
+            self.assertTrue(n in nodes)
+
+        for n in nodes:
+            self.assertTrue(n in test_nodes)
 
     def test_get_my_node(self):
 
@@ -178,26 +184,6 @@ class TestOANNodeManager(OANTestCase):
         self.assertEqual(host, 'my_host')
         self.assertEqual(port, 4001)
         self.assertEqual(blocked, True)
-
-
-    def test_add_node(self):
-        '''
-        n1 = OANNetworkNode.create(
-            UUID('00000000-0000-dead-0000-000000000000'),
-            "localhost", "1337", False
-        )
-
-        node_manager().add_node(n1)
-
-        n2 = node_manager().get_node(
-            UUID('00000000-0000-dead-0000-000000000000'))
-
-        self.assertEqual(n1, n2)
-        '''
-        pass
-
-    def test_add_nodes(self):
-        pass
 
     def test_exist_node(self):
         pass

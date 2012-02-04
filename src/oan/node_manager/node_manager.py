@@ -22,7 +22,7 @@ class OANNodeManager():
     _config = None
 
     # A dictionary with all nodes in the OAN.
-    _nodes = {}
+    _nodes = None
 
     # Info about my own node.
     _my_node = None
@@ -33,6 +33,7 @@ class OANNodeManager():
 
     def __init__(self, config):
         self._config = config
+        self._nodes = {}
         self._lock = Lock()
 
 
@@ -61,10 +62,13 @@ class OANNodeManager():
     def get_my_node(self):
         return self._my_node
 
-
     @synchronized
     def get_node(self, oan_id):
         return self._nodes[oan_id]
+
+    @synchronized
+    def exist_node(self, oan_id):
+        return oan_id in self._nodes
 
     '''
     #TODO: remove dead nodes in database
@@ -157,7 +161,6 @@ class OANNodeManager():
 
         """
 
-        print self._nodes
         ret = []
         for n in self._nodes.values():
             if n.oan_id != self._my_node.oan_id:
