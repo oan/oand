@@ -17,7 +17,8 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from oan.util import log
-from oan.manager import network, database, dispatcher, node_manager, meta_manager, data_manager, setup
+from oan import manager
+from oan.manager import network, database, dispatcher, node_manager, meta_manager, data_manager
 from oan.util.daemon_base import OANDaemonBase
 from oan.node_manager.node_manager import OANNodeManager
 from oan.meta_manager import OANMetaManager
@@ -44,7 +45,7 @@ class OANApplication():
     def run(self):
         log.info("Starting Open Archive Network for " + self.config.node_name)
 
-        setup(
+        manager.setup(
             OANNetwork(),
             OANDatabase(self.config),
             OANDispatcher(),
@@ -61,10 +62,7 @@ class OANApplication():
     # TODO: is it possible to catch the SIG when killing a deamon and call this function.
     def stop(self):
         log.info("Stopping Open Archive Network")
-
-        network().shutdown()
-        dispatcher().shutdown()
-        database().shutdown()
+        manager.shutdown()
 
     def _setup_timers(self):
         network().add_timer(OANNetworkTimer(5, self.run_every_minute))
@@ -132,7 +130,8 @@ class OANDaemon(OANDaemonBase):
         # Need to start loggign again for deamon. Couldn't fork the looging
         # state from applications starter.
         log.setup(
-            self._app.config.syslog_level, self._app.config.stderr_level,
+            self._app.config.syslog_level,
+            self._app.config.stderr_level,
             self._app.config.log_level, self._app.config.log_file
         )
         self._app.run()
