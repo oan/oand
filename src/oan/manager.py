@@ -60,13 +60,15 @@ def shutdown():
     """
     global _network, _database, _dispatcher, _data_manager, _meta_manager, _node_manager
 
+    validate()
+
     status = (
-        _network.shutdown() and
-        _database.shutdown() and
-        _dispatcher.shutdown() and
-        _data_manager.shutdown() and
+        _node_manager.shutdown() and
         _meta_manager.shutdown() and
-        _node_manager.shutdown()
+        _data_manager.shutdown() and
+        _dispatcher.shutdown() and
+        _database.shutdown() and
+        _network.shutdown()
     )
 
     _network = None
