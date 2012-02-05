@@ -13,12 +13,11 @@ __status__ = "Test"
 
 import os
 import sys
-import signal
 from time import sleep
 
 from test.test_case import OANTestCase
 
-from oan.util.daemon_base import OANDaemonBase
+from oan.util.daemon_base import OANDaemonBase, OANSigtermError
 from oan.util.decorator.capture import capture
 
 # Files used in test.
@@ -38,6 +37,8 @@ class TestDaemon(OANDaemonBase):
                 sys.stdout.flush()
                 sys.stderr.flush()
                 sleep(10)
+        except OANSigtermError:
+            pass
         finally:
             f=open(F_DWN, "w")
             f.write("shutdown")
@@ -59,7 +60,7 @@ class TestDaemon(OANDaemonBase):
         OANDaemonBase.stop(self)
 
 
-class TestLogging(OANTestCase):
+class TestDeamonBase(OANTestCase):
     daemon = None
 
     def setUp(self):
