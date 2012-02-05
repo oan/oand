@@ -1,20 +1,32 @@
 #!/usr/bin/env python
-'''
+"""
+Test cases for util.daemon_base
+
 Test communication (network, bridges, server etc.) between nodes.
 
-'''
+"""
 
-__author__ = "martin.palmer.develop@gmail.com"
+__author__ = "daniel.lindh@cybercow.se"
 __copyright__ = "Copyright 2011, Amivono AB"
-__maintainer__ = "martin.palmer.develop@gmail.com"
+__maintainer__ = "daniel.lindh@cybercow.se"
 __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import mock
+import sys
+import os
 from uuid import UUID
 from Queue import Queue
+from time import sleep
 
 from test.test_case import OANTestCase
+
+from oan import manager
+from oan.manager import dispatcher, node_manager
+from oan.config import OANConfig
+from oan.node_manager.node_manager import OANNodeManager
+from oan.dispatcher.dispatcher import OANDispatcher
 
 from oan.manager import dispatcher, node_manager
 from oan.dispatcher.message import OANMessagePing
@@ -22,43 +34,163 @@ from oan.dispatcher.command import OANCommandSendToNode
 from oan.application import OANApplication
 from oan.config import OANConfig
 from oan.util.network import get_local_host
+from oan.util import log
+from oan.util.daemon_base import OANDaemonBase, OANSigtermError
+from oan.util.decorator.capture import capture
 
 from oan.network.network import OANNetwork
 
-class TestOANNetwork(OANTestCase):
-    def test_it(self):
-        network = OANNetwork()
-        network.shutdown()
 
+# Files used in test.
+F_PID="/tmp/oand_ut_daemon.pid"
+F_OUT="/tmp/oand_ut_daemon.out"
+F_ERR="/tmp/oand_ut_daemon.err"
+F_SERVER_LOG="/tmp/oand_ut_server.log"
+F_CLIENT_LOG="/tmp/oand_ut_client.log"
+
+class ServerNodeDaemon(OANDaemonBase):
+
+    def run(self):
+        try:
+            self.setup_managers()
+            while True:
+                pass
+        except OANSigtermError:
+            pass
+        finally:
+            #manager.shutdown()
+            pass
+
+    def setup_managers(self):
+        log.setup(
+            log.NONE,
+            log.NONE,
+            log.DEBUG, F_SERVER_LOG
+        )
+
+        mock_shutdown = mock.Mock()
+        mock_shutdown.shutdown.return_value = True
+
+        config = OANConfig(
+            "00000000-0000-dead-0000-000000000000",
+            "UT-Server",
+            "localhost",
+            str(9000)
+        )
+
+        net=OANNetwork()
+        disp=OANDispatcher()
+        node=OANNodeManager(config)
+
+        node.shutdown()
+        disp.shutdown()
+        net.shutdown()
+
+        manager.setup(
+            OANNetwork(),
+            mock_shutdown,
+            mock_shutdown,
+            mock_shutdown,
+            mock_shutdown,
+            mock_shutdown
+        )
+        manager.shutdown()
+
+        return
+        manager.setup(
+            OANNetwork(),
+            mock_shutdown,
+            OANDispatcher(),
+            mock_shutdown,
+            mock_shutdown,
+            OANNodeManager(config)
+        )
+        manager.shutdown()
+
+
+class TestOANNetwork(OANTestCase):
+
+    # Remote node to test network against.
+    daemon = None
+
+    @classmethod
+    def setUpClass(cls):
+        # Truncate all log files
+        open(F_OUT, "w").close()
+        open(F_ERR, "w").close()
+        open(F_SERVER_LOG, "w").close()
+        open(F_CLIENT_LOG, "w").close()
+
+    def setUp(self):
+        self.daemon = ServerNodeDaemon(F_PID, stdout=F_OUT, stderr=F_ERR)
+        self.daemon.start()
+        # Give deamon time to start.
+        sleep(1)
+
+    def tearDown(self):
+        self.daemon.stop()
+        pass
+
+    def test_deamon(self):
+        # Test if server node started.
+        #self.assertTrue(open(F_PID).readline().strip().isalnum())
+        self.setup_managers()
         self.assertTrue(True)
 
-# class TestOANNetwork(OANTestCase):
-#     """
+        #network().execute(OANNetworkCommandListen.create(self.config.node_port))
 
-#     TODO: Test and see what happends if n1 connects to n2 at same time as n2
-#     connect to n1.
+        #manager.shutdown()
 
-#     """
-#     queue = None
-#     app = None
+    def setup_managers(self):
+        # mock_shutdown = mock.Mock()
+        # mock_shutdown.shutdown.return_value = True
 
-#     def setUp(self):
-#         self.queue = Queue()
+        # config = OANConfig(
+        #     "00000000-0000-babe-0000-000000000000",
+        #     "UT-Client",
+        #     "localhost",
+        #     str(9001)
+        # )
 
-#         self.app = OANApplication(OANConfig(
-#             '00000000-0000-0000-DEAD-000000000000',
-#             "TestOAN",
-#             "localhost",
-#             str(8000)
-#         ))
+        # manager.setup(
+        #     OANNetwork(),
+        #     mock_shutdown,
+        #     OANDispatcher(),
+        #     mock_shutdown,
+        #     mock_shutdown,
+        #     OANNodeManager(config)
+        # )
 
-#         self.app.run()
-#         #self.create_node()
-#         self.create_watcher()
+        log.setup(
+            log.NONE,
+            log.NONE,
+            log.DEBUG, F_CLIENT_LOG
+        )
 
-#     def tearDown(self):
-#         self.app.stop()
-#         self.queue = None
+    # def test_static(self):
+    #     # Disable use of database in OANNodeManager.load
+    #     self.mock_database.select_all.return_value.__iter__.return_value = iter([])
+
+    #     #network().get(OANCommandStaticGetNodeInfo)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #     # def create_node(self):
 #     #     """Create known nodes (instead of loading from db"""
