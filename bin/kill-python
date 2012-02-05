@@ -1,0 +1,4 @@
+#!/bin/sh
+ps aux|grep -i python
+ps aux|grep -i python|awk '{print $2}'|xargs kill
+ps aux|grep -i python
