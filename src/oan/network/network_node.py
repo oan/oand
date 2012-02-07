@@ -15,6 +15,7 @@ from threading import Lock
 from Queue import Queue
 from uuid import UUID
 
+from oan.util.decorator.accept import accepts, returns
 from oan.heartbeat import OANHeartbeat
 from oan.statistic import OANNetworkNodeStatistic
 from oan.util.decorator.synchronized import synchronized
@@ -56,14 +57,9 @@ class OANNetworkNode:
     # Synchronize the node instance when accessed by several threads.
     _lock = None
 
+    @accepts(object, UUID)
     def __init__(self, oan_id):
-
-        # I don't like this autoconvert things :-)
-        if isinstance(oan_id, UUID):
-            self._oan_id = oan_id
-        else:
-            self._oan_id = UUID(oan_id)
-
+        self._oan_id = oan_id
         self._state = OANNetworkNodeState.DISCONNECTED
         self._heartbeat = OANHeartbeat()
         self.out_queue = Queue(1000)

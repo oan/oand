@@ -11,6 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+from uuid import UUID
 from test.test_case import OANTestCase
 
 from oan.network.network_node import OANNetworkNode, OANNetworkNodeState
@@ -18,11 +19,11 @@ from oan.heartbeat import OANHeartbeat
 
 class TestOANNetworkNode(OANTestCase):
     def test_network_node_invalid_uuid(self):
-        with self.assertRaises(ValueError):
+        with self.assertRaises(TypeError):
             OANNetworkNode("invalid-id")
 
     def test_network_node_empty(self):
-        nn = OANNetworkNode("00000000-0000-dead-0000-000000000000")
+        nn = OANNetworkNode(UUID("00000000-0000-dead-0000-000000000000"))
 
         (name, host, port, blocked, state, heartbeat) = nn.get()
 
@@ -37,7 +38,7 @@ class TestOANNetworkNode(OANTestCase):
 
     def test_network_node_create(self):
         nn = OANNetworkNode.create(
-            "00000000-0000-dead-0000-000000000000",
+            UUID("00000000-0000-dead-0000-000000000000"),
             "localhost", "1337", False
         )
 
@@ -54,7 +55,7 @@ class TestOANNetworkNode(OANTestCase):
 
     def test_network_node_update(self):
         nn = OANNetworkNode.create(
-            "00000000-0000-dead-0000-000000000000",
+            UUID("00000000-0000-dead-0000-000000000000"),
             "localhost", "1337", False
         )
 
@@ -77,7 +78,7 @@ class TestOANNetworkNode(OANTestCase):
 
     def test_network_node_serialize(self):
         nn = OANNetworkNode.create(
-            "00000000-0000-dead-0000-000000000000",
+            UUID("00000000-0000-dead-0000-000000000000"),
             "localhost", "1337", False
         )
 
@@ -88,7 +89,7 @@ class TestOANNetworkNode(OANTestCase):
         )
         data = nn.serialize()
 
-        nn2 = OANNetworkNode("00000000-0000-babe-0000-000000000000")
+        nn2 = OANNetworkNode(UUID("00000000-0000-babe-0000-000000000000"))
         nn2.unserialize(data)
 
         (name, host, port, blocked, state, heartbeat) = nn2.get()
@@ -107,7 +108,7 @@ class TestOANNetworkNode(OANTestCase):
             value = None
 
         nn = OANNetworkNode.create(
-            "00000000-0000-dead-0000-000000000000",
+            UUID("00000000-0000-dead-0000-000000000000"),
             "localhost", "1337", False
         )
         self.assertTrue(nn.out_queue.empty())
