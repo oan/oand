@@ -15,16 +15,22 @@ from test.test_case import OANTestCase
 
 from oan.util.decorator.accept import accepts, returns
 
+
+class TestType:
+    pass
+
+    def __str__(self):
+        return "my test type"
+
 @accepts(int)
 @returns(int)
 def func_int(int_var):
     return int_var
 
-@accepts(int, tuple, float, str, list, dict)
+@accepts(int, tuple, float, str, list, dict, TestType)
 @returns(str)
-def func_full(a, b, c, d, e, f):
-    return "%s,%s,%s,%s,%s,%s" % (a, b, c, d, e, f)
-
+def func_full(a, b, c, d, e, f, g):
+    return "%s,%s,%s,%s,%s,%s,%s" % (a, b, c, d, e, f, g)
 
 class TestLogging(OANTestCase):
 
@@ -53,6 +59,6 @@ class TestLogging(OANTestCase):
 
     def test_func_full(self):
         self.assertEqual(
-            func_full(55, (22,"22"), 10.0, "str", [1,2,"3"], {"dict": 1}),
-            "55,(22, '22'),10.0,str,[1, 2, '3'],{'dict': 1}"
+            func_full(55, (22,"22"), 10.0, "str", [1,2,"3"], {"dict": 1}, TestType()),
+            "55,(22, '22'),10.0,str,[1, 2, '3'],{'dict': 1},my test type"
         )

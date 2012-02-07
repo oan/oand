@@ -25,7 +25,7 @@ __maintainer__ = "daniel.lindh@cybercow.se"
 __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
-import sys
+
 
 def accepts(*types, **kw):
     """
@@ -38,10 +38,16 @@ def accepts(*types, **kw):
              for self on class members.
 
     """
+    def decorator_type(arg):
+        if hasattr(arg, "__class__"):
+            return arg.__class__
+        else:
+            return type(arg)
+
     def decorator(f):
         def newf(*args):
             assert len(args) == len(types)
-            argtypes = tuple(map(type, args))
+            argtypes = tuple(map(decorator_type, args))
 
             # If decorated function is a member of a class ignore the
             # first parameter wich should be "self"
@@ -51,10 +57,12 @@ def accepts(*types, **kw):
             if argtypes != types:
                 msg = _info(f.__name__, types, argtypes, 0)
                 raise TypeError, msg
+
             return f(*args)
         newf.__name__ = f.__name__
         return newf
     return decorator
+
 
 def returns(ret_type, **kw):
     """
@@ -78,12 +86,13 @@ def returns(ret_type, **kw):
         return newf
     return decorator
 
+
 def _info(fname, expected, actual, flag):
     """
     Convenience function returns nicely formatted error/warning msg.
 
     """
-    format = lambda types: ', '.join([str(t).split("'")[1] for t in types])
+    format = lambda types: ', '.join([str(t) for t in types])
     expected, actual = format(expected), format(actual)
     msg = "'%s' method " % fname \
           + ("accepts", "returns")[flag] + " (%s), but " % expected\

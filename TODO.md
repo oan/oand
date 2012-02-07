@@ -33,6 +33,8 @@ well written with unit test and comments.
 * Unittest passthrou with more workers and passthru at
   the same time.
 
+* python script modifier comment out log.trace(asdasd) and accept decorater.
+
 * Go through all unit tests.
 
 * Organize codes in more folders/packages.
