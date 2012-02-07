@@ -36,7 +36,6 @@ class TestDaemon(OANDaemonBase):
                 sys.stderr.write("This is stderr\n")
                 sys.stdout.flush()
                 sys.stderr.flush()
-                sleep(10)
         except OANSigtermError:
             pass
         finally:
@@ -75,9 +74,9 @@ class TestDeamonBase(OANTestCase):
         self.assertEqual(status, "oand is stopped.")
 
     def test_deamon(self):
+        self.assertFalse(self.daemon.is_alive())
+
         self.daemon.start()
-        # Give deamon time to start.
-        sleep(0.1)
 
         # Check if deamon created pid file.
         self.assertTrue(open(F_PID).readline().strip().isalnum())
@@ -87,7 +86,6 @@ class TestDeamonBase(OANTestCase):
         self.assertRegexpMatches(status, "oand (.*) is running...")
 
         self.daemon.stop()
-        sleep(0.1)
 
         # Check if daemon stopped.
         self.test_stopped_status()
@@ -97,8 +95,6 @@ class TestDeamonBase(OANTestCase):
 
     def test_deamon_already_started(self):
         self.daemon.start()
-        # Give deamon time to start.
-        sleep(0.1)
 
         # Start again to generate an error.
         status = self.daemon.start_error()[1].strip()
@@ -112,12 +108,8 @@ class TestDeamonBase(OANTestCase):
 
     def test_restart(self):
         self.daemon.start()
-        sleep(0.1)
         self.daemon.restart()
-        sleep(0.1)
         self.daemon.stop()
-        sleep(0.1)
-
         self.test_stopped_status()
 
     def test_daemon_run(self):
@@ -131,11 +123,9 @@ class TestDeamonBase(OANTestCase):
         sleep(0.1)
 
         self.daemon.stop()
-        sleep(0.1)
 
-        #self.test_stopped_status()
+        self.test_stopped_status()
 
-        #self.assertTrue(open(F_PID).readline().strip().isalnum())
         self.assertTrue(open(F_OUT).readline().strip(), "This is stdout")
         self.assertTrue(open(F_ERR).readline().strip(), "This is stderr")
 
@@ -144,8 +134,6 @@ class TestDeamonBase(OANTestCase):
             os.remove(F_DWN)
 
         self.daemon.start()
-        sleep(0.1)
         self.daemon.stop()
-        sleep(0.1)
 
         self.assertTrue(open(F_DWN).readline().strip(), "shutdown")

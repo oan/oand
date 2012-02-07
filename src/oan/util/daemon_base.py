@@ -22,6 +22,11 @@ class OANSigtermError(Exception): """Raised in run when program is stopped."""
 
 
 class OANDaemonBase:
+    stdin = None
+    stdout = None
+    stderr = None
+    pidfile = None
+
     """
     A generic daemon class.
 
@@ -34,7 +39,110 @@ class OANDaemonBase:
         self.stderr = stderr
         self.pidfile = pidfile
 
-    def daemonize(self):
+
+    def start(self):
+        """
+        Start the daemon
+
+        """
+        # Check for a pidfile to see if the daemon already runs
+        try:
+            pf = file(self.pidfile,'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+
+        if pid:
+            message = "pidfile %s already exist. Daemon already running?\n"
+            sys.stderr.write(message % self.pidfile)
+            return
+
+        # Start the daemon
+        if (self._daemonize()):
+            self._register_signal()
+            self.run()
+            sys.exit(0)
+        else:
+            # Wait for the deamon to start
+            while(not self.is_alive()):
+                pass
+
+    def stop(self):
+        """
+        Stop the daemon
+
+        """
+        # Get the pid from the pidfile
+        try:
+            pf = file(self.pidfile,'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+
+        if not pid:
+            message = "pidfile %s does not exist. Daemon not running?\n"
+            sys.stderr.write(message % self.pidfile)
+            return # not an error in a restart
+
+        # Try killing the daemon process
+        try:
+            while 1:
+                os.kill(pid, SIGTERM)
+                time.sleep(0.1)
+        except OSError, err:
+            err = str(err)
+            if err.find("No such process") > 0:
+                if os.path.exists(self.pidfile):
+                    os.remove(self.pidfile)
+            else:
+                print str(err)
+
+        # Wait for the deamon to stop
+        while(self.is_alive()):
+            pass
+
+    def restart(self):
+        """
+        Restart the daemon.
+
+        """
+        self.stop()
+        self.start()
+
+    def status(self):
+        """
+        Status of the daemon.
+
+        """
+        pid = self._get_pid()
+        if (pid):
+            if (self._pid_exists(pid)):
+                print "oand (pid  %s) is running..." % pid
+            else:
+                print "oand dead but pid file exists"
+        else:
+            print "oand is stopped."
+
+    def run(self):
+        """
+        You should override this method when you subclass Daemon. It will be
+        called after the process has been daemonized by start() or restart().
+
+        """
+
+    def is_alive(self):
+        """
+        Returns whether the deamon is alive.
+
+        This methods returns True jsut before the run() method starts until
+        just after the run() method terminates.
+
+        """
+        return self._get_pid()
+
+    def _daemonize(self):
         """
         do the UNIX double-fork magic, see Stevens' "Advanced
         Programming in the UNIX Environment" for details (ISBN 0201563177)
@@ -76,84 +184,21 @@ class OANDaemonBase:
         os.dup2(se.fileno(), sys.stderr.fileno())
 
         # write pidfile
-        atexit.register(self.delpid)
+        atexit.register(self._delpid)
         pid = str(os.getpid())
         file(self.pidfile,'w+').write("%s\n" % pid)
 
         return True
 
-    def delpid(self):
+    def _delpid(self):
         os.remove(self.pidfile)
 
-    def start(self):
+    def _get_pid(self):
         """
-        Start the daemon
-
-        """
-        # Check for a pidfile to see if the daemon already runs
-        try:
-            pf = file(self.pidfile,'r')
-            pid = int(pf.read().strip())
-            pf.close()
-        except IOError:
-            pid = None
-
-        if pid:
-            message = "pidfile %s already exist. Daemon already running?\n"
-            sys.stderr.write(message % self.pidfile)
-            return
-
-        # Start the daemon
-        if (self.daemonize()):
-            self._register_signal()
-            self.run()
-            sys.exit(0)
-
-    def stop(self):
-        """
-        Stop the daemon
+        Get the daemon pid from the pidfile if exists.
 
         """
-        # Get the pid from the pidfile
-        try:
-            pf = file(self.pidfile,'r')
-            pid = int(pf.read().strip())
-            pf.close()
-        except IOError:
-            pid = None
-
-        if not pid:
-            message = "pidfile %s does not exist. Daemon not running?\n"
-            sys.stderr.write(message % self.pidfile)
-            return # not an error in a restart
-
-        # Try killing the daemon process
-        try:
-            while 1:
-                os.kill(pid, SIGTERM)
-                time.sleep(0.1)
-        except OSError, err:
-            err = str(err)
-            if err.find("No such process") > 0:
-                if os.path.exists(self.pidfile):
-                    os.remove(self.pidfile)
-            else:
-                print str(err)
-
-    def restart(self):
-        """
-        Restart the daemon.
-
-        """
-        self.stop()
-        self.start()
-
-    def status(self):
-        """
-        Stop of the daemon.
-
-        """
-        # Get the pid from the pidfile
+        pid = None
         try:
             pf = file(self.pidfile, 'r')
             pid = int(pf.read().strip())
@@ -161,28 +206,7 @@ class OANDaemonBase:
         except IOError:
             pid = None
 
-        if (pid):
-            if (self._pid_exists(pid)):
-                print "oand (pid  %s) is running..." % pid
-            else:
-                print "oand dead but pid file exists"
-        else:
-            print "oand is stopped."
-
-    def run(self):
-        """
-        You should override this method when you subclass Daemon. It will be
-        called after the process has been daemonized by start() or restart().
-
-        """
-
-    # @staticmethod
-    # def shutdown(signum, frame):
-    #     """
-    #     You should override this method when you subclass Daemon. It will be
-    #     called when the daemon is stopped/killed.
-
-    #     """
+        return pid
 
     def _pid_exists(self, pid):
         """
@@ -201,9 +225,13 @@ class OANDaemonBase:
             return True
 
     @staticmethod
-    def shutdown(signum, frame):
+    def _shutdown(signum, frame):
+        def no_signal(signum, frame):
+            pass
+
+        signal(SIGTERM, no_signal)
         raise OANSigtermError()
 
     def _register_signal(self):
-        signal(SIGTERM, self.shutdown)
+        signal(SIGTERM, self._shutdown)
 
