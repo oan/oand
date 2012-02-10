@@ -165,13 +165,19 @@ class OANNetworkNode:
         the network worker.
 
         """
-        self.out_queue.put(message)
+        self.out_queue.put(message, False)
 
     @synchronized
     @returns(bool)
     def is_disconnected(self):
         """The network connection to this node is not active."""
         return self._state == OANNetworkNodeState.DISCONNECTED
+
+    @synchronized
+    @returns(bool)
+    def is_blocked(self):
+        """The network connection to this node is not active."""
+        return self._blocked
 
     @synchronized
     @accepts(IGNORE, int)

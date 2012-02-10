@@ -70,36 +70,37 @@ class OANNodeManager():
     def exist_node(self, oan_id):
         return oan_id in self._nodes
 
-    '''
-    #TODO: remove dead nodes in database
-    def remove_dead_nodes(self):
-        for n in self._nodes.values():
-            if n.oan_id != self._my_node.oan_id:
-                if n.heartbeat.is_dead():
-                    del self._nodes[n.oan_id]
+    @synchronized
+    def get_nodes(self, heartbeat_state = None):
+        """
+        Returns all nodes that have a specified heartbeat_state,
+        """
+        return self._get_nodes(heartbeat_state)
 
-    #TODO: maybe should send heartbeat to blocked nodes to test. once a week or so.
-    def send_heartbeat(self):
-        heartbeat = OANMessageHeartbeat.create(self._my_node)
-        for n in self._get_nodes():
-            if not n.blocked:
-                self.send(n.oan_id, heartbeat)
 
-    #TODO sync ony with open nodes
-    def send_node_sync(self):
-        node_sync = OANMessageNodeSync.create()
-        for n in self._get_nodes():
-            if n.oan_id != self._my_node.oan_id:
-                self.send(n.oan_id, node_sync)
-    '''
-
-    #TODO: not all message should be relay
+    @synchronized
     def send(self, oan_id, message):
         log.debug("oan_id: %s, message: %s" % (oan_id, str(message)))
 
         if (oan_id in self._nodes):
             node = self._nodes[oan_id]
-            if node.blocked and self._my_node.blocked:
+            if node.is_blocked() and self._my_node.is_blocked():
+                self._relay(oan_id, message)
+            else:
+                self._send_to_node(node, message)
+        else:
+            log.info("OANNodeManager:Error node is missing %s" % oan_id)
+            log.info(self._nodes)
+
+
+    '''
+    @synchronized
+    def send(self, oan_id, message):
+        log.debug("oan_id: %s, message: %s" % (oan_id, str(message)))
+
+        if (oan_id in self._nodes):
+            node = self._nodes[oan_id]
+            if node.is_blocked() and self._my_node.is_blocked():
                 self.relay(oan_id, message)
             else:
 
@@ -133,46 +134,57 @@ class OANNodeManager():
             log.info(self._nodes)
 
 
-    #TODO: find good relay nodes.
-    def relay(self, destination_uuid, message):
-        relay = OANMessageRelay.create(self._my_node.oan_id, destination_uuid, message)
-        for relay_node in self._nodes.values():
-            if relay_node.oan_id != self._my_node.oan_id:
-                if not relay_node.blocked:
-                    log.info("Relay %s to [%s] throw [%s]" % (message.__class__.__name__, destination_uuid, relay_node.oan_id))
-                    self.send(relay_node.oan_id, relay)
-                    return
+    #TODO: remove dead nodes in database
+    def remove_dead_nodes(self):
+        for n in self._nodes.values():
+            if n.oan_id != self._my_node.oan_id:
+                if n.heartbeat.is_dead():
+                    del self._nodes[n.oan_id]
 
-        log.info("OANNodeManager:Error can not relay message no relay node found")
+    #TODO: maybe should send heartbeat to blocked nodes to test. once a week or so.
+    def send_heartbeat(self):
+        heartbeat = OANMessageHeartbeat.create(self._my_node)
+        for n in self._get_nodes():
+            if not n.blocked:
+                self.send(n.oan_id, heartbeat)
+
+    #TODO sync ony with open nodes
+    def send_node_sync(self):
+        node_sync = OANMessageNodeSync.create()
+        for n in self._get_nodes():
+            if n.oan_id != self._my_node.oan_id:
+                self.send(n.oan_id, node_sync)
+    '''
+
 
     def shutdown(self):
         pass
-
-
-    def get_nodes(self):
-        """
-        Returns all nodes that is not expired, this i use for sending
-        heartbeat and node_sync etc.
-
-        DISCUSS: make heartbeat._is_touch public and send in a parameter
-                 heartbeat.EXPIRED_MIN to this function get_nodes(self, min = OANHeartbeat.EXPIRED_MIN):
-
-                 make heartbeat.EXPIRED_MIN to a static variable.
-
-        """
-
-        ret = []
-        for n in self._nodes.values():
-            if n.oan_id != self._my_node.oan_id:
-                ret.append(n)
-
-        return ret
 
     def dump(self):
         log.info("------ dump begin ------")
         for n in self._nodes.values():
             log.info("\t %s" % n)
         log.info("------ dump end ------")
+
+
+
+    #TODO: not all message should be relay
+    #TODO: find good relay nodes.
+    def _relay(self, destination_uuid, message):
+        relay = OANMessageRelay.create(self._my_node.oan_id, destination_uuid, message)
+        for relay_node in self._get_nodes(OANHeartbeat.NOT_OFFLINE):
+            if not relay_node.is_blocked():
+                log.info("Relay %s to [%s] through [%s]" % (message.__class__.__name__, destination_uuid, relay_node.oan_id))
+                self._send_to_node(relay_node, relay)
+                return
+
+        log.info("OANNodeManager:Error can not relay message no relay node found")
+
+
+    def _send_to_node(self, node, message):
+        node.send(message)
+        if node.is_disconnected():
+            network().execute(NetworksCommandConnectToNode.create(node))
 
 
     def _create_node(self, oan_id, host, port, blocked):
@@ -185,6 +197,7 @@ class OANNodeManager():
             self._nodes[oan_id] = node
 
         return node
+
 
     def _update_node(self, node):
         if node.oan_id in self._nodes:
@@ -218,5 +231,20 @@ class OANNodeManager():
             self._my_node = node
         else:
             log.info("OANNodeManager:Error my node is already set")
+
+
+    def _get_nodes(self, heartbeat_state = None):
+        """
+        Returns all nodes that have a specified heartbeat_state,
+        """
+
+        ret = []
+        for n in self._nodes.values():
+            if (n.oan_id != self._my_node.oan_id and
+                (heartbeat_state is None or
+                n.has_heartbeat_state(heartbeat_state))):
+                    ret.append(n)
+
+        return ret
 
 
