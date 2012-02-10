@@ -9,7 +9,7 @@ Example:
         average(5.5, 10, 15.0)
 
     class Test(object):
-        @accepts(object, int)
+        @accepts(IGNORE, int)
         @returns(int)
         def return_arg(self, int_var):
             return int_var
@@ -25,6 +25,9 @@ __maintainer__ = "daniel.lindh@cybercow.se"
 __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
+
+class IGNORE():
+    """Used to ignore an accept parameter, for example self."""
 
 
 def accepts(*types, **kw):
@@ -45,22 +48,26 @@ def accepts(*types, **kw):
             return type(arg)
 
     def decorator(f):
-        def newf(*args):
+        def newf(*args, **kw):
+            assert len(kw) == 0 # we dont support accept keyargument
             assert len(args) == len(types)
-            argtypes = tuple(map(decorator_type, args))
+            arglist = list(map(decorator_type, args))
 
-            # If decorated function is a member of a class ignore the
-            # first parameter wich should be "self"
-            if types[0] == object:
-                argtypes = (object,) + argtypes[1:]
+            # If decorated function is a member of a class ignore
+            for i in xrange(len(types)):
+                if types[i] == IGNORE:
+                    arglist[i] = IGNORE
 
+            argtypes = tuple(arglist)
             if argtypes != types:
                 msg = _info(f.__name__, types, argtypes, 0)
                 raise TypeError, msg
 
-            return f(*args)
+            return f(*args, **kw)
+
         newf.__name__ = f.__name__
         return newf
+
     return decorator
 
 

@@ -13,11 +13,25 @@ __status__ = "Test"
 
 import os.path
 import ConfigParser
+from uuid import UUID, uuid4
 
 import oan
 from oan.util import log
 from oan.util.descriptor_object import OANDescriptorObject
+from oan.util.decorator.accept import returns
 
+
+class OANConfigError(Exception):
+
+    key = None
+    value = None
+
+    def __init__(self, key, value):
+        self.key = key
+        self.value = value
+
+    def __str__(self):
+        return "Config error %s:%s" % (self.key, self.value)
 
 class OANLogLevel(OANDescriptorObject):
     """
@@ -118,6 +132,103 @@ class OANFileName(OANDescriptorObject):
             raise Exception("Directory %s doesn't exist." % directory)
 
 
+'''
+class OANUuid(OANDescriptorObject):
+    """
+    Represents a UUID that can be set with a string or a UUID instance.
+
+    NOTE: Classes using this class need to be of type object.
+
+    Example:
+        >>> class Config
+        >>>     oan_id = OANUuid()
+        >>> config = Config()
+        >>> config.oan_id = "00000000-0000-cccc-0000-000000000000"
+        >>> print config.oan_id
+        UUID('00000000-0000-cccc-0000-000000000000')
+
+    """
+
+    def __init__(self):
+        OANDescriptorObject.__init__(self)
+
+    def __get__(self, instance, owner):
+        return self.get_var(instance, "uuid")
+
+    def __set__(self, instance, value):
+        if isinstance(value, UUID):
+            self.set_var(instance, "uuid", value)
+        elif isinstance(value, str):
+            self.set_var(instance, "uuid", UUID(value))
+        else:
+            self.set_var(instance, "uuid", uuid4())
+'''
+
+
+
+class OANUuid(object):
+    """
+    Represents a UUID that can be set with a string or a UUID instance.
+
+    NOTE: Classes using this class need to be of type object.
+
+    Example:
+        >>> class Config
+        >>>     oan_id = OANUuid()
+        >>> config = Config()
+        >>> config.oan_id = "00000000-0000-cccc-0000-000000000000"
+        >>> print config.oan_id
+        UUID('00000000-0000-cccc-0000-000000000000')
+
+    """
+
+    def __init__(self):
+        OANDescriptorObject.__init__(self)
+        self.uuid = None
+
+    def __get__(self, instance, owner):
+        return self.uuid
+
+    def __set__(self, instance, value):
+        if isinstance(value, UUID):
+            self.uuid = value
+        elif isinstance(value, str):
+            self.uuid = UUID(value)
+        else:
+            self.uuid = None
+
+
+class OANPort(OANDescriptorObject):
+    """
+    Represents a port that can be set with a string or a int instance.
+
+    NOTE: Classes using this class need to be of type object.
+
+    Example:
+        >>> class Config
+        >>>     oan_id = OANPort()
+        >>> config = Config()
+        >>> config.port = "1338"
+        >>> print config.port
+        1338
+
+    """
+
+    def __init__(self):
+        OANDescriptorObject.__init__(self)
+
+    def __get__(self, instance, owner):
+        return self.get_var(instance, "port")
+
+    def __set__(self, instance, value):
+        if isinstance(value, int):
+            self.set_var(instance, "port", int)
+        elif isinstance(value, str):
+            self.set_var(instance, "port", int(value))
+        else:
+            self.set_var(instance, "port", 0)
+
+
 class OANConfig(object):
     """
     Holding all configurations that can be done to oand.
@@ -157,7 +268,7 @@ class OANConfig(object):
     log_file = OANFileName(oan.LOG_DIR)
 
     # This nodes unique id
-    oan_id = None
+    oan_id = OANUuid()
 
     # The name of the server oand is running on. This has no connection
     # to the hostname in the OS, it's just for reference.
@@ -167,11 +278,10 @@ class OANConfig(object):
     node_domain_name = None
 
     # The tcp/ip port that is open for connection.
-    node_port = None
+    node_port = OANPort()
 
     # Best Friend Forever Node. The first node to connect to, which will
     # give you access and knowledge to the whole network.
-    bff_name = None
     bff_domain_name = None
     bff_port = None
 
@@ -188,8 +298,8 @@ class OANConfig(object):
 
     def __init__(
         self,
-        oan_id=None, node_name=None, domain_name=None, port=None,
-        bff_name=None, bff_domain_name=None, bff_port=None,
+        oan_id=None, node_name=None, domain_name=None, node_port=None,
+        bff_domain_name=None, bff_port=None,
         blocked=False
     ):
         '''
@@ -207,9 +317,8 @@ class OANConfig(object):
 
         self.node_name = node_name
         self.node_domain_name = domain_name
-        self.node_port = port
+        self.node_port = node_port
 
-        self.bff_name = bff_name
         self.bff_domain_name = bff_domain_name
         self.bff_port = bff_port
 
@@ -237,10 +346,13 @@ class OANConfig(object):
     def set_attribute(self, key, value):
         """Set an attribute comming from a string."""
         if hasattr(self, key):
-            setattr(self, key, value)
+            try:
+                setattr(self, key, value)
+            except Exception, e:
+                log.error(e)
+                raise OANConfigError(key, value)
         else:
-            raise Exception(
-                "Invalid config with key: " + key + " value: " + value)
+            raise OANConfigError(key, value)
 
     def log_options(self):
         """Print all internal variables. (Used for debug purpose)"""

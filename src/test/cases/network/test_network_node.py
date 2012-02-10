@@ -39,7 +39,7 @@ class TestOANNetworkNode(OANTestCase):
     def test_network_node_create(self):
         nn = OANNetworkNode.create(
             UUID("00000000-0000-dead-0000-000000000000"),
-            "localhost", "1337", False
+            "localhost", 1337, False
         )
 
         (name, host, port, blocked, state, heartbeat) = nn.get()
@@ -56,11 +56,11 @@ class TestOANNetworkNode(OANTestCase):
     def test_network_node_update(self):
         nn = OANNetworkNode.create(
             UUID("00000000-0000-dead-0000-000000000000"),
-            "localhost", "1337", False
+            "localhost", 1337, False
         )
 
         nn.update(
-            "your-node", "remotehost", "1338",
+            "your-node", "remotehost", 1338,
             True, OANNetworkNodeState.CONNECTING,
             "2107-07-07T07:07:07Z"
         )
@@ -79,11 +79,11 @@ class TestOANNetworkNode(OANTestCase):
     def test_network_node_serialize(self):
         nn = OANNetworkNode.create(
             UUID("00000000-0000-dead-0000-000000000000"),
-            "localhost", "1337", False
+            "localhost", 1337, False
         )
 
         nn.update(
-            "your-node", "remotehost", "1338",
+            "your-node", "remotehost", 1338,
             True, OANNetworkNodeState.CONNECTING,
             "2107-07-07T07:07:07Z"
         )
@@ -109,7 +109,7 @@ class TestOANNetworkNode(OANTestCase):
 
         nn = OANNetworkNode.create(
             UUID("00000000-0000-dead-0000-000000000000"),
-            "localhost", "1337", False
+            "localhost", 1337, False
         )
         self.assertTrue(nn.out_queue.empty())
 
