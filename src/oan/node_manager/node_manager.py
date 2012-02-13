@@ -229,10 +229,8 @@ class OANNodeManager():
             if node.is_disconnected():
                 network().execute(NetworksCommandConnectToNode.create(node))
 
-
             if node.out_queue.qsize() == (OANNetworkNode.QUEUE_SIZE * 0.75):
                 dispatcher().execute(OANCommandCleanOutQueue.create(node))
-                print "%s == %s" % (node.out_queue.qsize(), (OANNetworkNode.QUEUE_SIZE * 0.75))
 
         except Full:
             log.warning("Queue is full %s to [%s], will not be sent" % (

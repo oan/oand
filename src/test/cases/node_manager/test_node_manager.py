@@ -22,45 +22,14 @@ from oan.manager import dispatcher, node_manager
 from oan.config import OANConfig
 from oan.network.network_node import OANNetworkNode
 from oan.node_manager.node_manager import OANNodeManager
-from test.test_case import OANTestCase
+from test.test_case import OANTestCase, OANMatcherClass
 from oan.heartbeat import OANHeartbeat
 from oan.node_manager.command import (OANCommandStaticHeartbeat,
                                       OANCommandCleanOutQueue)
+
 from oan.dispatcher.message import OANMessageHeartbeat, OANMessageRelay
 
-
-class MatcherClass(object):
-    cls_ = None
-    def __init__(self, cls):
-        self._cls = cls
-
-    def __eq__(self, other):
-        return other.__class__ == self._cls
-
-class OANTestMessageSelect:
-    """A test message to yield many values from a message."""
-    def execute(self):
-        for i in xrange(10):
-            yield "My select [%d]" % i
-
-
-class OANTestMessageYield:
-    """A simple test message to return one value."""
-    def execute(self):
-        return "My return value"
-
-
-class OANTestMessageStatic:
-    """
-    A static test message that will be put in the dispatcher
-    without a instance.
-
-    """
-
-    @staticmethod
-    def execute():
-        return "My return from static message"
-
+from oan.network.command import NetworksCommandConnectToNode
 
 class TestOANNodeManager(OANTestCase):
 
@@ -241,6 +210,9 @@ class TestOANNodeManager(OANTestCase):
         self.assertEqual(n1.out_queue.get(), OANMessageHeartbeat)
 
 
+        self._mock_network.execute.assert_called_with(OANMatcherClass(NetworksCommandConnectToNode))
+
+
     def test_relay_node(self):
         """
         sets my node to blocked, create a relay node, try to send a message to
@@ -273,6 +245,11 @@ class TestOANNodeManager(OANTestCase):
         self.assertEqual(relay_message.message.__class__, OANMessageHeartbeat)
 
     def test_queue_full(self):
+        """
+        Fill up the out_queue on a node and check if node_manager executes
+        OANCommandCleanOutQueue
+
+        """
         n1 = node_manager().create_node(
             UUID('00000000-0000-bbbb-4008-000000000000'),
             'localhost', 4000, False)
@@ -282,6 +259,6 @@ class TestOANNodeManager(OANTestCase):
         for x in xrange(2000):
             node_manager().send(n1.oan_id, heartbeat_message)
 
-        self._mock_dispatcher.execute.assert_called_with(MatcherClass(OANCommandCleanOutQueue))
+        self._mock_dispatcher.execute.assert_called_with(OANMatcherClass(OANCommandCleanOutQueue))
 
 

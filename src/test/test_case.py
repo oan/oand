@@ -17,6 +17,16 @@ import sys
 import unittest
 from time import time, sleep
 
+
+class OANMatcherClass(object):
+    cls_ = None
+    def __init__(self, cls):
+        self._cls = cls
+
+    def __eq__(self, other):
+        return other.__class__ == self._cls
+
+
 class OANTestCase(unittest.TestCase):
 
     # Todo: Fix it

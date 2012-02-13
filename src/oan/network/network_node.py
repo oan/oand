@@ -184,8 +184,9 @@ class OANNetworkNode:
     @synchronized
     @returns(str)
     def __str__(self):
-        return 'OANNetworkNode(%s, %s, %s, %s) queue(%s) hb(%s) stat(%s)' % (
+        return 'OANNetworkNode(%s, %s, %s, %s) S(%s) Q(%s) hb(%s) stat(%s)' % (
             self._oan_id, self._host, self._port, self._blocked,
+            self._state,
             self.out_queue.qsize(),
             self._heartbeat.time,
             self._statistic
