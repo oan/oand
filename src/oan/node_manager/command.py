@@ -42,6 +42,34 @@ class OANCommandStaticHeartbeat():
                 node_manager().send(n.oan_id, heartbeat)
 
 
+class OANCommandCleanOutQueue():
+    node = None
+
+    @classmethod
+    def create(cls, node):
+        obj = cls()
+        obj.node = node
+        return obj
+
+    def execute(self):
+        log.info("OANCommandCleanOutQueue:execute")
+
+        save_messages = []
+        while True:
+            try:
+                message_on_queue = self.node.out_queue.get(False)
+                if message_on_queue.ttl:
+                    save_messages.append(message_on_queue)
+                else:
+                    log.info("Remove %s from queue" % message_on_queue)
+            except:
+                break
+
+        for m in save_messages:
+            log.info("Put back %s on queue" % m)
+            self.node.out_queue.put(m)
+
+
 class OANCommandStaticSyncNodes():
     @staticmethod
     def execute():

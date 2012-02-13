@@ -149,8 +149,6 @@ class OANMessageRelay():
 
 class OANMessageHeartbeat():
     """
-
-
     The heartbeat touch will be done in bridge read and write.
 
     """
@@ -160,8 +158,9 @@ class OANMessageHeartbeat():
     ttl = False
 
     @classmethod
-    def create(cls, node):
+    def create(cls):
         obj = cls()
+        node = node_manager().get_my_node()
         obj.oan_id = str(node.oan_id)
         (
             dummy,

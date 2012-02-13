@@ -24,8 +24,18 @@ from oan.network.network_node import OANNetworkNode
 from oan.node_manager.node_manager import OANNodeManager
 from test.test_case import OANTestCase
 from oan.heartbeat import OANHeartbeat
-from oan.node_manager.command import OANCommandStaticHeartbeat
+from oan.node_manager.command import (OANCommandStaticHeartbeat,
+                                      OANCommandCleanOutQueue)
+from oan.dispatcher.message import OANMessageHeartbeat, OANMessageRelay
 
+
+class MatcherClass(object):
+    cls_ = None
+    def __init__(self, cls):
+        self._cls = cls
+
+    def __eq__(self, other):
+        return other.__class__ == self._cls
 
 class OANTestMessageSelect:
     """A test message to yield many values from a message."""
@@ -56,6 +66,7 @@ class TestOANNodeManager(OANTestCase):
 
     _mock_database = None
     _mock_network = None
+    _mock_dispatcher = None
 
     def setUp(self):
         self._mock_database = mock.MagicMock()
@@ -64,6 +75,11 @@ class TestOANNodeManager(OANTestCase):
         self._mock_network = mock.MagicMock()
         self._mock_network.shutdown.return_value = True
         self._mock_network.execute.return_value = None
+
+        self._mock_dispatcher = mock.MagicMock()
+        self._mock_dispatcher.shutdown.return_value = True
+        self._mock_dispatcher.execute.return_value = None
+
 
         config = OANConfig(
             "00000000-0000-aaaa-0000-000000000000",
@@ -78,11 +94,17 @@ class TestOANNodeManager(OANTestCase):
         manager.setup(
             self._mock_network,
             self._mock_database,
-            mock_shutdown,
+            self._mock_dispatcher,
             mock_shutdown,
             mock_shutdown,
             OANNodeManager(config)
         )
+
+        #load also sets my node in node_manager.
+        self._mock_database.select_all.return_value.__iter__.return_value = \
+            iter([])
+
+        node_manager().load()
 
     def tearDown(self):
         manager.shutdown()
@@ -126,16 +148,6 @@ class TestOANNodeManager(OANTestCase):
             self.assertTrue(n in test_nodes)
 
     def test_get_my_node(self):
-
-        #before load my node should be None
-        n1 = node_manager().get_my_node()
-        self.assertEqual(n1, None)
-
-        #load also sets my node in node_manager.
-        self._mock_database.select_all.return_value.__iter__.return_value = \
-            iter([])
-
-        node_manager().load()
 
         n1 = node_manager().get_my_node()
         self.assertTrue(n1 is not None)
@@ -225,20 +237,51 @@ class TestOANNodeManager(OANTestCase):
             UUID('00000000-0000-bbbb-4008-000000000000'),
             'localhost', 4000, False)
 
-        node_manager().send(n1.oan_id, OANCommandStaticHeartbeat)
-        self.assertEqual(n1.out_queue.get(), OANCommandStaticHeartbeat)
+        node_manager().send(n1.oan_id, OANMessageHeartbeat)
+        self.assertEqual(n1.out_queue.get(), OANMessageHeartbeat)
 
 
     def test_relay_node(self):
-        pass
+        """
+        sets my node to blocked, create a relay node, try to send a message to
+        another blocked node. node_manager should create a relay message on
+        the relay node.
+        """
+        my_node = node_manager().get_my_node()
+
+        # update my node to a blocked node.
+        my_node.update(blocked = True)
+
+        # create the blocked remote node
+        remote_node = node_manager().create_node(
+            UUID('00000000-0000-bbbb-8000-000000000000'),
+            'localhost', 8000, True)
+
+        remote_node.touch()
+
+        # create the relay node
+        relay_node = node_manager().create_node(
+            UUID('00000000-0000-eeee-8001-000000000000'),
+            'localhost', 8001, False)
+
+        relay_node.touch()
+
+        node_manager().send(remote_node.oan_id, OANMessageHeartbeat.create())
+
+        relay_message = relay_node.out_queue.get(False, 10)
+        self.assertEqual(relay_message.__class__, OANMessageRelay)
+        self.assertEqual(relay_message.message.__class__, OANMessageHeartbeat)
 
     def test_queue_full(self):
         n1 = node_manager().create_node(
             UUID('00000000-0000-bbbb-4008-000000000000'),
             'localhost', 4000, False)
 
-        with self.assertRaises(Queue.Full):
-            for x in xrange(2000):
-                node_manager().send(n1.oan_id, OANCommandStaticHeartbeat)
+        heartbeat_message = OANMessageHeartbeat.create()
+
+        for x in xrange(2000):
+            node_manager().send(n1.oan_id, heartbeat_message)
+
+        self._mock_dispatcher.execute.assert_called_with(MatcherClass(OANCommandCleanOutQueue))
 
 

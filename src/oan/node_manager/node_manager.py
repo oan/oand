@@ -9,13 +9,17 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from threading import Lock
+from Queue import Full
 
 from oan.heartbeat import OANHeartbeat
-from oan.manager import network, database
+from oan.manager import network, database, dispatcher
 from oan.util import log
-from oan.dispatcher.message import OANMessageNodeSync, OANMessageHeartbeat, OANMessageRelay
+from oan.dispatcher.message import OANMessageRelay
 from oan.network.network_node import OANNetworkNode
 from oan.network.command import NetworksCommandConnectToNode
+
+from oan.node_manager.command import OANCommandCleanOutQueue
+
 from oan.util.decorator.synchronized import synchronized
 
 class OANNodeManager():
@@ -27,7 +31,7 @@ class OANNodeManager():
     # Info about my own node.
     _my_node = None
 
-    # Synchronize the node instance when accessed by several threads.
+    # Synchronize the node_manager when accessed by several threads.
     _lock = None
 
 
@@ -41,7 +45,7 @@ class OANNodeManager():
     def load(self):
         """ Load all nodes in to memory and set _my_node"""
         for node in database().select_all(OANNetworkNode):
-            self._update_node(node)
+            self._add_node(node)
 
         if self._config.oan_id in self._nodes:
             self._set_my_node(self._nodes[self._config.oan_id])
@@ -85,12 +89,17 @@ class OANNodeManager():
         if (oan_id in self._nodes):
             node = self._nodes[oan_id]
             if node.is_blocked() and self._my_node.is_blocked():
-                self._relay(oan_id, message)
+                self._relay_to_node(oan_id, message)
             else:
                 self._send_to_node(node, message)
         else:
             log.info("OANNodeManager:Error node is missing %s" % oan_id)
             log.info(self._nodes)
+
+
+    @synchronized
+    def shutdown(self):
+        pass
 
 
     '''
@@ -157,37 +166,86 @@ class OANNodeManager():
     '''
 
 
-    def shutdown(self):
-        pass
 
     def dump(self):
-        log.info("------ dump begin ------")
+        print("------ dump begin ------")
         for n in self._nodes.values():
-            log.info("\t %s" % n)
-        log.info("------ dump end ------")
-
-
+            print("\t %s" % n)
+        print("------ dump end ------")
 
     #TODO: not all message should be relay
-    #TODO: find good relay nodes.
-    def _relay(self, destination_uuid, message):
+    #TODO: find good relay nodes. use statistic
+    def _relay_to_node(self, destination_uuid, message):
+        """
+        find a realy node to send a message to a blocked node. this is only
+        needed when my node is blocked and the remote node is blocked.
+        """
+
         relay = OANMessageRelay.create(self._my_node.oan_id, destination_uuid, message)
-        for relay_node in self._get_nodes(OANHeartbeat.NOT_OFFLINE):
-            if not relay_node.is_blocked():
-                log.info("Relay %s to [%s] through [%s]" % (message.__class__.__name__, destination_uuid, relay_node.oan_id))
+        nodes = self._get_nodes(OANHeartbeat.NOT_OFFLINE)
+
+        # try to find a relay node that already is connected and not blocked
+        for relay_node in nodes:
+            if not relay_node.is_disconnected() and not relay_node.is_blocked():
+                log.info("Relay %s to [%s] through [%s] connected" % (
+                    message.__class__.__name__,
+                    destination_uuid,
+                    relay_node.oan_id))
+
                 self._send_to_node(relay_node, relay)
                 return
 
-        log.info("OANNodeManager:Error can not relay message no relay node found")
 
+        # try to find a relay node that is not blocked
+        for relay_node in nodes:
+            if not relay_node.is_blocked():
+                log.info("Relay %s to [%s] through [%s] not connected" % (
+                    message.__class__.__name__,
+                    destination_uuid,
+                    relay_node.oan_id))
+
+                self._send_to_node(relay_node, relay)
+                return
+
+
+        log.warning("Relay %s to [%s] no node found, it will not be sent" % (
+            message.__class__.__name__,
+            destination_uuid))
+
+        print nodes
+        self.dump()
 
     def _send_to_node(self, node, message):
-        node.send(message)
-        if node.is_disconnected():
-            network().execute(NetworksCommandConnectToNode.create(node))
+        """
+        sends a message to a node, if the node is not connected
+        execute a connect to node command. the message will be
+        sent to node when connection is open.
 
+        """
+
+        try:
+            node.send(message)
+
+            if node.is_disconnected():
+                network().execute(NetworksCommandConnectToNode.create(node))
+
+
+            if node.out_queue.qsize() == (OANNetworkNode.QUEUE_SIZE * 0.75):
+                dispatcher().execute(OANCommandCleanOutQueue.create(node))
+                print "%s == %s" % (node.out_queue.qsize(), (OANNetworkNode.QUEUE_SIZE * 0.75))
+
+        except Full:
+            log.warning("Queue is full %s to [%s], will not be sent" % (
+                message.__class__.__name__,
+                node.oan_id))
 
     def _create_node(self, oan_id, host, port, blocked):
+        """
+        create the node in the node dictionary. if the node already exists
+        "host,port,blocked" will be updated.
+
+        """
+
         if oan_id in self._nodes:
             node = self._nodes[oan_id]
             node.update(host = host, port = port,
@@ -199,7 +257,11 @@ class OANNodeManager():
         return node
 
 
-    def _update_node(self, node):
+    def _add_node(self, node):
+        """
+        add a node to the node dictionary. if the node already exists it
+        updates the host, port, blocked.
+        """
         if node.oan_id in self._nodes:
             n = self._nodes[node.oan_id]
             n.update(host = node.host, port = node.port,
@@ -208,6 +270,9 @@ class OANNodeManager():
             self._nodes[node.oan_id] = node
 
     def _set_my_node(self, node):
+        """
+        set my node and update the host, port, blocked from the config.
+        """
         if self._my_node is None:
             node.update(
                 host = self._config.node_domain_name,
@@ -220,6 +285,9 @@ class OANNodeManager():
 
 
     def _create_my_node(self):
+        """
+        create a new node from config and set it to my node.
+        """
         if self._my_node is None:
             node = self._create_node(
                 self._config.oan_id,

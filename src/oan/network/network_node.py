@@ -28,6 +28,7 @@ class OANNetworkNodeState(object):
 
 class OANNetworkNode:
     """Thread safe network node representation."""
+    QUEUE_SIZE = 1000
 
     # All messages that should be sent to the node through the network.
     out_queue = None
@@ -62,7 +63,7 @@ class OANNetworkNode:
         self._oan_id = oan_id
         self._state = OANNetworkNodeState.DISCONNECTED
         self._heartbeat = OANHeartbeat()
-        self.out_queue = Queue(1000)
+        self.out_queue = Queue(OANNetworkNode.QUEUE_SIZE)
         self._lock = Lock()
 
     @classmethod
@@ -147,16 +148,6 @@ class OANNetworkNode:
             "statistic": self._statistic.serialize()
         }
 
-    @synchronized
-    @returns(str)
-    def __str__(self):
-        return 'OANNetworkNode(%s, %s, %s) queue(%s) hb(%s) stat(%s)' % (
-            self._oan_id, self._host, self._port,
-            self.out_queue.qsize(),
-            self._heartbeat.time,
-            self._statistic
-        )
-
     def send(self, message):
         """
         Send a message to this node.
@@ -185,3 +176,18 @@ class OANNetworkNode:
     def has_heartbeat_state(self, state):
         """What is the known online state of the node."""
         return self._heartbeat.has_state(state)
+
+    @synchronized
+    def touch(self):
+        self._heartbeat.touch()
+
+    @synchronized
+    @returns(str)
+    def __str__(self):
+        return 'OANNetworkNode(%s, %s, %s, %s) queue(%s) hb(%s) stat(%s)' % (
+            self._oan_id, self._host, self._port, self._blocked,
+            self.out_queue.qsize(),
+            self._heartbeat.time,
+            self._statistic
+        )
+
