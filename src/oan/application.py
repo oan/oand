@@ -25,7 +25,6 @@ from oan.meta_manager import OANMetaManager
 from oan.data_manager import OANDataManager
 from oan.config import OANConfig
 from oan.database.database import OANDatabase
-from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 
 from oan.node_manager.command import (OANCommandStaticHeartbeat,
     OANCommandStaticLoadNodes, OANCommandStaticStoreNodes,
@@ -85,8 +84,7 @@ class OANApplication():
         dispatcher().execute(OANCommandStaticSyncNodes)
 
     def get_node_info(self):
-        return dispatcher().get(OANCommandStaticGetNodeInfo)
-
+        return node_manager.get_my_node().get()
 
 
     # # maybe choose from nodelist if bff fails. just use bff if nodes list is empty.

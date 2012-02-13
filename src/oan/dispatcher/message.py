@@ -30,17 +30,21 @@ class OANMessageHandshake():
     ttl = False
 
     @classmethod
-    def create(cls, oan_id, host, port, blocked):
+    def create(cls):
+        my_node = node_manager().get_my_node()
+
         obj = cls()
-        obj.oan_id = str(oan_id)
-        obj.host = host
-        obj.port = port
-        obj.blocked = blocked
+        obj.oan_id = str(my_node.oan_id)
+        (name, obj.host, obj.port, state, obj.blocked) = my_node.get()
+
+        log.info("OANMessageHandshake create: %s %s:%s blocked: %s" % (
+            obj.oan_id, obj.host, obj.port, obj.blocked))
+
         return obj
 
     def execute(self):
         log.info(
-            "OANMessageHandshake: %s %s:%s blocked: %s" %
+            "OANMessageHandshake received: %s %s:%s blocked: %s" %
             (self.oan_id, self.host, self.port, self.blocked)
         )
         yield node_manager().create_node(

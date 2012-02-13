@@ -19,7 +19,6 @@ from oan.manager import dispatcher
 from oan.util import log
 from oan.dispatcher.message import OANMessageHandshake, OANMessageClose
 from oan.network.serializer import encode, decode
-from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 
 
 class OANBridge(asyncore.dispatcher):
@@ -52,23 +51,15 @@ class OANBridge(asyncore.dispatcher):
         self.send_handshake()
 
     def send_handshake(self):
-        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANCommandStaticGetNodeInfo)
-
-        log.info("OANBridge:send_handshake: %s,%s,%s,%s" % (oan_id, host, port, blocked))
-        self.out_buffer = self.send_message(
-            OANMessageHandshake.create(oan_id, host, port, blocked)
-        )
+        self.out_buffer = self.send_message(OANMessageHandshake.create())
 
     def got_handshake(self, message):
-        log.info("OANBridge:got_handshake: %s,%s,%s" % (message.oan_id, message.host, message.port))
-
         # Update with external ip. Sending node is only aware of internal ip,
         # firewall might MASQ/NAT to extetnal ip.
         message.host = self.remote_addr[0]
 
         self.node = dispatcher().get(message)
         self.out_queue = self.node.out_queue
-
         self.server.add_bridge(self)
 
     def send_close(self):
@@ -96,9 +87,6 @@ class OANBridge(asyncore.dispatcher):
         raw_message = encode(message)
         if self.node is not None:
             log.info("send_message: %s to %s" % (message.__class__.__name__, self.node.oan_id))
-            # TODO: This should be on the incomming, when the send has
-            #       succeded???
-            self.node.heartbeat.touch()
 
         return raw_message + '\n'
 

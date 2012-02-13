@@ -30,7 +30,6 @@ from oan.dispatcher.dispatcher import OANDispatcher
 
 from oan.manager import dispatcher, node_manager
 from oan.dispatcher.message import OANMessagePing
-from oan.dispatcher.command import OANCommandSendToNode
 from oan.application import OANApplication
 from oan.config import OANConfig
 from oan.util.network import get_local_host

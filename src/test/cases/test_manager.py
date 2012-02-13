@@ -58,4 +58,5 @@ class TestManager(OANTestCase):
         self.assertTrue(manager.shutdown())
 
         mock_shutdown.shutdown.return_value = False
-        self.assertFalse(manager.shutdown())
+        with self.assertRaises(OANNetworkManagerError):
+            manager.shutdown()
