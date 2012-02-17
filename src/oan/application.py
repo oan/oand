@@ -16,6 +16,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import time
 from oan.util import log
 from oan import manager
 from oan.manager import network, database, dispatcher, node_manager, meta_manager, data_manager
@@ -32,31 +33,52 @@ from oan.node_manager.command import (OANCommandStaticHeartbeat,
 
 from oan.dispatcher.dispatcher import OANDispatcher
 from oan.network.network import OANNetwork, OANNetworkTimer
-from oan.network.command import OANNetworkCommandListen
+from oan.network.command import (OANNetworkCommandListen,
+    OANNetworkCommandConnectOan)
 
 
 class OANApplication():
     config = None
+    _is_terminating = False
 
     def __init__(self, config):
+        self._is_terminating = False
         self.config = config
 
     def run(self):
         log.info("Starting Open Archive Network for " + self.config.node_name)
 
         manager.setup(
-            OANNetwork(),
-            OANDatabase(self.config),
-            OANDispatcher(),
             "None", #OANDataManager("../var/data.dat"),
             "None", #OANMetaManager(),
-            OANNodeManager(self.config)
+            OANNodeManager(self.config),
+            OANDatabase(self.config),
+            OANDispatcher(),
+            OANNetwork()
         )
 
         self._setup_timers()
 
         dispatcher().execute(OANCommandStaticLoadNodes)
         network().execute(OANNetworkCommandListen.create(self.config.node_port))
+
+        if (self.config.bff_port and self.config.bff_domain_name):
+            print "connecting to oan...."
+            network().execute(OANNetworkCommandConnectOan.create(
+                self.config.bff_domain_name, self.config.bff_port))
+
+        while True:
+            try:
+                if network() is None:
+                    break
+
+                print "sleeping... "
+                time.sleep(10)
+            except Exception, e:
+                print e
+
+        print "exit... "
+        #self.stop()
 
     # TODO: is it possible to catch the SIG when killing a deamon and call this function.
     def stop(self):
@@ -67,16 +89,10 @@ class OANApplication():
         network().add_timer(OANNetworkTimer(5, self.run_every_minute))
         network().add_timer(OANNetworkTimer(20, self.run_every_day))
 
-
-
     def run_every_minute(self):
         log.debug("run_every_minute")
         dispatcher().execute(OANCommandStaticHeartbeat)
-
-        #node_manager().send_heartbeat()
         node_manager().dump()
-
-
 
     def run_every_day(self):
         log.debug("run_every_day")
@@ -132,4 +148,10 @@ class OANDaemon(OANDaemonBase):
             self._app.config.stderr_level,
             self._app.config.log_level, self._app.config.log_file
         )
+
         self._app.run()
+
+    @staticmethod
+    def shutdown(signum, frame):
+        manager.shutdown()
+

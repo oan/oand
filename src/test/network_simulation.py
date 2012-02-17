@@ -18,8 +18,8 @@ configs = {}
 
 def start_test_network():
     global configs
-    _create_open_config(8)
-    _create_blocked_config(2)
+    _create_open_config(1)
+    _create_blocked_config(0)
 
     for config in configs.itervalues():
         if config.blocked:
@@ -58,7 +58,6 @@ def _create_open_config(num_of_nodes):
                 "server-" + str(x),
                 "localhost",
                 str(4000 + x),
-                "server-" + str(x-1),
                 "localhost",
                 str(4000 + x - 1)
             )
@@ -77,7 +76,6 @@ def _create_blocked_config(num_of_nodes):
             "server-" + str(x),
             "localhost",
             str(4000 + x),
-            "server-0",
             "localhost",
             str(4000),
             True

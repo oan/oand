@@ -64,7 +64,7 @@ class OANDispatcherWorker(Thread):
             #   raise, so catch them all and send them on the "back" queue
             #   for result method to handle.
             except Exception as ex:
-                self._passthru.error(message, ex, back, sys.exc_info())
+                self._passthru.error(message, ex, back)
 
             if isinstance(message, OANCommandShutdown):
                 # Put back shutdown message for other worker threads

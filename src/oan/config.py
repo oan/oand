@@ -166,7 +166,7 @@ class OANUuid(OANDescriptorObject):
 
 
 
-class OANUuid(object):
+class OANUuid(OANDescriptorObject):
     """
     Represents a UUID that can be set with a string or a UUID instance.
 
@@ -184,18 +184,17 @@ class OANUuid(object):
 
     def __init__(self):
         OANDescriptorObject.__init__(self)
-        self.uuid = None
 
     def __get__(self, instance, owner):
-        return self.uuid
+        return self.get_var(instance, "uuid")
 
     def __set__(self, instance, value):
         if isinstance(value, UUID):
-            self.uuid = value
+            self.set_var(instance, "uuid", int)
         elif isinstance(value, str):
-            self.uuid = UUID(value)
+            self.set_var(instance, "uuid", UUID(value))
         else:
-            self.uuid = None
+            self.set_var(instance, "uuid", None)
 
 
 class OANPort(OANDescriptorObject):
@@ -283,7 +282,7 @@ class OANConfig(object):
     # Best Friend Forever Node. The first node to connect to, which will
     # give you access and knowledge to the whole network.
     bff_domain_name = None
-    bff_port = None
+    bff_port = OANPort()
 
     # This node can't be reached from internet through firewall.
     blocked = None

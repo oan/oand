@@ -37,7 +37,6 @@ class OANDataManagerError(Exception): pass
 class OANMetaManagerError(Exception): pass
 class OANNodeManagerError(Exception): pass
 
-def setup(network, database, dispatcher, data, meta, node):
     """
     Set all global managers that can be used from anywhere in oan.
 

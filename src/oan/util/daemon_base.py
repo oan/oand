@@ -79,7 +79,6 @@ class OANDaemonBase:
         atexit.register(self.delpid)
         pid = str(os.getpid())
         file(self.pidfile,'w+').write("%s\n" % pid)
-
         return True
 
     def delpid(self):
@@ -91,12 +90,7 @@ class OANDaemonBase:
 
         """
         # Check for a pidfile to see if the daemon already runs
-        try:
-            pf = file(self.pidfile,'r')
-            pid = int(pf.read().strip())
-            pf.close()
-        except IOError:
-            pid = None
+        pid = self._pid_from_file(self.pidfile)
 
         if pid:
             message = "pidfile %s already exist. Daemon already running?\n"
@@ -105,40 +99,26 @@ class OANDaemonBase:
 
         # Start the daemon
         if (self.daemonize()):
-            self._register_signal()
+            self._register_terminate()
             self.run()
             sys.exit(0)
+
+        pid = self._get_pid_from_file(self.pidfile)
+        if pid:
+            print "process started %s" % pid
 
     def stop(self):
         """
         Stop the daemon
 
         """
-        # Get the pid from the pidfile
-        try:
-            pf = file(self.pidfile,'r')
-            pid = int(pf.read().strip())
-            pf.close()
-        except IOError:
-            pid = None
-
+        pid = self._pid_from_file(self.pidfile)
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
             sys.stderr.write(message % self.pidfile)
             return # not an error in a restart
 
-        # Try killing the daemon process
-        try:
-            while 1:
-                os.kill(pid, SIGTERM)
-                time.sleep(0.1)
-        except OSError, err:
-            err = str(err)
-            if err.find("No such process") > 0:
-                if os.path.exists(self.pidfile):
-                    os.remove(self.pidfile)
-            else:
-                print str(err)
+        self._pid_terminate(pid)
 
     def restart(self):
         """
@@ -153,16 +133,10 @@ class OANDaemonBase:
         Stop of the daemon.
 
         """
-        # Get the pid from the pidfile
-        try:
-            pf = file(self.pidfile, 'r')
-            pid = int(pf.read().strip())
-            pf.close()
-        except IOError:
-            pid = None
+        pid = self._pid_from_file(self.pidfile)
 
         if (pid):
-            if (self._pid_exists(pid)):
+            if (self._pid_is_running(pid)):
                 print "oand (pid  %s) is running..." % pid
             else:
                 print "oand dead but pid file exists"
@@ -176,15 +150,42 @@ class OANDaemonBase:
 
         """
 
-    # @staticmethod
-    # def shutdown(signum, frame):
-    #     """
-    #     You should override this method when you subclass Daemon. It will be
-    #     called when the daemon is stopped/killed.
 
-    #     """
+    #@staticmethod
+    #def shutdown(signum, frame):
+    #    raise OANSigtermError()
 
-    def _pid_exists(self, pid):
+    def shutdown(self, signum, frame):
+        """
+        You should override this method when you subclass Daemon. It will be
+        called when the daemon is stopped/killed.
+
+        """
+
+    def _get_pid_from_file(self, pidfile):
+        for i in xrange(1, 40):
+            pid = self._pid_from_file(pidfile)
+            if pid:
+                return pid
+            print "Waiting for %s" % pidfile
+            time.sleep(i / 2)
+
+
+        return None
+
+    def _pid_from_file(self, pidfile):
+        """ Get the pid from the pidfile """
+        try:
+            pf = file(pidfile, 'r')
+            pid = int(pf.read().strip())
+            pf.close()
+        except IOError:
+            pid = None
+
+        return pid
+
+
+    def _pid_is_running(self, pid):
         """
         Check whether pid exists in the current process table.
 
@@ -200,10 +201,23 @@ class OANDaemonBase:
         else:
             return True
 
-    @staticmethod
-    def shutdown(signum, frame):
-        raise OANSigtermError()
 
-    def _register_signal(self):
+    def _pid_terminate(self, pid):
+        # Try killing the daemon process
+        try:
+            for i in xrange(1,40):
+                os.kill(pid, SIGTERM)
+                print "Waiting for process to terminate pid %s" % pid
+                time.sleep(i/2)
+
+        except OSError, err:
+            err = str(err)
+            if err.find("No such process") > 0:
+                if os.path.exists(self.pidfile):
+                    os.remove(self.pidfile)
+            else:
+                print str(err)
+
+    def _register_terminate(self):
         signal(SIGTERM, self.shutdown)
 
