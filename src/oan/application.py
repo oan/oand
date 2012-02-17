@@ -45,7 +45,7 @@ class OANApplication():
         self._is_terminating = False
         self.config = config
 
-    def run(self):
+    def start(self):
         log.info("Starting Open Archive Network for " + self.config.node_name)
 
         manager.setup(
@@ -67,20 +67,6 @@ class OANApplication():
             network().execute(OANNetworkCommandConnectOan.create(
                 self.config.bff_domain_name, self.config.bff_port))
 
-        while True:
-            try:
-                if network() is None:
-                    break
-
-                print "sleeping... "
-                time.sleep(10)
-            except Exception, e:
-                print e
-
-        print "exit... "
-        #self.stop()
-
-    # TODO: is it possible to catch the SIG when killing a deamon and call this function.
     def stop(self):
         log.info("Stopping Open Archive Network")
         manager.shutdown()
@@ -140,7 +126,7 @@ class OANDaemon(OANDaemonBase):
         )
 
 
-    def run(self):
+    def initialize(self):
         # Need to start loggign again for deamon. Couldn't fork the looging
         # state from applications starter.
         log.setup(
@@ -149,9 +135,8 @@ class OANDaemon(OANDaemonBase):
             self._app.config.log_level, self._app.config.log_file
         )
 
-        self._app.run()
+        self._app.start()
 
-    @staticmethod
-    def shutdown(signum, frame):
-        manager.shutdown()
-
+    def run(self):
+        self.wait()
+        self._app.stop()

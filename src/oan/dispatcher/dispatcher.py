@@ -128,6 +128,7 @@ class OANDispatcher:
         to finished.
 
         """
+
         self._passthru.execute(OANCommandShutdown())
         for worker in self._workers:
             worker.join()

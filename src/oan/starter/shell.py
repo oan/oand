@@ -204,7 +204,7 @@ class OANShell(cmd.Cmd):
 
         if mode == '--native':
             self._app = OANApplication(self._config)
-            self._app.run()
+            self._app.start()
         elif mode == '--daemon':
             OANDaemon(self._config).start()
 

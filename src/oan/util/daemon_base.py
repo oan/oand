@@ -16,12 +16,34 @@ __status__ = "Test"
 
 
 import sys, os, time, atexit
-from signal import SIGTERM, signal
+from signal import SIGTERM, SIGINT, SIG_IGN, signal
+from threading import Lock
 
-class OANSigtermError(Exception): """Raised in run when program is stopped."""
 
+class OANTerminateInterrupt(Exception): pass
+class OANStatusInterrupt(Exception): pass
+
+class OANRaiseInterrupt:
+    _lock = Lock()
+    _fired = False
+
+    @staticmethod
+    def terminate():
+        """
+        Just one terminate signal interrupt
+        """
+        with OANRaiseInterrupt._lock:
+            if not OANRaiseInterrupt._fired:
+                OANRaiseInterrupt._fired = True
+                raise OANTerminateInterrupt()
+
+    @staticmethod
+    def status():
+        with OANRaiseInterrupt._lock:
+            raise OANStatusInterrupt()
 
 class OANDaemonBase:
+
     """
     A generic daemon class.
 
@@ -74,12 +96,13 @@ class OANDaemonBase:
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
+        return True
 
+    def _create_pid_file(self):
         # write pidfile
         atexit.register(self.delpid)
         pid = str(os.getpid())
         file(self.pidfile,'w+').write("%s\n" % pid)
-        return True
 
     def delpid(self):
         os.remove(self.pidfile)
@@ -99,6 +122,10 @@ class OANDaemonBase:
 
         # Start the daemon
         if (self.daemonize()):
+            self._disable_keyboard_interupt()
+            self.initialize()
+            self._create_pid_file()
+            self._register_keyboard_interupt()
             self._register_terminate()
             self.run()
             sys.exit(0)
@@ -143,6 +170,16 @@ class OANDaemonBase:
         else:
             print "oand is stopped."
 
+
+    def initialize(self):
+        """
+        You should override this method when you subclass Daemon. It will be
+        called after the process has been daemonized by start() or restart().
+        But before the shutdown signal is registered.
+
+        """
+
+
     def run(self):
         """
         You should override this method when you subclass Daemon. It will be
@@ -150,17 +187,24 @@ class OANDaemonBase:
 
         """
 
-
-    #@staticmethod
-    #def shutdown(signum, frame):
-    #    raise OANSigtermError()
-
-    def shutdown(self, signum, frame):
+    def wait(self):
         """
-        You should override this method when you subclass Daemon. It will be
-        called when the daemon is stopped/killed.
-
+        Waits for signals, terminate or user defined signal status.
         """
+
+        while True:
+            try:
+                time.sleep(100000)
+            except OANStatusInterrupt, e:
+                print e
+            except OANTerminateInterrupt, e:
+                print e
+                break
+
+
+    @staticmethod
+    def shutdown(signum, frame):
+        OANRaiseInterrupt.terminate()
 
     def _get_pid_from_file(self, pidfile):
         for i in xrange(1, 40):
@@ -218,6 +262,14 @@ class OANDaemonBase:
             else:
                 print str(err)
 
+    def _disable_keyboard_interupt(self):
+        self.keyboard_int = signal(SIGINT, SIG_IGN)
+
+    def _register_keyboard_interupt(self):
+         signal(SIGINT, self.shutdown)
+
     def _register_terminate(self):
         signal(SIGTERM, self.shutdown)
+
+
 
