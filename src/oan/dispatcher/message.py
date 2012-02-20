@@ -35,7 +35,7 @@ class OANMessageHandshake():
 
         obj = cls()
         obj.oan_id = str(my_node.oan_id)
-        (name, obj.host, obj.port, state, obj.blocked) = my_node.get()
+        (name, obj.host, obj.port, obj.blocked, state, heartbeat) = my_node.get()
 
         log.info("OANMessageHandshake create: %s %s:%s blocked: %s" % (
             obj.oan_id, obj.host, obj.port, obj.blocked))
@@ -47,9 +47,13 @@ class OANMessageHandshake():
             "OANMessageHandshake received: %s %s:%s blocked: %s" %
             (self.oan_id, self.host, self.port, self.blocked)
         )
-        yield node_manager().create_node(
+
+        node = node_manager().create_node(
             UUID(self.oan_id), self.host, self.port, self.blocked
         )
+        node.touch()
+
+        return node
 
 
 class OANMessageClose():
@@ -145,7 +149,7 @@ class OANMessageRelay():
 
     def execute(self):
         log.info("OANMessageRelay: %s %s" % (self.destination_oan_id, self.message))
-        node_manager.send(
+        node_manager().send(
             UUID(self.destination_oan_id),
             self.message
         )
@@ -251,19 +255,19 @@ class OANMessageNodeSync():
             my_l = self.create_list()
 
             # if hash is diffrent continue to step 2, send over the list.
+            print "%s != %s" % (self.node_list_hash, my_l[0])
             if self.node_list_hash != my_l[0]:
-                node_manager.send(
+                node_manager().send(
                     UUID(self.node_oan_id),
                     OANMessageNodeSync.create(2, my_l)
                 )
 
         if self.step == 2:
             for n in self.node_list:
-                currentnode = node_manager.get_node(UUID(n[0]))
-                if currentnode.heartbeat < n[4]:
-                    newnode = node_manager.create_node(UUID(n[0]), n[1], n[2], n[3])
-                    newnode.heartbeat.value = n[4]
-
+                currentnode = node_manager().get_node(UUID(n[0]))
+                if (currentnode is None) or (currentnode < n[4]):
+                    newnode = node_manager().create_node(UUID(n[0]), str(n[1]), n[2], n[3])
+                    newnode.update(heartbeat = n[4])
 
 # Messages that will be possible to send to a remote node.
 

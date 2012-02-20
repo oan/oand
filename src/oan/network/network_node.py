@@ -182,7 +182,6 @@ class OANNetworkNode:
         self._heartbeat.touch()
 
     @synchronized
-    @returns(str)
     def __str__(self):
         return 'OANNetworkNode(%s, %s, %s, %s) S(%s) Q(%s) hb(%s) stat(%s)' % (
             self._oan_id, self._host, self._port, self._blocked,
@@ -192,3 +191,7 @@ class OANNetworkNode:
             self._statistic
         )
 
+
+    @synchronized
+    def __cmp__(self, other):
+        return self._heartbeat.__cmp__(other)

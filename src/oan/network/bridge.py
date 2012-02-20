@@ -95,7 +95,7 @@ class OANBridge(asyncore.dispatcher):
         message = decode(raw_message.strip())
 
         if self.node is not None:
-            self.node.heartbeat.touch()
+            self.node.touch()
             log.info("read_message: %s from %s" % (message.__class__.__name__, self.node.oan_id))
 
         return message

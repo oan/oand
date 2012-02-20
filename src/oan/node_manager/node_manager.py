@@ -68,7 +68,10 @@ class OANNodeManager():
 
     @synchronized
     def get_node(self, oan_id):
-        return self._nodes[oan_id]
+        if oan_id in self._nodes:
+            return self._nodes[oan_id]
+
+        return None
 
     @synchronized
     def exist_node(self, oan_id):
@@ -278,6 +281,7 @@ class OANNodeManager():
                 blocked = self._config.blocked)
 
             self._my_node = node
+            self._my_node.touch()
         else:
             log.info("OANNodeManager:Error my node is already set")
 
@@ -295,6 +299,7 @@ class OANNodeManager():
             )
 
             self._my_node = node
+            self._my_node.touch()
         else:
             log.info("OANNodeManager:Error my node is already set")
 

@@ -21,6 +21,7 @@ from oan.dispatcher.message import OANMessagePing
 from oan.application import OANApplication
 from oan.config import OANConfig
 from oan.util import log
+from oan.util.network import get_local_host
 
 class TestOANBlocked(OANTestCase):
     queue = None
@@ -28,14 +29,14 @@ class TestOANBlocked(OANTestCase):
 
     def setUp(self):
         self.queue = Queue()
-
+        self.host = get_local_host()
         # create a blocked node
         self.app = OANApplication(OANConfig(
             '00000000-0000-bbbb-8001-000000000000',
             "TestOANBlocked",
-            "localhost",
+            self.host,
             str(8001),
-            'localhost',
+            self.host,
             str(4003),
             True
         ))
@@ -59,7 +60,7 @@ class TestOANBlocked(OANTestCase):
         pass
         #node_manager().create_node('oo:hh:18', 'localhost', 4008)
 
-    def atest_message_relay(self):
+    def test_message_relay(self):
         # send a ping to a blocked node
 
         while not node_manager().exist_node(UUID('00000000-0000-bbbb-4008-000000000000')):
