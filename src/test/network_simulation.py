@@ -18,8 +18,8 @@ configs = {}
 
 def start_test_network():
     global configs
-    _create_open_config(10)
-    _create_blocked_config(0)
+    _create_open_config(8)
+    _create_blocked_config(2)
 
     for config in configs.itervalues():
         if config.blocked:

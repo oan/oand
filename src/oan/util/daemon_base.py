@@ -15,11 +15,10 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import sys, os, time, atexit
-from signal import SIGTERM, SIGINFO, SIGINT, SIG_IGN, signal
+from signal import SIGTERM, SIGINFO, SIGINT
 
 from oan.util.signal_handler import (OANSignalHandler, OANTerminateInterrupt,
     OANStatusInterrupt)
-
 
 class OANDaemonBase:
 
@@ -110,7 +109,8 @@ class OANDaemonBase:
         #wait for the deamon to create the pid file.
         pid = self._get_pid_from_file(self.pidfile)
         if pid:
-            print "Process started %s" % pid
+            pass
+            #  print "Process started %s" % pid
 
     def stop(self):
         """
@@ -130,7 +130,10 @@ class OANDaemonBase:
         Restart the daemon.
 
         """
-        self.stop()
+        pid = self._pid_from_file(self.pidfile)
+        if pid:
+            self.stop()
+
         self.start()
 
     def status(self):
@@ -207,7 +210,7 @@ class OANDaemonBase:
         try:
             for i in xrange(1,40):
                 os.kill(pid, SIGTERM)
-                print "Waiting for process to terminate (%s)" % pid
+                #print "Waiting for process to terminate (%s)" % pid
                 time.sleep(i/2)
 
         except OSError, err:
