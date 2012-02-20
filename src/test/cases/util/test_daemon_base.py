@@ -30,7 +30,8 @@ F_ERR="/tmp/oand_ut_daemon.err"
 class TestDaemon(OANDaemonBase):
 
     def initialize(self):
-        sleep(10)
+        for x in xrange(1,10000):
+            print "call", x
 
     def run(self):
         try:
@@ -39,7 +40,7 @@ class TestDaemon(OANDaemonBase):
                 sys.stderr.write("This is stderr\n")
                 sys.stdout.flush()
                 sys.stderr.flush()
-                sleep(10)
+                self.wait()
         except OANTerminateInterrupt:
             pass
         finally:

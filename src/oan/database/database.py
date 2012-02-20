@@ -228,7 +228,6 @@ class OANDatabase:
             yield obj
 
     def shutdown(self):
-        print "database got shutdown"
         self._pass.execute(OANDatabaseMessageShutdown())
         self._worker.join()
 

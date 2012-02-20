@@ -21,6 +21,7 @@ from oan.util import log
 from oan import manager
 from oan.manager import network, database, dispatcher, node_manager, meta_manager, data_manager
 from oan.util.daemon_base import OANDaemonBase
+from oan.util.signal_handler import OANTerminateInterrupt
 from oan.node_manager.node_manager import OANNodeManager
 from oan.meta_manager import OANMetaManager
 from oan.data_manager import OANDataManager
@@ -138,5 +139,15 @@ class OANDaemon(OANDaemonBase):
         self._app.start()
 
     def run(self):
-        self.wait()
+        try:
+            while True:
+                print "skdjfhksadkskskskskskskskskskks"
+                self.wait()
+
+        except OANStatusInterrupt, e:
+            print e
+        except OANTerminateInterrupt, e:
+            print e
+
+        print "kkkkkkkkkkkkkkkkkkkkkkkkkkkk"
         self._app.stop()

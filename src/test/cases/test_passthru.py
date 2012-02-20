@@ -11,7 +11,6 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import sys
 from Queue import Queue
 from threading import Thread
 
@@ -85,7 +84,7 @@ class MockWorker(Thread):
                     ret = message.execute("I'll Put A Spell On You")
                     q.result(ret, back)
                 except Exception as ex:
-                    q.error(message, ex, back, sys.exc_info())
+                    q.error(message, ex, back)
                 finally:
                     q.task_done()
                 if isinstance(message, MockMessageShutdown):

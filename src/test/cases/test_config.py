@@ -51,7 +51,7 @@ class TestOANConfig(OANTestCase):
         self.assertEqual(cnf.node_domain_name, opts["node_domain_name"])
         self.assertEqual(cnf.node_port, int(opts["node_port"]))
         self.assertEqual(cnf.bff_domain_name, opts["bff_domain_name"])
-        self.assertEqual(cnf.bff_port, opts["bff_port"])
+        self.assertEqual(cnf.bff_port, int(opts["bff_port"]))
 
         self.assertRaises(
             IOError, cnf.set_from_file, "file_not_exist.cfg")

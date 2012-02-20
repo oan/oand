@@ -11,7 +11,6 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import sys
 from threading import Thread
 
 from oan.util import log

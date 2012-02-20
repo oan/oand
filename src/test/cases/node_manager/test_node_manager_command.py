@@ -59,12 +59,12 @@ class TestOANNodeManagerCommands(OANTestCase):
         mock_shutdown.shutdown.return_value = True
 
         manager.setup(
-            self._mock_network,
+            mock_shutdown,
+            mock_shutdown,
+            OANNodeManager(config),
             self._mock_database,
             self._mock_dispatcher,
-            mock_shutdown,
-            mock_shutdown,
-            OANNodeManager(config)
+            self._mock_network
         )
 
         #load also sets my node in node_manager.

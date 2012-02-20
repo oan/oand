@@ -14,33 +14,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-
 import sys, os, time, atexit
 from signal import SIGTERM, SIGINT, SIG_IGN, signal
-from threading import Lock
-
-
-class OANTerminateInterrupt(Exception): pass
-class OANStatusInterrupt(Exception): pass
-
-class OANRaiseInterrupt:
-    _lock = Lock()
-    _fired = False
-
-    @staticmethod
-    def terminate():
-        """
-        Just one terminate signal interrupt
-        """
-        with OANRaiseInterrupt._lock:
-            if not OANRaiseInterrupt._fired:
-                OANRaiseInterrupt._fired = True
-                raise OANTerminateInterrupt()
-
-    @staticmethod
-    def status():
-        with OANRaiseInterrupt._lock:
-            raise OANStatusInterrupt()
 
 class OANDaemonBase:
 
@@ -96,13 +71,13 @@ class OANDaemonBase:
         os.dup2(si.fileno(), sys.stdin.fileno())
         os.dup2(so.fileno(), sys.stdout.fileno())
         os.dup2(se.fileno(), sys.stderr.fileno())
-        return True
 
-    def _create_pid_file(self):
         # write pidfile
         atexit.register(self.delpid)
         pid = str(os.getpid())
         file(self.pidfile,'w+').write("%s\n" % pid)
+
+        return True
 
     def delpid(self):
         os.remove(self.pidfile)
@@ -122,11 +97,9 @@ class OANDaemonBase:
 
         # Start the daemon
         if (self.daemonize()):
-            self._disable_keyboard_interupt()
-            self.initialize()
-            self._create_pid_file()
             self._register_keyboard_interupt()
             self._register_terminate()
+            self.initialize()
             self.run()
             sys.exit(0)
 
@@ -139,6 +112,9 @@ class OANDaemonBase:
         Stop the daemon
 
         """
+        print "Going to kill .........."
+
+
         pid = self._pid_from_file(self.pidfile)
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
@@ -191,20 +167,13 @@ class OANDaemonBase:
         """
         Waits for signals, terminate or user defined signal status.
         """
-
-        while True:
-            try:
-                time.sleep(100000)
-            except OANStatusInterrupt, e:
-                print e
-            except OANTerminateInterrupt, e:
-                print e
-                break
+        OANSignalHandler.wait()
 
 
     @staticmethod
     def shutdown(signum, frame):
-        OANRaiseInterrupt.terminate()
+        print "got shutdown shutdown shutdown"
+        OANSignalHandler.set(OANTerminateInterrupt())
 
     def _get_pid_from_file(self, pidfile):
         for i in xrange(1, 40):
@@ -250,6 +219,7 @@ class OANDaemonBase:
         # Try killing the daemon process
         try:
             for i in xrange(1,40):
+                print "Going to kill %s" % pid
                 os.kill(pid, SIGTERM)
                 print "Waiting for process to terminate pid %s" % pid
                 time.sleep(i/2)

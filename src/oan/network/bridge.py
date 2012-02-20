@@ -44,6 +44,7 @@ class OANBridge(asyncore.dispatcher):
 
     def handle_connect(self):
         log.info("OANBridge:handle_connect")
+        print "is connected"
         self.send_handshake()
 
     def handle_accept(self):
@@ -164,11 +165,11 @@ class OANBridge(asyncore.dispatcher):
         asyncore.dispatcher.close(self)
 
     def handle_error(self):
-        log.info("OANBridge:handle_error")
+        print("OANBridge:handle_error")
         #asyncore.dispatcher.handle_error(self)
 
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        log.info("OANBridge:handle_error: %s, %s" % (self.remote_addr, exc_value))
+        print ("OANBridge:handle_error: %s, %s" % (self.remote_addr, exc_value))
 
         self.handle_close()
 
