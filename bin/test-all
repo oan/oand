@@ -29,10 +29,16 @@ OPTIONS = None
 # Command line positional arguments.
 ARGS = None
 
+# KeybordInterrupt
+KEYBOARD_INT = None
+
 def run():
     setup_env()
     set_global_options_and_args()
     start_logging()
+
+    from signal import signal, SIGINT, SIG_IGN
+    KEYBOARD_INT = signal(SIGINT, SIG_IGN)
 
     from test.network_simulation import start_test_network, stop_test_network
     if (OPTIONS.network):
@@ -46,6 +52,8 @@ def run():
     finally:
         if (OPTIONS.network):
             stop_test_network()
+
+        signal(SIGINT, KEYBOARD_INT)
 
 def setup_env():
     '''Add all folders including src code to the "import-path"'''

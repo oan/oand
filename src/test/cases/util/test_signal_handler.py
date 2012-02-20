@@ -11,14 +11,11 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import os
-import sys
 from time import sleep
-
+from signal import SIGINFO
 from test.test_case import OANTestCase
 
 from oan.util.signal_handler import OANSignalHandler
-from signal import SIGINFO
 
 class MyTestInterrupt(Exception): pass
 
