@@ -79,13 +79,13 @@ class OANSignalHandler:
         Will sleep forever until a signal occured, if you want your own loop
         just activate the signal handler inside a try catch statement.
         """
-        print "Waiting for interupts"
+        #print "Waiting for interupts"
         try:
             OANSignalHandler.activate()
             while True:
                 sleep(OANSignalHandler._sleep)
         except Exception, e:
-            print "got interrupt"
+            #print "got interrupt"
             raise e
         finally:
             OANSignalHandler.deactivate()

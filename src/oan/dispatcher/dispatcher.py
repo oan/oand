@@ -132,6 +132,8 @@ class OANDispatcher:
         for worker in self._workers:
             worker.join()
 
+        return True
+
     def execute(self, message):
         """
         Send a message to one of the workers, if a exception is raised

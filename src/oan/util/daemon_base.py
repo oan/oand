@@ -15,7 +15,11 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import sys, os, time, atexit
-from signal import SIGTERM, SIGINT, SIG_IGN, signal
+from signal import SIGTERM, SIGINFO, SIGINT, SIG_IGN, signal
+
+from oan.util.signal_handler import (OANSignalHandler, OANTerminateInterrupt,
+    OANStatusInterrupt)
+
 
 class OANDaemonBase:
 
@@ -97,24 +101,22 @@ class OANDaemonBase:
 
         # Start the daemon
         if (self.daemonize()):
-            self._register_keyboard_interupt()
-            self._register_terminate()
-            self.initialize()
+            OANSignalHandler.register(SIGINT, OANTerminateInterrupt())
+            OANSignalHandler.register(SIGTERM, OANTerminateInterrupt())
+            OANSignalHandler.register(SIGINFO, OANStatusInterrupt())
             self.run()
             sys.exit(0)
 
+        #wait for the deamon to create the pid file.
         pid = self._get_pid_from_file(self.pidfile)
         if pid:
-            print "process started %s" % pid
+            print "Process started %s" % pid
 
     def stop(self):
         """
         Stop the daemon
 
         """
-        print "Going to kill .........."
-
-
         pid = self._pid_from_file(self.pidfile)
         if not pid:
             message = "pidfile %s does not exist. Daemon not running?\n"
@@ -146,16 +148,6 @@ class OANDaemonBase:
         else:
             print "oand is stopped."
 
-
-    def initialize(self):
-        """
-        You should override this method when you subclass Daemon. It will be
-        called after the process has been daemonized by start() or restart().
-        But before the shutdown signal is registered.
-
-        """
-
-
     def run(self):
         """
         You should override this method when you subclass Daemon. It will be
@@ -170,19 +162,14 @@ class OANDaemonBase:
         OANSignalHandler.wait()
 
 
-    @staticmethod
-    def shutdown(signum, frame):
-        print "got shutdown shutdown shutdown"
-        OANSignalHandler.set(OANTerminateInterrupt())
-
     def _get_pid_from_file(self, pidfile):
         for i in xrange(1, 40):
             pid = self._pid_from_file(pidfile)
             if pid:
                 return pid
-            print "Waiting for %s" % pidfile
-            time.sleep(i / 2)
 
+            #print "Waiting for %s" % pidfile
+            time.sleep(i / 2)
 
         return None
 
@@ -219,9 +206,8 @@ class OANDaemonBase:
         # Try killing the daemon process
         try:
             for i in xrange(1,40):
-                print "Going to kill %s" % pid
                 os.kill(pid, SIGTERM)
-                print "Waiting for process to terminate pid %s" % pid
+                print "Waiting for process to terminate (%s)" % pid
                 time.sleep(i/2)
 
         except OSError, err:
@@ -231,15 +217,6 @@ class OANDaemonBase:
                     os.remove(self.pidfile)
             else:
                 print str(err)
-
-    def _disable_keyboard_interupt(self):
-        self.keyboard_int = signal(SIGINT, SIG_IGN)
-
-    def _register_keyboard_interupt(self):
-         signal(SIGINT, self.shutdown)
-
-    def _register_terminate(self):
-        signal(SIGTERM, self.shutdown)
 
 
 

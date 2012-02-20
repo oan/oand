@@ -21,7 +21,7 @@ from oan.util import log
 from oan import manager
 from oan.manager import network, database, dispatcher, node_manager, meta_manager, data_manager
 from oan.util.daemon_base import OANDaemonBase
-from oan.util.signal_handler import OANTerminateInterrupt
+from oan.util.signal_handler import OANTerminateInterrupt, OANStatusInterrupt
 from oan.node_manager.node_manager import OANNodeManager
 from oan.meta_manager import OANMetaManager
 from oan.data_manager import OANDataManager
@@ -127,7 +127,7 @@ class OANDaemon(OANDaemonBase):
         )
 
 
-    def initialize(self):
+    def run(self):
         # Need to start loggign again for deamon. Couldn't fork the looging
         # state from applications starter.
         log.setup(
@@ -138,16 +138,14 @@ class OANDaemon(OANDaemonBase):
 
         self._app.start()
 
-    def run(self):
-        try:
-            while True:
-                print "skdjfhksadkskskskskskskskskskks"
+        while True:
+            try:
                 self.wait()
 
-        except OANStatusInterrupt, e:
-            print e
-        except OANTerminateInterrupt, e:
-            print e
+            except OANStatusInterrupt, e:
+                print e
+            except OANTerminateInterrupt, e:
+                break
 
         print "kkkkkkkkkkkkkkkkkkkkkkkkkkkk"
         self._app.stop()

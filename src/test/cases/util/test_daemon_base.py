@@ -17,7 +17,8 @@ from time import sleep
 
 from test.test_case import OANTestCase
 
-from oan.util.daemon_base import OANDaemonBase, OANTerminateInterrupt
+from oan.util.daemon_base import OANDaemonBase
+from oan.util.signal_handler import OANSignalHandler, OANTerminateInterrupt
 from oan.util.decorator.capture import capture
 
 # Files used in test.
@@ -29,24 +30,25 @@ F_ERR="/tmp/oand_ut_daemon.err"
 
 class TestDaemon(OANDaemonBase):
 
-    def initialize(self):
-        for x in xrange(1,10000):
-            print "call", x
-
     def run(self):
-        try:
-            while True:
-                sys.stdout.write("This is stdout\n")
-                sys.stderr.write("This is stderr\n")
-                sys.stdout.flush()
-                sys.stderr.flush()
-                self.wait()
-        except OANTerminateInterrupt:
-            pass
-        finally:
-            f=open(F_DWN, "w")
-            f.write("shutdown")
-            f.close()
+        while True:
+            try:
+                try:
+                    OANSignalHandler.activate()
+                    sys.stdout.write("This is stdout\n")
+                    sys.stderr.write("This is stderr\n")
+                    sys.stdout.flush()
+                    sys.stderr.flush()
+                    sleep(10000)
+                finally:
+                    OANSignalHandler.deactivate()
+
+            except OANTerminateInterrupt:
+                break
+            finally:
+                f=open(F_DWN, "w")
+                f.write("shutdown")
+                f.close()
 
     @capture
     def status(self):
