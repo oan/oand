@@ -14,6 +14,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+from os import kill, getpid
+from time import sleep
 from datetime import datetime, timedelta
 from signal import signal
 from threading import Lock
@@ -22,120 +24,177 @@ from Queue import Queue, Empty
 class OANTerminateInterrupt(Exception): pass
 class OANStatusInterrupt(Exception): pass
 
-class OANSignalTimer(object):
-    """
-    Execute a callback function every X seconds.
-
-    check() should be executed every second to be able to internally execute
-    callbacks that has an expired timer.
-
-    """
-    _interval = None
-    _callback = None
-    _args = None
-    _kwargs = None
-
-    _expires = None
-
-    def __init__(self, interval, callback, *args, **kwargs):
-        self._interval = interval
-        self._callback = callback
-        self._args = args
-        self._kwargs = kwargs
-        self._calc_expire()
-
-    @property
-    def interval(self):
-        return self._interval
-
-    def check(self):
-        """Execute callback if the timer has expired."""
-        checked = datetime.utcnow()
-        if (self._expires < checked):
-            self._callback(*self._args, **self._kwargs)
-            self._calc_expire()
-            return True
-
-        return False
-
-    def _calc_expire(self):
-        """Calculate and set the next time the cmd should be executed."""
-        self._expires = datetime.utcnow() + timedelta(seconds = self._interval)
-
-
 class OANSignalHandler:
+    """
+    Handels OS-signals
+
+    Example 1:
+        OANSignalHandler.register(SIGINT, OANTerminateInterrupt())
+        OANSignalHandler.register(SIGINFO, OANStatusInterrupt())
+
+        while True:
+            try:
+                OANSignalHandler.wait()
+            except OANTerminateInterrupt:
+                sys.exit(0)
+            except OANStatusInterrupt:
+                print "is running"
+                OANSignalHandler.reset(SIGINFO)
+
+
+    Example 2:
+        remember to deactivated the signal handler so not another signal
+        is fired during handeling the first one.
+
+        OANSignalHandler.register(SIGINT, OANTerminateInterrupt())
+        OANSignalHandler.register(SIGINFO, OANStatusInterrupt())
+
+        while True:
+            try:
+                try:
+                    OANSignalHandler.activate()
+                    in = raw_input('--> ')
+                finally:
+                    OANSignalHandler.deactivated()
+
+            except OANTerminateInterrupt:
+                print "Exit"
+                sys.exit(0)
+            except OANStatusInterrupt:
+                print "Running"
+                OANSignalHandler.reset(SIGINFO)
+
+    """
+
+
     _lock = Lock()
     _dict =  {}
     _interrupts = {}
-    _timers = []
-    _queue = Queue()
-    _timer_timeout = 60 * 12 * 24 * 365 # a year
-    _timeout = None
+    _sleep = 60 * 12 * 24 * 365 # a year
+    _activated = False
 
     @staticmethod
-    def wait(timeout = None):
+    def wait():
         """
-        Get must have a timeout to be inturrupted.
+        Will sleep forever until a signal occured, if you want your own loop
+        just activate the signal handler inside a try catch statement.
         """
         print "Waiting for interupts"
-        while True:
-            OANSignalHandler._check_timers()
-            try:
-                raise Queue.get(OANSignalHandler._queue, True, OANSignalHandler._timeout)
-            except Empty:
-                print "no signal in queue"
+        try:
+            OANSignalHandler.activate()
+            while True:
+                sleep(OANSignalHandler._sleep)
+        except Exception, e:
+            print "got interrupt"
+            raise e
+        finally:
+            OANSignalHandler.deactivate()
 
+    @staticmethod
+    def activate():
+        """
+        activate the signal handler, if a signal occurs it will be raised.
+        """
+
+        with OANSignalHandler._lock:
+            OANSignalHandler._activated = True
+
+            # check if there are any interrupts that should be raised.
+            for signum, state in OANSignalHandler._dict.items():
+                if not state:
+                    OANSignalHandler._interrupt_raise(signum)
+
+    @staticmethod
+    def deactivate():
+        """
+        if the signal handler is deactivated, all signals will be delayed until
+        its activated again. if a interrupt has been raised, the signal handler
+        is deactivated and need to be activated again.
+
+        """
+
+        with OANSignalHandler._lock:
+            OANSignalHandler._activated = False
+
+    @staticmethod
+    def fire(signum):
+        """
+        fires a signal to current pid
+        """
+        kill(getpid(), signum)
 
     @staticmethod
     def set(signum):
+        """
+        set the signal and fires a interrupt exception.
+        """
         with OANSignalHandler._lock:
             OANSignalHandler._interrupt_set(signum)
 
 
     @staticmethod
     def reset(signum):
+        """
+        a interrupt exception is fired just once if it's not reset.
+        """
         with OANSignalHandler._lock:
             OANSignalHandler._interrupt_reset(signum)
 
-    @staticmethod
-    def timer(interval, callback, *args, **kwargs):
-        with OANSignalHandler._lock:
-            if interval < OANSignalHandler._timeout:
-                OANSignalHandler._timeout = interval
-
-            OANSignalHandler._timers.append(
-                OANSignalTimer(interval, callback, args, kwargs))
-
-            sorted(OANSignalHandler._timers, key=lambda timer: timer.interval)
 
     @staticmethod
     def register(signum, interrupt):
+        """
+        register a interrupt with a signal number.
+        """
         with OANSignalHandler._lock:
             OANSignalHandler._interrupts[signum] = interrupt
             signal(signum, OANSignalHandler._interrupt_occured)
 
 
     @staticmethod
-    def _check_timers():
-        with OANSignalHandler._lock:
-            for timer in OANSignalHandler._timers:
-                if not timer.check():
-                    break
-
-    @staticmethod
     def _interrupt_occured(signum, frame):
+        """
+        when the OS is sending a signal this function will be called.
+        """
         with OANSignalHandler._lock:
             OANSignalHandler._interrupt_set(signum)
 
-
     @staticmethod
     def _interrupt_set(signum):
+        """
+        set a signal to be fired. it may be delayed if the signal handler
+        is deactivated.
+        """
         if signum not in OANSignalHandler._dict:
-            OANSignalHandler._dict[signum] = True
-            Queue.put(OANSignalHandler._queue, OANSignalHandler._interrupts[signum])
-
+            if OANSignalHandler._activated:
+                OANSignalHandler._interrupt_raise(signum)
+            else:
+                OANSignalHandler._interrupt_delay(signum)
 
     @staticmethod
     def _interrupt_reset(signum):
+        """
+        reset the signal so it can be fired once again.
+        """
         if signum in OANSignalHandler._dict:
             del OANSignalHandler._dict[signum]
+
+
+    @staticmethod
+    def _interrupt_raise(signum):
+        """
+        raise a interrupt and deactivate the signal handler, we don't want
+        an other interrupt be fired before we handled the first one.
+        """
+        OANSignalHandler._dict[signum] = True
+        OANSignalHandler._activated = False
+        raise OANSignalHandler._interrupts[signum]
+
+
+    @staticmethod
+    def _interrupt_delay(signum):
+        """
+        delay the interrupt until the signal handler is activated
+        """
+        OANSignalHandler._dict[signum] = False
+
