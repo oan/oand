@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test cases for util.daemon_base
+Test cases for util.daemon_base.
 
 """
 
