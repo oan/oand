@@ -27,13 +27,14 @@ class OANListen(asyncore.dispatcher):
     Uses together with asyncore.loop() in OANNetworkWorker.
 
     """
-    def __init__(self, host, port):
+    def __init__(self, server, host, port):
         asyncore.dispatcher.__init__(self)
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
         self.bind((host, port))
         self.listen(5)
+        self.server = server
         log.info("Start listening on %s:%d" % (host, port))
 
     def handle_accept(self):
@@ -49,7 +50,7 @@ class OANListen(asyncore.dispatcher):
 
             sock, addr = pair
             log.info('OANListen: accepting connection from %s' % repr(addr))
-            bridge = OANBridge(self, 2)
+            bridge = OANBridge(self.server, sock)
             bridge.remote_addr = addr
             bridge.handle_accept()
         except Exception, e:
@@ -133,10 +134,11 @@ class OANServer(object):
             self.on_bridge_idle(bridge)
 
     def connect_to_node(self, node):
-        log.info("Connect to %s:%s" % (node.host, node.port))
-        node.state = OANNetworkNodeState.CONNECTING
+        (name, host, port, state, blocked, heartbeat) = node.get()
+        log.info("Connect to %s:%s" % (host, port))
+        node.update(state = OANNetworkNodeState.CONNECTING)
         bridge = OANBridge(self)
-        bridge.connect(node.host, node.port)
+        bridge.connect(host, port)
 
     def connect_to_oan(self, host, port):
         log.info("OanServer:connect_to_oan %s:%d" % (host, port))
@@ -144,7 +146,7 @@ class OANServer(object):
         bridge.connect(host, port)
 
     def listen(self, host, port):
-        self._listen = OANListen(host, port)
+        self._listen = OANListen(self, host, port)
 
     def shutdown(self):
         if self._listen and self._listen.accepting:

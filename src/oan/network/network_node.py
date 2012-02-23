@@ -15,6 +15,7 @@ from threading import Lock
 from Queue import Queue
 from uuid import UUID
 
+from oan.util.decorator.accept import IGNORE, accepts, returns
 from oan.heartbeat import OANHeartbeat
 from oan.statistic import OANNetworkNodeStatistic
 from oan.util.decorator.synchronized import synchronized
@@ -27,6 +28,7 @@ class OANNetworkNodeState(object):
 
 class OANNetworkNode:
     """Thread safe network node representation."""
+    QUEUE_SIZE = 1000
 
     # All messages that should be sent to the node through the network.
     out_queue = None
@@ -56,24 +58,20 @@ class OANNetworkNode:
     # Synchronize the node instance when accessed by several threads.
     _lock = None
 
+    @accepts(IGNORE, UUID)
     def __init__(self, oan_id):
-
-        # I don't like this autoconvert things :-)
-        if isinstance(oan_id, UUID):
-            self._oan_id = oan_id
-        else:
-            self._oan_id = UUID(oan_id)
-
+        self._oan_id = oan_id
         self._state = OANNetworkNodeState.DISCONNECTED
         self._heartbeat = OANHeartbeat()
-        self.out_queue = Queue(1000)
+        self.out_queue = Queue(OANNetworkNode.QUEUE_SIZE)
         self._lock = Lock()
 
     @classmethod
+    @accepts(IGNORE, UUID, str, int, bool)
     def create(cls, oan_id, host, port, blocked):
         """Create a useable node."""
         obj = cls(oan_id)
-        obj._host, obj._port, obj._blocked = host, int(port), blocked
+        obj._host, obj._port, obj._blocked = host, port, blocked
         obj._statistic = OANNetworkNodeStatistic()
         return obj
 
@@ -103,11 +101,13 @@ class OANNetworkNode:
             self._heartbeat.set_value(heartbeat)
 
     @property
+    @returns(UUID)
     def oan_id(self):
         """A unique UUID representing this node."""
         return self._oan_id
 
     @synchronized
+    @returns(tuple)
     def get(self):
         """Return a tuple with all node values."""
         return (
@@ -120,6 +120,7 @@ class OANNetworkNode:
         )
 
     @synchronized
+    @accepts(IGNORE, dict)
     def unserialize(self, data):
         """Recreate node from dict produced by serialize."""
         self._name = data["name"]
@@ -132,6 +133,7 @@ class OANNetworkNode:
         self._statistic.unserialize(data["statistic"])
 
     @synchronized
+    @returns(dict)
     def serialize(self):
         """
         Return a dict that can be used to recreate this node with serialize.
@@ -146,15 +148,6 @@ class OANNetworkNode:
             "statistic": self._statistic.serialize()
         }
 
-    @synchronized
-    def __str__(self):
-        return 'OANNetworkNode(%s, %s, %s) queue(%s) hb(%s) stat(%s)' % (
-            self._oan_id, self._host, self._port,
-            self.out_queue.qsize(),
-            self._heartbeat.time,
-            self._statistic
-        )
-
     def send(self, message):
         """
         Send a message to this node.
@@ -163,14 +156,42 @@ class OANNetworkNode:
         the network worker.
 
         """
-        self.out_queue.put(message)
+        self.out_queue.put(message, False)
 
     @synchronized
+    @returns(bool)
     def is_disconnected(self):
         """The network connection to this node is not active."""
         return self._state == OANNetworkNodeState.DISCONNECTED
 
     @synchronized
+    @returns(bool)
+    def is_blocked(self):
+        """The network connection to this node is not active."""
+        return self._blocked
+
+    @synchronized
+    @accepts(IGNORE, int)
+    @returns(bool)
     def has_heartbeat_state(self, state):
         """What is the known online state of the node."""
         return self._heartbeat.has_state(state)
+
+    @synchronized
+    def touch(self):
+        self._heartbeat.touch()
+
+    @synchronized
+    def __str__(self):
+        return 'OANNetworkNode(%s, %s, %s, %s) S(%s) Q(%s) hb(%s) stat(%s)' % (
+            self._oan_id, self._host, self._port, self._blocked,
+            self._state,
+            self.out_queue.qsize(),
+            self._heartbeat.time,
+            self._statistic
+        )
+
+
+    @synchronized
+    def __cmp__(self, other):
+        return self._heartbeat.__cmp__(other)

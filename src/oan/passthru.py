@@ -11,6 +11,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import sys
 from Queue import Queue
 from types import GeneratorType
 
@@ -116,7 +117,7 @@ class OANPassthru(Queue):
             self.on_message(message)
         return (message, back)
 
-    def error(self, message, ex, back, exc_info):
+    def error(self, message, ex, back):
         """
         Called by worker if any error is found when executing a message.
 
@@ -126,7 +127,7 @@ class OANPassthru(Queue):
 
         """
         if __debug__:
-            log.trace("Got error %s on %s " % (ex, message), exc_info=exc_info)
+            log.trace("Got error %s on %s " % (ex, message), exc_info=sys.exc_info())
 
         try:
             if not self.on_error.empty():

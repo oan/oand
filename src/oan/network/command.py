@@ -53,6 +53,7 @@ class OANNetworkCommandConnectOan:
         return obj
 
     def execute(self, server):
+        print "connect_to_oan %s:%d" % (self.host, self.port)
         log.info("OANNetworkCommandConnectOan:execute")
         server.connect_to_oan(self.host, self.port)
 

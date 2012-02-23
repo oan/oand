@@ -15,12 +15,10 @@ import mock
 
 from test.test_case import OANTestCase
 from oan import manager
-from oan.manager import dispatcher, node_manager
+from oan.manager import node_manager
 from oan.config import OANConfig
 from oan.node_manager.node_manager import OANNodeManager
-from oan.network.network_node import OANNetworkNodeState
 from oan.dispatcher.dispatcher import OANDispatcher
-from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 
 class TestOANCommand(OANTestCase):
 
@@ -53,23 +51,3 @@ class TestOANCommand(OANTestCase):
 
     def tearDown(self):
         manager.shutdown()
-
-    def test_static(self):
-        # Disable use of database in OANNodeManager.load
-        self.mock_database.select_all.return_value.__iter__.return_value = iter([])
-
-        (
-            heartbeat,
-            oan_id,
-            name,
-            port,
-            host,
-            state,
-            blocked
-        ) = dispatcher().get(OANCommandStaticGetNodeInfo)
-        self.assertEqual(str(oan_id), "00000000-0000-dead-0000-000000000000")
-        self.assertEqual(name, None)
-        self.assertEqual(port, 9000)
-        self.assertEqual(host, "localhost")
-        self.assertEqual(state, OANNetworkNodeState.disconnected)
-        self.assertEqual(blocked, False)

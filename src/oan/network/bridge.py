@@ -19,7 +19,6 @@ from oan.manager import dispatcher
 from oan.util import log
 from oan.dispatcher.message import OANMessageHandshake, OANMessageClose
 from oan.network.serializer import encode, decode
-from oan.dispatcher.command import OANCommandStaticGetNodeInfo
 
 
 class OANBridge(asyncore.dispatcher):
@@ -45,6 +44,7 @@ class OANBridge(asyncore.dispatcher):
 
     def handle_connect(self):
         log.info("OANBridge:handle_connect")
+        print "is connected"
         self.send_handshake()
 
     def handle_accept(self):
@@ -52,23 +52,15 @@ class OANBridge(asyncore.dispatcher):
         self.send_handshake()
 
     def send_handshake(self):
-        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANCommandStaticGetNodeInfo)
-
-        log.info("OANBridge:send_handshake: %s,%s,%s,%s" % (oan_id, host, port, blocked))
-        self.out_buffer = self.send_message(
-            OANMessageHandshake.create(oan_id, host, port, blocked)
-        )
+        self.out_buffer = self.send_message(OANMessageHandshake.create())
 
     def got_handshake(self, message):
-        log.info("OANBridge:got_handshake: %s,%s,%s" % (message.oan_id, message.host, message.port))
-
         # Update with external ip. Sending node is only aware of internal ip,
         # firewall might MASQ/NAT to extetnal ip.
         message.host = self.remote_addr[0]
 
         self.node = dispatcher().get(message)
         self.out_queue = self.node.out_queue
-
         self.server.add_bridge(self)
 
     def send_close(self):
@@ -96,9 +88,6 @@ class OANBridge(asyncore.dispatcher):
         raw_message = encode(message)
         if self.node is not None:
             log.info("send_message: %s to %s" % (message.__class__.__name__, self.node.oan_id))
-            # TODO: This should be on the incomming, when the send has
-            #       succeded???
-            self.node.heartbeat.touch()
 
         return raw_message + '\n'
 
@@ -106,7 +95,7 @@ class OANBridge(asyncore.dispatcher):
         message = decode(raw_message.strip())
 
         if self.node is not None:
-            self.node.heartbeat.touch()
+            self.node.touch()
             log.info("read_message: %s from %s" % (message.__class__.__name__, self.node.oan_id))
 
         return message
@@ -176,11 +165,11 @@ class OANBridge(asyncore.dispatcher):
         asyncore.dispatcher.close(self)
 
     def handle_error(self):
-        log.info("OANBridge:handle_error")
+        print("OANBridge:handle_error")
         #asyncore.dispatcher.handle_error(self)
 
         exc_type, exc_value, exc_traceback = sys.exc_info()
-        log.info("OANBridge:handle_error: %s, %s" % (self.remote_addr, exc_value))
+        print ("OANBridge:handle_error: %s, %s" % (self.remote_addr, exc_value))
 
         self.handle_close()
 

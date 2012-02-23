@@ -30,22 +30,30 @@ class OANMessageHandshake():
     ttl = False
 
     @classmethod
-    def create(cls, oan_id, host, port, blocked):
+    def create(cls):
+        my_node = node_manager().get_my_node()
+
         obj = cls()
-        obj.oan_id = str(oan_id)
-        obj.host = host
-        obj.port = port
-        obj.blocked = blocked
+        obj.oan_id = str(my_node.oan_id)
+        (name, obj.host, obj.port, obj.blocked, state, heartbeat) = my_node.get()
+
+        log.info("OANMessageHandshake create: %s %s:%s blocked: %s" % (
+            obj.oan_id, obj.host, obj.port, obj.blocked))
+
         return obj
 
     def execute(self):
         log.info(
-            "OANMessageHandshake: %s %s:%s blocked: %s" %
+            "OANMessageHandshake received: %s %s:%s blocked: %s" %
             (self.oan_id, self.host, self.port, self.blocked)
         )
-        yield node_manager().create_node(
+
+        node = node_manager().create_node(
             UUID(self.oan_id), self.host, self.port, self.blocked
         )
+        node.touch()
+
+        return node
 
 
 class OANMessageClose():
@@ -141,7 +149,7 @@ class OANMessageRelay():
 
     def execute(self):
         log.info("OANMessageRelay: %s %s" % (self.destination_oan_id, self.message))
-        node_manager.send(
+        node_manager().send(
             UUID(self.destination_oan_id),
             self.message
         )
@@ -149,8 +157,6 @@ class OANMessageRelay():
 
 class OANMessageHeartbeat():
     """
-
-
     The heartbeat touch will be done in bridge read and write.
 
     """
@@ -160,8 +166,9 @@ class OANMessageHeartbeat():
     ttl = False
 
     @classmethod
-    def create(cls, node):
+    def create(cls):
         obj = cls()
+        node = node_manager().get_my_node()
         obj.oan_id = str(node.oan_id)
         (
             dummy,
@@ -248,19 +255,19 @@ class OANMessageNodeSync():
             my_l = self.create_list()
 
             # if hash is diffrent continue to step 2, send over the list.
+            print "%s != %s" % (self.node_list_hash, my_l[0])
             if self.node_list_hash != my_l[0]:
-                node_manager.send(
+                node_manager().send(
                     UUID(self.node_oan_id),
                     OANMessageNodeSync.create(2, my_l)
                 )
 
         if self.step == 2:
             for n in self.node_list:
-                currentnode = node_manager.get_node(UUID(n[0]))
-                if currentnode.heartbeat < n[4]:
-                    newnode = node_manager.create_node(UUID(n[0]), n[1], n[2], n[3])
-                    newnode.heartbeat.value = n[4]
-
+                currentnode = node_manager().get_node(UUID(n[0]))
+                if (currentnode is None) or (currentnode < n[4]):
+                    newnode = node_manager().create_node(UUID(n[0]), str(n[1]), n[2], n[3])
+                    newnode.update(heartbeat = n[4])
 
 # Messages that will be possible to send to a remote node.
 

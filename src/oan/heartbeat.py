@@ -33,7 +33,7 @@ class OANHeartbeat(object):
     _value = None
 
     # Constants used with has_state()
-    NOT_EXPIRED, IDLE, EXPIRED, OFFLINE, DEAD = range(1, 6)
+    IDLE, NOT_IDLE, EXPIRED, NOT_EXPIRED, OFFLINE, NOT_OFFLINE, DEAD, NOT_DEAD = range(1, 9)
 
     IDLE_MIN = 1 # test value 0.1
     EXPIRED_MIN = 5 # test value 0.2
@@ -147,20 +147,30 @@ class OANHeartbeat(object):
 
     def has_state(self, state):
         """Check if heartbeat is in state."""
-        if state == OANHeartbeat.NOT_EXPIRED:
-            return not self.is_expired()
 
-        elif state == OANHeartbeat.IDLE:
+        if state == OANHeartbeat.IDLE:
             return self.is_idle()
+
+        elif state == OANHeartbeat.NOT_IDLE:
+            return not self.is_idle()
 
         elif state == OANHeartbeat.EXPIRED:
             return self.is_expired()
 
+        elif state == OANHeartbeat.NOT_EXPIRED:
+           return not self.is_expired()
+
         elif state == OANHeartbeat.OFFLINE:
             return self.is_offline()
 
+        elif state == OANHeartbeat.NOT_OFFLINE:
+            return not self.is_offline()
+
         elif state == OANHeartbeat.DEAD:
             return self.is_dead()
+
+        elif state == OANHeartbeat.NOT_DEAD:
+            return not self.is_dead()
 
     def __cmp__(self, other):
         left = self._value

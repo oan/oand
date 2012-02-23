@@ -27,21 +27,21 @@ class TestManager(OANTestCase):
             manager.validate()
 
         manager.setup(
-            "network",
-            "database",
-            "dispatcher",
             "data_manager",
             "meta_manager",
-            "node_manager"
+            "node_manager",
+            "database",
+            "dispatcher",
+            "network"
         )
         self.assertTrue(manager.validate())
 
-        self.assertEqual(network(), "network")
-        self.assertEqual(dispatcher(), "dispatcher")
-        self.assertEqual(database(), "database")
         self.assertEqual(data_manager(), "data_manager")
         self.assertEqual(meta_manager(), "meta_manager")
         self.assertEqual(node_manager(), "node_manager")
+        self.assertEqual(dispatcher(), "dispatcher")
+        self.assertEqual(database(), "database")
+        self.assertEqual(network(), "network")
 
     def test_shutdown(self):
         mock_shutdown = mock.Mock()
@@ -58,4 +58,5 @@ class TestManager(OANTestCase):
         self.assertTrue(manager.shutdown())
 
         mock_shutdown.shutdown.return_value = False
-        self.assertFalse(manager.shutdown())
+        with self.assertRaises(OANNetworkManagerError):
+            manager.shutdown()

@@ -13,8 +13,10 @@ __status__ = "Test"
 
 from oan.application import OANDaemon
 from oan.config import OANConfig
+from oan.util.network import get_local_host
 
 configs = {}
+localhost = get_local_host()
 
 def start_test_network():
     global configs
@@ -25,7 +27,9 @@ def start_test_network():
         if config.blocked:
             print "Start node [%s][%s] blocked." % (config.node_name, config.oan_id)
         else:
-            print "Start node [%s][%s] on port %s." % (config.node_name, config.oan_id, config.node_port)
+            print "Start node [%s][%s] on %s:%s." % (
+                config.node_name, config.oan_id,
+                config.node_domain_name, config.node_port)
 
         OANDaemon(config).restart()
 
@@ -36,7 +40,9 @@ def stop_test_network():
         if config.blocked:
             print "Stop node [%s][%s] blocked." % (config.node_name, config.oan_id)
         else:
-            print "Stop node [%s][%s] on port %s." % (config.node_name, config.oan_id, config.node_port)
+            print "Stop node [%s][%s] on %s:%s." % (
+                config.node_name, config.oan_id,
+                config.node_domain_name, config.node_port)
 
         OANDaemon(config).stop()
 
@@ -49,17 +55,16 @@ def _create_open_config(num_of_nodes):
             configs[x] = OANConfig(
                 "00000000-0000-0000-%s-000000000000" % (4000 + x),
                 "server-" + str(x),
-                "localhost",
+                localhost,
                 str(4000 + x)
             )
         else:
             configs[x] = OANConfig(
                 "00000000-0000-0000-%s-000000000000" % (4000 + x),
                 "server-" + str(x),
-                "localhost",
+                localhost,
                 str(4000 + x),
-                "server-" + str(x-1),
-                "localhost",
+                localhost,
                 str(4000 + x - 1)
             )
 
@@ -75,10 +80,9 @@ def _create_blocked_config(num_of_nodes):
         configs[x] = OANConfig(
             "00000000-0000-bbbb-%s-000000000000" % (4000 + x),
             "server-" + str(x),
-            "localhost",
+            localhost,
             str(4000 + x),
-            "server-0",
-            "localhost",
+            localhost,
             str(4000),
             True
         )

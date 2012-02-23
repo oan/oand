@@ -18,7 +18,6 @@ import sqlite3
 from uuid import UUID
 import json
 
-import sys
 import oan
 from oan.util import log
 from oan.passthru import OANPassthru
@@ -126,7 +125,7 @@ class OANDatabaseWorker(Thread):
                 if not isinstance(message, OANDatabaseMessageSelect):
                     cnx.rollback()
 
-                self._pass.error(message, ex, back, sys.exc_info())
+                self._pass.error(message, ex, back)
 
 
             elapsed = (time.time() - start)

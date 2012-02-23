@@ -37,19 +37,19 @@ class OANDataManagerError(Exception): pass
 class OANMetaManagerError(Exception): pass
 class OANNodeManagerError(Exception): pass
 
-def setup(network, database, dispatcher, data, meta, node):
+def setup(data, meta, node, database, dispatcher, network):
     """
     Set all global managers that can be used from anywhere in oan.
 
     """
     global _network, _database, _dispatcher, _data_manager, _meta_manager, _node_manager
 
-    _network = network
-    _database = database
-    _dispatcher = dispatcher
     _data_manager = data
     _meta_manager = meta
     _node_manager = node
+    _database = database
+    _dispatcher = dispatcher
+    _network = network
 
     validate()
 
@@ -63,20 +63,20 @@ def shutdown():
     validate()
 
     status = (
-        _node_manager.shutdown() and
-        _meta_manager.shutdown() and
-        _data_manager.shutdown() and
+        _network.shutdown() and
         _dispatcher.shutdown() and
         _database.shutdown() and
-        _network.shutdown()
+        _node_manager.shutdown() and
+        _meta_manager.shutdown() and
+        _data_manager.shutdown()
     )
 
-    _network = None
-    _database = None
-    _dispatcher = None
     _data_manager = None
     _meta_manager = None
     _node_manager = None
+    _database = None
+    _dispatcher = None
+    _network = None
 
     return status
 
@@ -103,6 +103,8 @@ def validate():
     Validate that all managers are set and have valid data.
 
     """
+    global _network, _database, _dispatcher, _data_manager, _meta_manager, _node_manager
+
     if (not _network):
         raise OANNetworkManagerError()
 

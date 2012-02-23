@@ -11,50 +11,47 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+from uuid import UUID
+
 from test.test_case import OANTestCase
 from oan.util import log
 import oan
 from oan.config import OANConfig, OANLogLevel, OANFileName
 
+
+opts = {}
+opts["config"] = "/tmp/oand.cfg"
+opts["pid_file"] = "/var/run/oand.pid"
+opts["log_file"] = oan.BASE_DIR + "log/unittest-oand.log"
+
+opts['oan_id'] = "00000000-0000-dddd-0000-000000000000"
+opts["node_name"] = "this-is-a-node-name"
+opts["node_domain_name"] = "www.cybercow.se"
+opts["node_port"] = "4000"
+opts["bff_domain_name"] = "node1.cybecow.se"
+opts["bff_port"] = "1337"
+
 class TestOANConfig(OANTestCase):
     _config = None
 
-    # Options
-    opts = {}
-    opts["config"] = "/tmp/oand.cfg"
-    opts["pid_file"] = "/var/run/oand.pid"
-    opts["log_file"] = oan.BASE_DIR + "log/unittest-oand.log"
-
-    opts['oan_id'] = "1"
-    opts["node_name"] = "this-is-a-node-name"
-    opts["node_domain_name"] = "www.cybercow.se"
-    opts["node_port"] = "4000"
-    opts["bff_name"] = "LeetNode"
-    opts["bff_domain_name"] = "node1.cybecow.se"
-    opts["bff_port"] = "1337"
-
-
     def setUp(self):
         self._config = OANConfig(
-            self.opts["oan_id"],
-            self.opts["node_name"],
-            self.opts["node_domain_name"],
-            self.opts["node_port"],
-            self.opts["bff_name"],
-            self.opts["bff_domain_name"],
-            self.opts["bff_port"]
+            opts["oan_id"],
+            opts["node_name"],
+            opts["node_domain_name"],
+            opts["node_port"],
+            opts["bff_domain_name"],
+            opts["bff_port"]
         )
-
 
     def test_config(self):
         cnf = self._config
-        self.assertEqual(cnf.oan_id, self.opts["oan_id"])
-        self.assertEqual(cnf.node_name, self.opts["node_name"])
-        self.assertEqual(cnf.node_domain_name, self.opts["node_domain_name"])
-        self.assertEqual(cnf.node_port, self.opts["node_port"])
-        self.assertEqual(cnf.bff_name, self.opts["bff_name"])
-        self.assertEqual(cnf.bff_domain_name, self.opts["bff_domain_name"])
-        self.assertEqual(cnf.bff_port, self.opts["bff_port"])
+        self.assertEqual(cnf.oan_id, UUID(opts["oan_id"]))
+        self.assertEqual(cnf.node_name, opts["node_name"])
+        self.assertEqual(cnf.node_domain_name, opts["node_domain_name"])
+        self.assertEqual(cnf.node_port, int(opts["node_port"]))
+        self.assertEqual(cnf.bff_domain_name, opts["bff_domain_name"])
+        self.assertEqual(cnf.bff_port, int(opts["bff_port"]))
 
         self.assertRaises(
             IOError, cnf.set_from_file, "file_not_exist.cfg")
@@ -70,7 +67,7 @@ class TestOANConfig(OANTestCase):
         self.assertEqual(cnf.log_file, oan.LOG_DIR + "oand.log")
 
 
-class TestOANConfigSetFromFile(TestOANConfig):
+class TestOANConfigSetFromFile(OANTestCase):
     def setUp(self):
         self._config = OANConfig()
         self._config.set_from_file(oan.BASE_DIR + "src/test/cases/oand.cfg")
@@ -79,18 +76,18 @@ class TestOANConfigSetFromFile(TestOANConfig):
     def test_config_extended(self):
         cnf = self._config
 
-        self.assertEqual(cnf.pid_file, self.opts["pid_file"])
-        self.assertEqual(cnf.log_file, self.opts["log_file"])
+        self.assertEqual(cnf.pid_file, opts["pid_file"])
+        self.assertEqual(cnf.log_file, opts["log_file"])
 
 
-class TestOANConfigSetFromCmdLine(TestOANConfigSetFromFile):
+class TestOANConfigSetFromCmdLine(OANTestCase):
     class Options:
         pass
 
 
     def setUp(self):
         options = self.Options()
-        options.__dict__ = self.opts
+        options.__dict__ = opts
         self._config = OANConfig()
         self._config.set_from_cmd_line(options)
 
@@ -102,7 +99,6 @@ class TestOANLogLevel(OANTestCase):
         log_level1 = OANLogLevel()
         log_level2 = OANLogLevel()
         log_level3 = OANLogLevel()
-
 
         def __init__(self):
             self.log_level1 = self.log_level2 ="WARNING"

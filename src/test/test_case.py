@@ -16,6 +16,16 @@ __status__ = "Test"
 import sys
 import unittest
 from time import time, sleep
+from threading import Timer
+
+class OANMatcherClass(object):
+    cls_ = None
+    def __init__(self, cls):
+        self._cls = cls
+
+    def __eq__(self, other):
+        return other.__class__ == self._cls
+
 
 class OANTestCase(unittest.TestCase):
 
@@ -31,6 +41,11 @@ class OANTestCase(unittest.TestCase):
     #         unittest.TestCase.run(self, result)
     #     except KeyboardInterrupt:
     #         print "KeyboardInterrupt"
+
+
+    def call_later(self, seconds, callback, *args, **kwargs):
+        t = Timer(seconds, callback, args, kwargs)
+        t.start()
 
     def wait(self, condition, timeout = 5):
         """
@@ -68,3 +83,6 @@ class OANTestCase(unittest.TestCase):
 
         """
         self.assertTrue(self.wait(condition, timeout))
+
+
+
