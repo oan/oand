@@ -74,16 +74,16 @@ class OANApplication():
 
     def _setup_timers(self):
         network().add_timer(OANNetworkTimer(5, self.run_every_minute))
-        network().add_timer(OANNetworkTimer(20, self.run_every_day))
+        network().add_timer(OANNetworkTimer(30, self.run_every_day))
 
     def run_every_minute(self):
         log.debug("run_every_minute")
-        dispatcher().execute(OANCommandStaticHeartbeat)
+        #dispatcher().execute(OANCommandStaticHeartbeat)
         node_manager().dump()
 
     def run_every_day(self):
         log.debug("run_every_day")
-        dispatcher().execute(OANCommandStaticStoreNodes)
+        #dispatcher().execute(OANCommandStaticStoreNodes)
         dispatcher().execute(OANCommandStaticSyncNodes)
 
     def get_node_info(self):

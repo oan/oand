@@ -57,9 +57,3 @@ class OANNetworkCommandConnectOan:
         log.info("OANNetworkCommandConnectOan:execute")
         server.connect_to_oan(self.host, self.port)
 
-
-class OANNetworkComandShutdown:
-    def execute(self, server):
-        pass
-
-

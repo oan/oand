@@ -12,7 +12,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from threading import Thread
-
+from time import sleep
 from oan.util import log
 from oan.passthru import OANPassthru
 from oan.dispatcher.command import OANCommandShutdown
@@ -165,6 +165,6 @@ class OANDispatcher:
         Start all workers.
 
         """
-        for i in xrange(5):
+        for i in xrange(2):
             worker = OANDispatcherWorker(self._passthru)
             self._workers.append(worker)

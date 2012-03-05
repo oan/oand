@@ -12,14 +12,16 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import asyncore
+from time import sleep
+from Queue import Empty
 from datetime import datetime, timedelta
 from threading import Thread
 
 from oan.util import log
 from server import OANServer
 from oan.passthru import OANPassthru
-from oan.network.command import OANNetworkComandShutdown
-
+from oan.util.thread import OANThread
+from oan.util.throttle import OANThrottle
 
 class OANNetworkTimer(object):
     """
@@ -56,7 +58,7 @@ class OANNetworkTimer(object):
         self._expires = datetime.utcnow() + timedelta(seconds = self._interval)
 
 
-class OANNetworkWorker(Thread):
+class OANNetworkWorker(OANThread):
     """
     Handles the main network loop.
 
@@ -76,7 +78,7 @@ class OANNetworkWorker(Thread):
     _server = None
 
     def __init__(self, passthru):
-        Thread.__init__(self)
+        OANThread.__init__(self)
         self.name = "NETW-" + self.name.replace("Thread-", "")
 
         self._server = OANServer()
@@ -98,26 +100,28 @@ class OANNetworkWorker(Thread):
         log.info("Start network worker %s" % self.name)
 
         while True:
-            asyncore.loop(0.1, False, None, 10)
+            self.enable_shutdown()
+            asyncore.loop(60, True, None, 10)
+            self.disable_shutdown()
 
             for timer in self._timers:
                 timer.check()
 
-            if not q.empty():
-                (message, back) = q.get()
-                try:
-                    ret = message.execute(self._server)
-                    self._pass.result(ret, back)
-                except Exception as ex:
-                    self._pass.error(message, ex, back)
+            try:
+                while True:
+                    (message, back) = q.get(True, 0.5 + OANThrottle.calculate(0.2))
+                    try:
+                        ret = message.execute(self._server)
+                        self._pass.result(ret, back)
+                    except Exception as ex:
+                        self._pass.error(message, ex, back)
 
-                if isinstance(message, OANNetworkComandShutdown):
-                    break
+            except Empty:
+                pass
 
-        self._server.shutdown()
-        asyncore.loop()
-        log.info("Stop network worker %s" % self.name)
-
+            except Exception, e:
+                print e
+                sleep(5)
 
 class OANNetwork:
     """
@@ -188,7 +192,6 @@ class OANNetwork:
             return ret
 
     def shutdown(self):
-        """Shutdown the network communication and all it's threads."""
-        self._pass.execute(OANNetworkComandShutdown())
+        """OANNetworkWorker is a deamon thread so just wait for it to die"""
         self._worker.join()
         return True
