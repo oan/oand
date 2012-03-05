@@ -13,7 +13,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from oan.dispatcher.message import OANMessageHeartbeat, OANMessageNodeSync
+from oan.dispatcher.message import OANMessageHeartbeat, OANMessageNodeListHash
 from oan.manager import node_manager
 from oan.heartbeat import OANHeartbeat
 from oan.util import log
@@ -85,6 +85,6 @@ class OANCommandStaticSyncNodes():
     @staticmethod
     def execute():
         log.info("OANMessageStaticSyncNodes:execute")
-        node_sync = OANMessageNodeSync.create()
+        node_sync = OANMessageNodeListHash.create()
         for n in node_manager().get_nodes(OANHeartbeat.NOT_OFFLINE):
             node_manager().send(n.oan_id, node_sync)

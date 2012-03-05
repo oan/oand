@@ -120,3 +120,66 @@ class TestOANNetworkNode(OANTestCase):
         pop_message = nn.out_queue.get()
         self.assertTrue(isinstance(pop_message, TestMessage))
         self.assertEqual(pop_message.value, message.value)
+
+
+
+    def test_network_node_message_statistic(self):
+        nn = OANNetworkNode.create(
+            UUID("00000000-0000-dead-0000-000000000000"),
+            "localhost", 1337, False
+        )
+
+        (sent_time, out_time, out_count,
+            in_time, in_count) = nn.get_message_statistic("command")
+
+        self.assertTrue(sent_time is None)
+        self.assertTrue(out_time is None)
+        self.assertEqual(out_count, 0)
+        self.assertTrue(in_time is None)
+        self.assertEqual(in_count, 0)
+
+        nn.add_message_statistic("command", sent_time = True)
+
+        (sent_time, out_time, out_count,
+            in_time, in_count) = nn.get_message_statistic("command")
+
+        self.assertTrue(sent_time is not None)
+        self.assertTrue(out_time is None)
+        self.assertEqual(out_count, 0)
+        self.assertTrue(in_time is None)
+        self.assertEqual(in_count, 0)
+
+        nn.add_message_statistic("command", out_time = True)
+
+        (sent_time, out_time, out_count,
+            in_time, in_count) = nn.get_message_statistic("command")
+
+        self.assertTrue(sent_time is not None)
+        self.assertTrue(out_time is not None)
+        self.assertEqual(out_count, 1)
+        self.assertTrue(in_time is None)
+        self.assertEqual(in_count, 0)
+
+        nn.add_message_statistic("command", in_time = True)
+
+        (sent_time, out_time, out_count,
+            in_time, in_count) = nn.get_message_statistic("command")
+
+        self.assertTrue(sent_time is not None)
+        self.assertTrue(out_time is not None)
+        self.assertEqual(out_count, 1)
+        self.assertTrue(in_time is not None)
+        self.assertEqual(in_count, 1)
+
+
+
+
+
+
+
+
+
+
+
+
+

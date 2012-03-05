@@ -8,6 +8,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+from operator import itemgetter
 from threading import Lock
 from Queue import Full
 
@@ -84,6 +85,18 @@ class OANNodeManager():
         """
         return self._get_nodes(heartbeat_state)
 
+    @synchronized
+    def get_nodes_list(self, heartbeat_state = None):
+        return self._get_nodes_list(heartbeat_state)
+
+    @synchronized
+    def get_nodes_hash(self, heartbeat_state = None):
+        hashlist = []
+
+        for (oan_id, host, port, blocked, heartbeat) in self._get_nodes_list(heartbeat_state):
+            hashlist.append( hash( (oan_id, host, port, blocked) ))
+
+        return hash(tuple(hashlist))
 
     @synchronized
     def send(self, oan_id, message):
@@ -173,7 +186,7 @@ class OANNodeManager():
     def dump(self):
         print("------ dump begin ------")
         for n in self._nodes.values():
-            print("\t %s" % n)
+            print("%s" % n)
         print("------ dump end ------")
 
     #TODO: not all message should be relay
@@ -228,6 +241,7 @@ class OANNodeManager():
 
         try:
             node.send(message)
+            node.add_message_statistic(message.__class__.__name__, sent_time = True)
 
             if node.is_disconnected():
                 network().execute(NetworksCommandConnectToNode.create(node))
@@ -304,18 +318,35 @@ class OANNodeManager():
             log.info("OANNodeManager:Error my node is already set")
 
 
-    def _get_nodes(self, heartbeat_state = None):
+    def _get_nodes(self, heartbeat_state = None, include_my_node = False):
         """
         Returns all nodes that have a specified heartbeat_state,
         """
 
         ret = []
         for n in self._nodes.values():
-            if (n.oan_id != self._my_node.oan_id and
-                (heartbeat_state is None or
-                n.has_heartbeat_state(heartbeat_state))):
+            if (
+                (include_my_node or n.oan_id != self._my_node.oan_id) and
+                (heartbeat_state is None or n.has_heartbeat_state(heartbeat_state))):
                     ret.append(n)
 
         return ret
 
 
+    def _get_nodes_list(self, heartbeat_state = None):
+        valuelist = []
+        for node in self._get_nodes(heartbeat_state, True):
+            (
+                name,
+                host,
+                port,
+                blocked,
+                state,
+                heartbeat
+            ) = node.get()
+
+            oan_id = str(node.oan_id)
+            valuelist.append((oan_id, host, port, blocked, heartbeat))
+
+        valuelist.sort()
+        return valuelist
