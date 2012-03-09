@@ -28,6 +28,9 @@ All nodes should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
+* Read this, something for us?
+  http://martinfowler.com/eaaDev/EventSourcing.html
+
 * Check encode/decode for oan_id compatiblity.
 
 * Unittest passthrou with more workers and passthru at
