@@ -20,7 +20,7 @@ from datetime import datetime
 from oan.manager import node_manager
 from oan.network import serializer
 from oan.util import log
-
+from oan.heartbeat import OANHeartbeat
 
 class OANMessageHandshake():
     oan_id = None
@@ -61,13 +61,15 @@ class OANMessageClose():
     ttl = False
 
     @classmethod
-    def create(cls, oan_id):
+    def create(cls):
+        my_node = node_manager().get_my_node()
+
         obj = cls()
-        obj.oan_id = str(oan_id)
+        obj.oan_id = str(my_node.oan_id)
         return obj
 
     def execute(self):
-        log.info("OANMessageClose: %s" % (self.oan_id))
+        log.info("OANMessageClose: from %s" % (self.oan_id))
 
 
 class OANMessagePing:
@@ -189,91 +191,61 @@ class OANMessageHeartbeat():
 # message in node_manager thread. or copy the nodes dict before calling this
 # function.
 
-class OANMessageNodeSync():
-    node_oan_id = None
-    node_list = None
-    node_list_hash = None
-    step = None
+class OANMessageNodeListHash():
+    oan_id = None
+    nodes_hash = None
     ttl = False
 
     @classmethod
-    def create(cls, step = 1, l = None):
+    def create(cls):
         obj = cls()
-        obj.step = step
-        obj.node_list = []
-        obj.node_oan_id = str(node_manager().get_my_node().oan_id)
-
-        if l is None:
-            l = obj.create_list()
-
-        #print "----- My List"
-        #print l[0]
-        #print l[1]
-        #print "----------------------"
-
-        if step == 1:
-            obj.node_list_hash = l[0]
-            obj.node_list = None
-        elif step == 2:
-            obj.node_list_hash = l[0]
-            obj.node_list = l[1]
-
+        obj.oan_id = str(node_manager().get_my_node().oan_id)
+        obj.nodes_hash = node_manager().get_nodes_hash(OANHeartbeat.NOT_OFFLINE)
         return obj
 
-    def create_list(self):
-        valuelist = []
-        hashlist = []
-        for node in node_manager()._nodes.values():
-            (
-                name,
-                host,
-                port,
-                blocked,
-                state,
-                heartbeat
-            ) = node.get()
-            oan_id = str(node.oan_id)
-            valuelist.append((oan_id, host, port, blocked, heartbeat))
+    def execute(self):
+        my_nodes_hash = node_manager().get_nodes_hash(OANHeartbeat.NOT_OFFLINE)
 
-        valuelist.sort()
+        print "%s != %s" % (self.nodes_hash, my_nodes_hash)
+        if self.nodes_hash != my_nodes_hash:
+            node_manager().send(
+                UUID(self.oan_id),
+                OANMessageNodeList.create()
+            )
 
-        for value in valuelist:
-            hashlist.append( hash( (value[0], value[1], value[2], value[3]) ))
 
-        return (hash(tuple(hashlist)), valuelist)
+class OANMessageNodeList():
+    oan_id = None
+    nodes_list = None
+    ttl = False
 
-    def create_hash(self):
-        return
+    @classmethod
+    def create(cls):
+        obj = cls()
+        obj.oan_id = str(node_manager().get_my_node().oan_id)
+        obj.nodes_list = node_manager().get_nodes_list(OANHeartbeat.NOT_OFFLINE)
+        return obj
 
     def execute(self):
-        #print "----- List from %s " % self.node_oan_id
-        #print self.node_list_hash
-        #print self.node_list
-        #print "----------------------"
+        for oan_id, host, port, blocked, heartbeat in self.nodes_list:
+            current_node = node_manager().get_node(UUID(oan_id))
 
-        if self.step == 1:
-            my_l = self.create_list()
+            if (
+                    current_node is None or
+                    current_node.has_older_heartbeat(OANHeartbeat(heartbeat))
+                ):
 
-            # if hash is diffrent continue to step 2, send over the list.
-            print "%s != %s" % (self.node_list_hash, my_l[0])
-            if self.node_list_hash != my_l[0]:
-                node_manager().send(
-                    UUID(self.node_oan_id),
-                    OANMessageNodeSync.create(2, my_l)
+                newnode = node_manager().create_node(
+                    UUID(oan_id), str(host), port, blocked
                 )
-
-        if self.step == 2:
-            for n in self.node_list:
-                currentnode = node_manager().get_node(UUID(n[0]))
-                if (currentnode is None) or (currentnode < n[4]):
-                    newnode = node_manager().create_node(UUID(n[0]), str(n[1]), n[2], n[3])
-                    newnode.update(heartbeat = n[4])
+                newnode.update(heartbeat = heartbeat)
 
 # Messages that will be possible to send to a remote node.
 
 serializer.add(OANMessageHandshake)
 serializer.add(OANMessageClose)
 serializer.add(OANMessageHeartbeat)
-serializer.add(OANMessageNodeSync)
+serializer.add(OANMessageNodeList)
+serializer.add(OANMessageNodeListHash)
 serializer.add(OANMessageRelay)
 serializer.add(OANMessagePing)

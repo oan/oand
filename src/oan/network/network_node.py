@@ -178,12 +178,33 @@ class OANNetworkNode:
         return self._heartbeat.has_state(state)
 
     @synchronized
+    def has_older_heartbeat(self, other):
+        return self._heartbeat < other
+
+    @synchronized
     def touch(self):
         self._heartbeat.touch()
 
+
+
+    @synchronized
+    def add_message_statistic(self, key,
+            sent_time = False, out_time = False,
+            in_time = False):
+
+        self._statistic.add_message_statistic(key,
+            sent_time = sent_time, out_time = out_time, in_time = in_time)
+
+    @synchronized
+    def get_message_statistic(self, key):
+        current = self._statistic.get_message_statistic(key)
+        return (current.sent_time, current.out_time, current.out_count,
+                current.in_time, current.in_count)
+
+
     @synchronized
     def __str__(self):
-        return 'OANNetworkNode(%s, %s, %s, %s) S(%s) Q(%s) hb(%s) stat(%s)' % (
+        return 'OANNetworkNode(%s, %s, %s, %s) S(%s) Q(%s) hb(%s)\n%s' % (
             self._oan_id, self._host, self._port, self._blocked,
             self._state,
             self.out_queue.qsize(),
@@ -192,6 +213,3 @@ class OANNetworkNode:
         )
 
 
-    @synchronized
-    def __cmp__(self, other):
-        return self._heartbeat.__cmp__(other)

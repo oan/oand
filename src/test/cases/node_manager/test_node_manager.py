@@ -201,13 +201,36 @@ class TestOANNodeManager(OANTestCase):
         self.assertEqual(len(node_manager().get_nodes(OANHeartbeat.DEAD)), 1)
         self.assertEqual(len(node_manager().get_nodes(OANHeartbeat.NOT_DEAD)), 4)
 
+
+    def test_get_nodes_list(self):
+        test_nodes = self.create_nodes()
+
+        self._mock_database.select_all.return_value.__iter__.return_value = \
+            iter(test_nodes)
+
+        node_manager().load()
+
+        self.assertEqual(len(node_manager().get_nodes_list()), 5)
+
+
+    def test_get_nodes_hash(self):
+        test_nodes = self.create_nodes()
+
+        self._mock_database.select_all.return_value.__iter__.return_value = \
+            iter(test_nodes)
+
+        node_manager().load()
+
+        self.assertEqual(node_manager().get_nodes_hash(), 6274387056676382908)
+
     def test_send(self):
         n1 = node_manager().create_node(
             UUID('00000000-0000-bbbb-4008-000000000000'),
             'localhost', 4000, False)
 
-        node_manager().send(n1.oan_id, OANMessageHeartbeat)
-        self.assertEqual(n1.out_queue.get(), OANMessageHeartbeat)
+        heartbeat_message = OANMessageHeartbeat.create()
+        node_manager().send(n1.oan_id, heartbeat_message)
+        self.assertEqual(n1.out_queue.get(), heartbeat_message)
 
 
         self._mock_network.execute.assert_called_with(OANMatcherClass(NetworksCommandConnectToNode))
@@ -243,6 +266,9 @@ class TestOANNodeManager(OANTestCase):
         relay_message = relay_node.out_queue.get(False, 10)
         self.assertEqual(relay_message.__class__, OANMessageRelay)
         self.assertEqual(relay_message.message.__class__, OANMessageHeartbeat)
+
+
+
 
     def test_queue_full(self):
         """

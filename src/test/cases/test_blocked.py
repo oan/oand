@@ -37,7 +37,7 @@ class TestOANBlocked(OANTestCase):
             self.host,
             str(8001),
             self.host,
-            str(4003),
+            str(4000),
             True
         ))
 
@@ -63,15 +63,19 @@ class TestOANBlocked(OANTestCase):
     def test_message_relay(self):
         # send a ping to a blocked node
 
-        while not node_manager().exist_node(UUID('00000000-0000-bbbb-4008-000000000000')):
-            time.sleep(10)
+        #while not node_manager().exist_node(UUID('00000000-0000-bbbb-4008-000000000000')):
+        #    time.sleep(10)
 
-        log.info("send ping")
-        node_manager().send(UUID('00000000-0000-bbbb-4008-000000000000'),
-                                      OANMessagePing.create( "my relay ping", 2))
+        #log.info("send ping")
+        #node_manager().send(UUID('00000000-0000-bbbb-4008-000000000000'),
+        #                              OANMessagePing.create( "my relay ping", 2))
                                            # send ping back and forward (2)
 
-        message = self.queue.get()
-        log.info(message)
+        while not node_manager().exist_node(UUID('00000000-0000-0000-4079-000000000000')):
+            #print "waiting for node...."
+            time.sleep(5)
+
+        #message = self.queue.get()
+        #log.info(message)
         # self.assertEqual(counter, 20)  # 4 * 5
 

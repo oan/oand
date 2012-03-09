@@ -63,27 +63,6 @@ class OANBridge(asyncore.dispatcher):
         self.out_queue = self.node.out_queue
         self.server.add_bridge(self)
 
-    def send_close(self):
-        """
-        Ask remote to close socket.
-
-        Give the remote host a chance to send all messages in queue.
-
-        """
-        (heartbeat_value, oan_id, name, port, host, state, blocked) = dispatcher().get(OANCommandStaticGetNodeInfo)
-
-        log.info("OANBridge:send_close: %s,%s,%s,%s" % (oan_id, host, port, blocked))
-        self.out_buffer = self.send_message(
-            OANMessageClose.create(oan_id)
-        )
-
-    def got_close(self, message):
-        log.info("OANBridge:got_close: %s" % (message.oan_id))
-        dispatcher().execute(message)
-
-        if not self.writable():
-            self.handle_close()
-
     def send_message(self, message):
         raw_message = encode(message)
         if self.node is not None:
@@ -117,8 +96,6 @@ class OANBridge(asyncore.dispatcher):
                 message = self.read_message(cmd)
                 if isinstance(message, OANMessageHandshake):
                     self.got_handshake(message)
-                elif isinstance(message, OANMessageClose):
-                    self.got_close(message)
                 else:
                     dispatcher().execute(message)
 
