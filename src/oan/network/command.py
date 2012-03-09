@@ -11,7 +11,9 @@ __status__ = "Test"
 
 from oan.util import log
 from oan.util.network import get_local_host
-
+from oan.network.network_node import OANNetworkNodeState
+from oan.network.bridge import OANBridge
+from oan.network.server import OANListen
 
 class NetworksCommandConnectToNode:
     @classmethod
@@ -20,11 +22,14 @@ class NetworksCommandConnectToNode:
         obj.node = node
         return obj
 
-    def execute(self, server):
-        log.debug("NetworksCommandConnectToNode:execute: %s, node: %s" % (server, self.node.oan_id))
+    def execute(self):
+        log.debug("NetworksCommandConnectToNode:execute: %s" % (self.node.oan_id))
         if self.node.is_disconnected():
-            server.connect_to_node(self.node)
-
+            (name, host, port, state, blocked, heartbeat) = self.node.get()
+            log.info("Connect to %s:%s" % (host, port))
+            self.node.update(state = OANNetworkNodeState.CONNECTING)
+            bridge = OANBridge(self)
+            bridge.connect(host, port)
 
 class OANNetworkCommandListen:
     port = None
@@ -35,10 +40,10 @@ class OANNetworkCommandListen:
         obj.port = port
         return obj
 
-    def execute(self, server):
+    def execute(self):
         log.info("OANNetworkCommandListen:execute")
         host = get_local_host()
-        server.listen(host, int(self.port))
+        OANListen(self, host, self.port)
 
 
 class OANNetworkCommandConnectOan:
@@ -52,8 +57,9 @@ class OANNetworkCommandConnectOan:
         obj.port = port
         return obj
 
-    def execute(self, server):
+    def execute(self):
         print "connect_to_oan %s:%d" % (self.host, self.port)
         log.info("OANNetworkCommandConnectOan:execute")
-        server.connect_to_oan(self.host, self.port)
+        bridge = OANBridge(self)
+        bridge.connect(self.host, self.port)
 

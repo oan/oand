@@ -123,6 +123,25 @@ Hur funkar det.
   med alla aktiva noder i nätet.
 
 
+
+Keep it simple modellen!!!!!
+
+* message create folder -> folder, sync
+
+* Var 5 minut så skickas heartbeat ut för alla expired noder.
+
+* N1 skickar ett heartbeat till N2 med meddelanden som skall skickas till N2, N2
+lägger till alla meddelanden i dispatchern och kontrollerar om det finns meddelanden
+till N1 och skickar tillbaka tillbaka en heartbeat till N1 som lägger till meddelanden
+i sin dispatcher och så börjar allt om tills det inte finns några meddelanden kvar
+att skickas mellan N1 och N2. (troligtvis går det bara ett heartbeat fram och tillbaka)
+
+-----------------------
+
+-
+
+
+
  API Documentation
  =================
 

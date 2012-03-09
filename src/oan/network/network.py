@@ -101,7 +101,7 @@ class OANNetworkWorker(OANThread):
 
         while True:
             self.enable_shutdown()
-            asyncore.loop(60, True, None, 10)
+            asyncore.loop(60, True, None, 1)
             self.disable_shutdown()
 
             for timer in self._timers:
@@ -111,7 +111,7 @@ class OANNetworkWorker(OANThread):
                 while True:
                     (message, back) = q.get(True, 0.5 + OANThrottle.calculate(0.2))
                     try:
-                        ret = message.execute(self._server)
+                        ret = message.execute()
                         self._pass.result(ret, back)
                     except Exception as ex:
                         self._pass.error(message, ex, back)
