@@ -2,6 +2,9 @@
 '''
 RPC server handling request from oan clients.
 
+
+
+
 '''
 
 __author__ = "martin.palmer.develop@gmail.com"
@@ -132,30 +135,3 @@ class OANServer(object):
         log.debug("OanServer:idle_bridge")
         if (bridge.node.oan_id in self.bridges):
             self.on_bridge_idle(bridge)
-
-    def connect_to_node(self, node):
-        (name, host, port, state, blocked, heartbeat) = node.get()
-        log.info("Connect to %s:%s" % (host, port))
-        node.update(state = OANNetworkNodeState.CONNECTING)
-        bridge = OANBridge(self)
-        bridge.connect(host, port)
-
-    def connect_to_oan(self, host, port):
-        log.info("OanServer:connect_to_oan %s:%d" % (host, port))
-        bridge = OANBridge(self)
-        bridge.connect(host, port)
-
-    def listen(self, host, port):
-        self._listen = OANListen(self, host, port)
-
-    def shutdown(self):
-        if self._listen and self._listen.accepting:
-            self._listen.close()
-
-        for bridge in self.bridges.values():
-            bridge.shutdown()
-
-        # check if there any sockets left with no handshake
-        # for bridge in self._map.values():
-        #     bridge.handle_close()
-

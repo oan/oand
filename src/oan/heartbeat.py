@@ -35,9 +35,9 @@ class OANHeartbeat(object):
     # Constants used with has_state()
     IDLE, NOT_IDLE, EXPIRED, NOT_EXPIRED, OFFLINE, NOT_OFFLINE, DEAD, NOT_DEAD = range(1, 9)
 
-    IDLE_MIN = 1 # test value 0.1
-    EXPIRED_MIN = 5 # test value 0.2
-    OFFLINE_MIN = 10
+    IDLE_MIN = 5 # test value 0.1
+    EXPIRED_MIN = 10 # test value 0.2
+    OFFLINE_MIN = 50
     DEAD_MIN = 525600
 
     # ISO 8601 format

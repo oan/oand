@@ -17,8 +17,10 @@ import sys
 
 from oan.manager import dispatcher
 from oan.util import log
-from oan.dispatcher.message import OANMessageHandshake, OANMessageClose
+from oan.dispatcher.message import OANMessageHandshake
 from oan.network.serializer import encode, decode
+from oan.heartbeat import OANHeartbeat
+from oan.network.network_node import OANNetworkNodeState
 
 
 class OANBridge(asyncore.dispatcher):
@@ -44,11 +46,12 @@ class OANBridge(asyncore.dispatcher):
 
     def handle_connect(self):
         log.info("OANBridge:handle_connect")
-        print "is connected"
+        print "is connected total connection: [%s]" % len(asyncore.socket_map)
         self.send_handshake()
 
     def handle_accept(self):
         log.info("OANBridge:handle_accept")
+        print "is accepted total connection: [%s]" % len(asyncore.socket_map)
         self.send_handshake()
 
     def send_handshake(self):
@@ -59,14 +62,17 @@ class OANBridge(asyncore.dispatcher):
         # firewall might MASQ/NAT to extetnal ip.
         message.host = self.remote_addr[0]
 
+
         self.node = dispatcher().get(message)
+        self.node.update(state = OANNetworkNodeState.CONNECTED)
+
         self.out_queue = self.node.out_queue
-        self.server.add_bridge(self)
 
     def send_message(self, message):
         raw_message = encode(message)
         if self.node is not None:
             log.info("send_message: %s to %s" % (message.__class__.__name__, self.node.oan_id))
+            self.node.add_message_statistic(message.__class__.__name__, out_time = True)
 
         return raw_message + '\n'
 
@@ -74,8 +80,9 @@ class OANBridge(asyncore.dispatcher):
         message = decode(raw_message.strip())
 
         if self.node is not None:
-            self.node.touch()
             log.info("read_message: %s from %s" % (message.__class__.__name__, self.node.oan_id))
+            self.node.add_message_statistic(message.__class__.__name__, in_time = True)
+            self.node.touch()
 
         return message
 
@@ -102,16 +109,17 @@ class OANBridge(asyncore.dispatcher):
                 pos = self.in_buffer.find('\n')
 
     def writable(self):
-        #print "OANBridge:writable"
-        #if self.node is not None:
-        #
-        #   move is_idle to node object.
-        #
-        #    if self.node.heartbeat.is_idle():
-        #        self.send_close() # should be moved to oan.loop
-        #        self.server.idle_bridge(self)
+        print "OANBridge:writable"
 
-        return ((len(self.out_buffer) > 0) or (self.out_queue is not None and not self.out_queue.empty()))
+        is_writable = ((len(self.out_buffer) > 0) or (self.out_queue is not None and not self.out_queue.empty()))
+
+        if self.node is not None:
+            if self.node.has_heartbeat_state(OANHeartbeat.IDLE):
+                print "is idle"
+                self.shutdown()
+                return True
+
+        return is_writable
 
     def readable(self):
         return True
@@ -122,24 +130,23 @@ class OANBridge(asyncore.dispatcher):
                 message = self.out_queue.get()
 
                 if (message == None):
-                    #print "OANBridge:handle_write closing"
+                    print "OANBridge:handle_write closing"
                     self.handle_close()
                     return
                 else:
                     self.out_buffer = self.send_message(message)
 
         sent = self.send(self.out_buffer)
-        #if self.node is not None:
-            #print "OUT[%s][%s]" % (self.node.oan_id, self.out_buffer[:sent])
+        if self.node is not None:
+            print "OUT[%s][%s]" % (self.node.oan_id, self.out_buffer[:sent])
 
         self.out_buffer = self.out_buffer[sent:]
 
     def handle_close(self):
         log.info("OANBridge:handle_close")
-        if self.node is not None:
-            self.server.remove_bridge(self)
-
         asyncore.dispatcher.close(self)
+        if self.node is not None:
+            self.node.update(state = OANNetworkNodeState.DISCONNECTED)
 
     def handle_error(self):
         print("OANBridge:handle_error")

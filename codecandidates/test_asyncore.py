@@ -211,32 +211,27 @@ class AsyncServerDaemon(OANDaemonBase):
 
 class AsyncClientDaemon(OANDaemonBase):
 
+    port = None
+
     def __init__(self, pidfile, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):
         OANDaemonBase.__init__(self, pidfile, stdin, stdout, stderr)
         self.queue = Queue()
 
     def got_message(self, connection, message):
-        print "got_message"
-        self.queue.put(message)
+        print "got_message:" + message
 
     def run(self):
         try:
-            sleep(1)
-            print "started"
+            AsyncServer("localhost", self.port)
             passthru = OANPassthru()
             worker = AsyncWorker(passthru)
 
-            out_queue = Queue()
-            client = AsyncClient(out_queue, "localhost", 8000)
-            client.on_received.append(self.got_message)
-
-            passthru.execute(AsyncConnect.create(client))
-
-            for x in xrange(1,10000):
-                out_queue.put("HELLO [%s]" % str(x).rjust(10, '0'))
-
-            for x in xrange(1,10000):
-                print "XXX:", self.queue.get()
+            for x in xrange(1,10):
+                out_queue = Queue()
+                client = AsyncClient(out_queue, "localhost", 8000 + x)
+                client.on_received.append(self.got_message)
+                passthru.execute(AsyncConnect.create(client))
+                out_queue.put("SEND [%s-%s]" % (self.port, 8000 + x))
 
             print "stopping"
             worker.shutdown()
