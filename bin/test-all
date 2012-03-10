@@ -90,16 +90,23 @@ def set_global_options_and_args():
     parser.add_option("-t", "--trace", action="store_true",
                       help="Run with trace.Trace")
 
+    parser.add_option("-l", "--logtostderr", default=False,
+                      action="store_const", const=True, dest="logtostderr",
+                      help="Log to stderr")
+
     (OPTIONS, ARGS) = parser.parse_args()
 
 def start_logging():
     from oan.util import log
     log_file = get_base_dir() + "log/unittest.log"
+
+    # Truncate file
     open(log_file, 'w').close()
-    log.setup(
-        log.NONE, log.NONE, log.NONE,
-        log_file
-    )
+
+    if OPTIONS.logtostderr:
+        log.setup(stderr_level = 0)
+    else:
+        log.setup(log_level=log.DEBUG, file_name = log_file)
 
 def print_verbose(txt, verbose = 1):
     '''Print to screen according to verbose level is set on cmd line.'''

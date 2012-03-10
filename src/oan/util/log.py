@@ -80,7 +80,8 @@ class ContextFilter(Filter):
         return True
 
 
-def setup(syslog_level, stderr_level, log_level, log_file_name):
+def setup(syslog_level = 100, stderr_level = 100, log_level = 100,
+          file_name = None):
     """Setup all logging handlers"""
     _set_main_thread_name()
 
@@ -95,9 +96,14 @@ def setup(syslog_level, stderr_level, log_level, log_file_name):
     f = ContextFilter()
     my_logger.addFilter(f)
 
-    _setup_syslog(my_logger, syslog_level)
-    _setup_stderr(my_logger, stderr_level)
-    _setup_file_log(my_logger, log_level, log_file_name)
+    if syslog_level < 100:
+        _setup_syslog(my_logger, syslog_level)
+
+    if stderr_level < 100:
+        _setup_stderr(my_logger, stderr_level)
+
+    if file_name:
+        _setup_file_log(my_logger, log_level, file_name)
     info("-----------------------------------------")
 
     info("Start logging.")
