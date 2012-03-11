@@ -53,23 +53,7 @@ class OANMessageHandshake():
         )
         node.touch()
 
-        return node
-
-
-class OANMessageClose():
-    oan_id = None
-    ttl = False
-
-    @classmethod
-    def create(cls):
-        my_node = node_manager().get_my_node()
-
-        obj = cls()
-        obj.oan_id = str(my_node.oan_id)
-        return obj
-
-    def execute(self):
-        log.info("OANMessageClose: from %s" % (self.oan_id))
+        #??return node
 
 
 class OANMessagePing:
@@ -243,7 +227,6 @@ class OANMessageNodeList():
 # Messages that will be possible to send to a remote node.
 
 serializer.add(OANMessageHandshake)
-serializer.add(OANMessageClose)
 serializer.add(OANMessageHeartbeat)
 serializer.add(OANMessageNodeList)
 serializer.add(OANMessageNodeListHash)

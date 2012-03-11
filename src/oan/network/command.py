@@ -28,7 +28,7 @@ class NetworksCommandConnectToNode:
             (name, host, port, state, blocked, heartbeat) = self.node.get()
             log.info("Connect to %s:%s" % (host, port))
             self.node.update(state = OANNetworkNodeState.CONNECTING)
-            bridge = OANBridge(self)
+            bridge = OANBridge()
             bridge.connect(host, port)
 
 class OANNetworkCommandListen:
@@ -60,6 +60,6 @@ class OANNetworkCommandConnectOan:
     def execute(self):
         print "connect_to_oan %s:%d" % (self.host, self.port)
         log.info("OANNetworkCommandConnectOan:execute")
-        bridge = OANBridge(self)
+        bridge = OANBridge()
         bridge.connect(self.host, self.port)
 

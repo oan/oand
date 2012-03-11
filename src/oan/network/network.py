@@ -18,7 +18,6 @@ from datetime import datetime, timedelta
 from threading import Thread
 
 from oan.util import log
-from server import OANServer
 from oan.passthru import OANPassthru
 from oan.util.thread import OANThread
 from oan.util.throttle import OANThrottle
@@ -75,13 +74,11 @@ class OANNetworkWorker(OANThread):
     # Private variables
     _timers = None
     _pass = None
-    _server = None
 
     def __init__(self, passthru):
         OANThread.__init__(self)
         self.name = "NETW-" + self.name.replace("Thread-", "")
 
-        self._server = OANServer()
         self._pass = passthru
         self._timers = []
         Thread.start(self)
