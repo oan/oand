@@ -39,27 +39,27 @@ class MessageTest():
 
 
 class ServerNodeDaemon(OANDaemonBase):
+    close_done = None
     def run(self):
-        try:
-            serializer.add(MessageTest)
-            listen = OANListen("localhost", 1338, self.accept)
-            start_asyncore_loop()
-            self.wait()
-
-        except OANTerminateInterrupt:
-            pass
-        finally:
-            listen.close()
-
-    def accept(self, bridge):
-        log.info("ServerNodeDaemon::accept")
+        self.close_done = False
+        serializer.add(MessageTest)
+        bridge = OANBridge()
         bridge.out_queue = Queue()
-        bridge.received_callback = self.received
+        bridge.out_queue.put(MessageTest("Hello world"))
+        bridge.connect("localhost", 1338)
+        bridge.received_callback = self.received_cb
+        bridge.close_callback = self.close_cb
+        start_asyncore_loop()
+        while not self.close_done:
+            pass
+        log.info("ServerNodeDaemon:run end")
 
-    def received(self, bridge, message):
-        log.info("ServerNodeDaemon::received")
-        if message.__class__.__name__ == 'MessageTest':
-            bridge.out_queue.put(MessageTest(message.text))
+    def received_cb(self, bridge, message):
+        bridge.shutdown()
+
+    def close_cb(self, bridge):
+        log.info("ServerNodeDaemon:close_cb")
+        self.close_done = True
 
 
 class TestOANBridge(OANTestCase):
@@ -67,6 +67,7 @@ class TestOANBridge(OANTestCase):
     daemon = None
 
     # Callback counters
+    accept_counter = None
     connect_counter = None
     received_counter = None
     close_counter = None
@@ -77,7 +78,7 @@ class TestOANBridge(OANTestCase):
         self.daemon = ServerNodeDaemon(
             "/tmp/oand_ut_daemon.pid", stdout='/tmp/ut_out.log',
             stderr='/tmp/ut_err.log')
-        self.daemon.start()
+        self.accept_counter = 0
         self.connect_counter = 0
         self.received_counter = 0
         self.close_counter = 0
@@ -85,38 +86,33 @@ class TestOANBridge(OANTestCase):
     def tearDown(self):
         self.daemon.stop()
 
+    def accept_cb(self, bridge):
+        log.info("ServerNodeDaemon::accept")
+        bridge.out_queue = Queue()
+        bridge.connect_callback = self.connect_cb
+        bridge.received_callback = self.received_cb
+        bridge.close_callback = self.close_cb
+
     def connect_cb(self, bridge):
         self.connect_counter += 1
 
     def received_cb(self, bridge, message):
-        if message.text == "Hello world":
+        if message.__class__.__name__ == 'MessageTest':
             self.received_counter += 1
+            bridge.out_queue.put(MessageTest(message.text))
 
     def close_cb(self, bridge):
         self.close_counter += 1
 
     def test_bridge(self):
-        bridge = OANBridge()
-        self.assertTrue(bridge.readable())
-        self.assertFalse(bridge.writable())
-
-        bridge.out_queue = Queue()
-        bridge.connect_callback = self.connect_cb
-        bridge.received_callback = self.received_cb
-        bridge.close_callback = self.close_cb
-        bridge.out_queue.put(MessageTest("Hello world"))
-        self.assertTrue(bridge.readable())
-        self.assertTrue(bridge.writable())
-
-        bridge.connect("localhost", 1338)
-
+        listen = OANListen("localhost", 1338, self.accept_cb)
         start_asyncore_loop()
 
-        self.assertTrueWait(lambda : bridge.connected)
-        self.assertTrueWait(lambda : self.connect_counter == 1)
+        self.daemon.start()
         self.assertTrueWait(lambda : self.received_counter == 1)
-
-        bridge.shutdown()
         self.assertTrueWait(lambda : self.close_counter == 1)
-        self.assertTrueWait(lambda : bridge.connected == False)
-        self.assertFalse(bridge.writable())
+        self.assertTrueWait(lambda : self.connect_counter == 0)
+
+        listen.close()
+        log.info("Close bridge")
+
