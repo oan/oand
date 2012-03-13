@@ -34,7 +34,7 @@ from oan.util.thread import OANThread
 class AsyncConnection(asyncore.dispatcher):
 
 
-    def __init__(self, out_queue, received_callback, sent_callback, sock = None):
+    def __init__(self, out_queue, connect_callback, received_callback, sent_callback, sock = None):
         asyncore.dispatcher.__init__(self, sock)
         self.out_queue = out_queue
         self.received_callback = received_callback

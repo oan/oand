@@ -14,13 +14,14 @@ __status__ = "Test"
 import asyncore
 from threading import Thread
 from Queue import Queue
+from time import sleep
 
 from test.test_case import OANTestCase
 from oan.util import log
 from oan.util.daemon_base import OANDaemonBase
 from oan.util.signal_handler import OANTerminateInterrupt
 from oan.network.server import OANListen
-from oan.network.bridge import OANBridge, OANBridgeAuth
+from oan.network.bridge import OANBridge
 from oan.network import serializer
 
 
@@ -47,11 +48,7 @@ class ServerNodeDaemon(OANDaemonBase):
     def run(self):
         try:
             serializer.add(MessageTest)
-            auth = OANBridgeAuth.create(
-                'oand v1.0', '00000000-0000-code-1338-000000000000',
-                1338, False
-            )
-            OANListen("localhost", 1338, auth, self.accept)
+            listen = OANListen("localhost", 1338, self.accept)
             start_asyncore_loop(60)
             self.wait()
 
@@ -74,9 +71,11 @@ class TestOANBridge(OANTestCase):
     daemon = None
 
     # Callback counters
-    connect_counter = None
     received_counter = None
     close_counter = None
+
+    # Set by error_cb
+    last_error = None
 
     def setUp(self):
         serializer.add(MessageTest)
@@ -84,72 +83,47 @@ class TestOANBridge(OANTestCase):
         self.daemon = ServerNodeDaemon(
             "/tmp/oand_ut_daemon.pid", stdout='/tmp/ut_out.log',
             stderr='/tmp/ut_err.log')
-        self.daemon.start()
-        self.connect_counter = 0
         self.received_counter = 0
         self.close_counter = 0
-        self._auth = OANBridgeAuth.create(
-            'oand v1.0', '00000000-0000-code-1337-000000000000', 1337, False)
-
-    def tearDown(self):
-        self.daemon.stop()
-
-    def connect_cb(self, bridge, auth):
-        self.connect_counter += 1
+        self.last_error = None
 
     def received_cb(self, bridge, message):
         if message.text == "Hello world":
             self.received_counter += 1
+            log.info("received_counter [%s]" % self.received_counter)
 
     def close_cb(self, bridge):
         self.close_counter += 1
 
-    def test_bridge(self):
-        bridge = OANBridge("localhost", 1338, self._auth)
-        self.assertTrue(bridge.readable())
-        self.assertFalse(bridge.writable())
+    def error_cb(self, bridge, exc_type, exc_value):
+        self.last_error = str(exc_value)
 
+    def test_bridge(self):
+        """Should be stopped before all messages has been echoed back"""
+        self.daemon.start()
+        bridge = OANBridge()
         bridge.out_queue = Queue()
-        bridge.connect_callback = self.connect_cb
         bridge.received_callback = self.received_cb
         bridge.close_callback = self.close_cb
-        bridge.out_queue.put(MessageTest("Hello world"))
-        self.assertTrue(bridge.readable())
-        self.assertTrue(bridge.writable())
+        bridge.connect("localhost", 1338)
+        start_asyncore_loop(0.1)
 
-        bridge.connect()
-
-        start_asyncore_loop(1)
-
-        self.assertTrueWait(lambda : bridge.connected)
-        self.assertTrueWait(lambda : self.connect_counter == 1)
-        self.assertTrueWait(lambda : self.received_counter == 1)
+        for x in xrange(1, 300):
+            bridge.out_queue.put(MessageTest("Hello world"))
 
         bridge.shutdown()
+
         self.assertTrueWait(lambda : self.close_counter == 1)
-        self.assertTrueWait(lambda : bridge.connected == False)
-        self.assertFalse(bridge.writable())
+        self.assertTrueWait(lambda : self.received_counter < 300)
+        self.daemon.stop()
 
-    def disabled_test_two_asyncoreloops(self):
-        """
-        Test that two asyncore loops can be started after each other in the
-        same main thread.
-
-        """
-        bridge = OANBridge("localhost", 1338, self._auth)
+    def test_remote_is_gone(self):
+        """Test that bridge can handle lost connection to remote node."""
+        bridge = OANBridge()
         bridge.out_queue = Queue()
+        bridge.error_callback = self.error_cb
         bridge.out_queue.put(MessageTest("Hello world"))
-        self.assertTrue(bridge.readable())
-        self.assertTrue(bridge.writable())
+        bridge.connect("localhost", 1338)
+        start_asyncore_loop(0.1)
 
-        bridge.connect()
-
-        start_asyncore_loop(4, name="async2")
-
-        self.assertTrueWait(lambda : bridge.connected)
-
-        bridge.shutdown()
-        self.assertTrueWait(lambda : bridge.connected == False)
-        self.assertFalse(bridge.writable())
-
-
+        self.assertTrueWait(lambda : self.last_error == "[Errno 61] Connection refused")

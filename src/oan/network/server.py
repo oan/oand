@@ -11,6 +11,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import sys
+import traceback
 import asyncore
 import socket
 
@@ -24,6 +26,9 @@ class OANListen(asyncore.dispatcher):
 
     Used together with asyncore.loop() in OANNetworkWorker.
 
+    The OANListen instance don't need to be shutdown/closed manually, that
+    is done when the asyncore.loop dies.
+
     CALLBACKS
 
     accept_callback(bridge)
@@ -32,16 +37,14 @@ class OANListen(asyncore.dispatcher):
 
     """
 
+    _auth = None
+
     # Callbacks
     accept_callback = None
 
-    # All connected bridges
-    # @TODO: Either handle connected bridges elsewere or remove bridges from
-    #        this list when they are closed.
-    _bridges = []
-
-    def __init__(self, host, port, accept_callback):
+    def __init__(self, host, port, auth, accept_callback):
         asyncore.dispatcher.__init__(self)
+        self._auth = auth
         self.accept_callback = accept_callback
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -62,20 +65,20 @@ class OANListen(asyncore.dispatcher):
                 return
 
             sock, addr = pair
+            host, port = addr
             log.info('OANListen: accepting connection from %s' % repr(addr))
-            bridge = OANBridge(sock)
-            bridge.remote_addr = addr
+            bridge = OANBridge(host, port, self._auth, sock)
+            bridge.send_handshake()
             self.accept_callback(bridge)
-            self._bridges.append(bridge)
 
-        except Exception, e:
-            log.info('OANListen: invalid peer connected from %s [%s]' %
-                     (repr(addr), e))
+        except Exception:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            tb = traceback.format_exception(exc_type, exc_value, exc_traceback)
+            tb = ([txt.replace("\\n", "\n") for txt in tb])
+            txt = "\n" + "".join(tb)
 
-    def handle_close(self):
-        log.info("OANListen:handle_close")
-        [bridge.shutdown() for bridge in self._bridges]
-        self.close()
+            log.info("OANListen:handle_accept: remote_host%s, %s, %s%s" %
+                     (repr(addr), exc_type, exc_value, txt))
 
     def handle_error(self):
         log.info("OANListen:handle_error")
