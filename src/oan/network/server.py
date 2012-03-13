@@ -42,16 +42,16 @@ class OANListen(asyncore.dispatcher):
     # Callbacks
     accept_callback = None
 
-    def __init__(self, host, port, auth, accept_callback):
+    def __init__(self, auth, accept_callback):
         asyncore.dispatcher.__init__(self)
         self._auth = auth
         self.accept_callback = accept_callback
 
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         self.set_reuse_addr()
-        self.bind((host, port))
+        self.bind((auth.host, auth.port))
         self.listen(5)
-        log.info("Start listening on %s:%d" % (host, port))
+        log.info("Start listening on %s:%d" % (auth.host, auth.port))
 
     def handle_accept(self):
         """

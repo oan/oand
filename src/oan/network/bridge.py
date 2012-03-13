@@ -317,10 +317,11 @@ class OANBridgeAuth():
     ttl = False
 
     @classmethod
-    def create(cls, version, oan_id, port, blocked):
+    def create(cls, version, oan_id, host, port, blocked):
         obj = cls()
         obj.version = version
         obj.oan_id = str(oan_id)
+        obj.host = host
         obj.port = port
         obj.blocked = blocked
 

@@ -49,9 +49,9 @@ class ServerNodeDaemon(OANDaemonBase):
             serializer.add(MessageTest)
             auth = OANBridgeAuth.create(
                 'oand v1.0', '00000000-0000-code-1338-000000000000',
-                1338, False
+                'localhost', 1338, False
             )
-            OANListen("localhost", 1338, auth, self.accept)
+            OANListen(auth, self.accept)
             start_asyncore_loop(60)
             self.wait()
 
@@ -89,7 +89,8 @@ class TestOANBridge(OANTestCase):
         self.received_counter = 0
         self.close_counter = 0
         self._auth = OANBridgeAuth.create(
-            'oand v1.0', '00000000-0000-code-1337-000000000000', 1337, False)
+            'oand v1.0', '00000000-0000-code-1337-000000000000', 'localhost',
+            1337, False)
 
     def tearDown(self):
         self.daemon.stop()
