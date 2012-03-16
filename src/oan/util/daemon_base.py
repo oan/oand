@@ -263,7 +263,6 @@ class OANDaemonBase:
 
     def _pid_terminate(self):
         """Kill the daemon process."""
-        print "process to terminate (%s)"
         try:
             pid = self._get_pid()
             for i in xrange(1,40):
