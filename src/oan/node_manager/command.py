@@ -87,4 +87,5 @@ class OANCommandStaticSyncNodes():
         log.info("OANMessageStaticSyncNodes:execute")
         node_sync = OANMessageNodeListHash.create()
         for n in node_manager().get_nodes(OANHeartbeat.NOT_OFFLINE):
+            log.info("OANMessageStaticSyncNodes: send to %s " % n.oan_id)
             node_manager().send(n.oan_id, node_sync)

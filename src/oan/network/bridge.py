@@ -33,7 +33,7 @@ class OANBridge(asyncore.dispatcher):
         Called when a connection has been established, that was initialized
         from this host.
 
-    received_callback(bridge, message)
+    message_callback(bridge, message)
         Called when a message has been received from a remote host.
 
     close_callback(bridge)
@@ -45,7 +45,7 @@ class OANBridge(asyncore.dispatcher):
     """
     # Callbacks
     connect_callback = None
-    received_callback = None
+    message_callback = None
     close_callback = None
     error_callback = None
 
@@ -75,7 +75,7 @@ class OANBridge(asyncore.dispatcher):
         self._auth = auth
         self._is_auth = False
         self.connect_callback = lambda bridge, auth : None
-        self.received_callback = lambda bridge, msg : None
+        self.message_callback = lambda bridge, msg : None
         self.close_callback = lambda bridge : None
         self.error_callback = lambda bridge, exc_type, exc_value: None
 
@@ -157,7 +157,7 @@ class OANBridge(asyncore.dispatcher):
         is_empty_buffer = len(self._out_buffer) == 0
         is_writable = (not is_empty_buffer or not is_empty_queue)
 
-        log.info("OANBridge:writable is_writable: [%s]" % is_writable)
+        log.info("OANBridge %s: writable: [%s]" % (repr(self._remote_addr), is_writable))
 
         return is_writable
 
@@ -166,7 +166,7 @@ class OANBridge(asyncore.dispatcher):
         Event called by asyncore when it's time to read from the socket.
 
         CALLBACK - called from this method
-            received_callback(bridge, message)
+            message_callback(bridge, message)
                 Called when a full message has been received.
 
         """
@@ -187,7 +187,7 @@ class OANBridge(asyncore.dispatcher):
                 log.info("OANBridge:handle_read CMD[%s]" % cmd)
                 message = self._read_message(cmd)
                 if self._is_auth:
-                    self.received_callback(self, message)
+                    self.message_callback(self, message)
                 else:
                     self._handle_handshake(message)
 
@@ -302,11 +302,11 @@ class OANBridge(asyncore.dispatcher):
             self.handle_close()
             return
 
+        log.info("OANBridge:_handle_handshake handshake accepted")
         self._is_auth = True
 
         auth.host = self._remote_addr[0]
         self.connect_callback(self, auth)
-
 
 class OANBridgeAuth():
     version = None
@@ -314,7 +314,6 @@ class OANBridgeAuth():
     host = None
     port = None
     blocked = None
-    ttl = False
 
     @classmethod
     def create(cls, version, oan_id, host, port, blocked):

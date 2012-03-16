@@ -20,8 +20,8 @@ localhost = get_local_host()
 
 def start_test_network():
     global configs
-    _create_open_config(40)
-    _create_blocked_config(10)
+    _create_open_config(80)
+    _create_blocked_config(20)
 
     for config in configs.itervalues():
         if config.blocked:

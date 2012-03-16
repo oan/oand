@@ -37,13 +37,10 @@ from oan.network.network import OANNetwork, OANNetworkTimer
 from oan.network.command import (OANNetworkCommandListen,
     OANNetworkCommandConnectOan)
 
-
 class OANApplication():
     config = None
-    _is_terminating = False
 
     def __init__(self, config):
-        self._is_terminating = False
         self.config = config
 
     def start(self):
@@ -61,12 +58,12 @@ class OANApplication():
         self._setup_timers()
 
         dispatcher().execute(OANCommandStaticLoadNodes)
-        network().execute(OANNetworkCommandListen.create(self.config.node_port))
+        network().execute(OANNetworkCommandListen.create(node_manager().get_auth()))
 
         if (self.config.bff_port and self.config.bff_domain_name):
             print "connecting to oan...."
             network().execute(OANNetworkCommandConnectOan.create(
-                self.config.bff_domain_name, self.config.bff_port))
+                self.config.bff_domain_name, self.config.bff_port, node_manager().get_auth()))
 
     def stop(self):
         log.info("Stopping Open Archive Network")

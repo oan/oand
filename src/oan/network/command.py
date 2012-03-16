@@ -10,56 +10,56 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from oan.util import log
-from oan.util.network import get_local_host
 from oan.network.network_node import OANNetworkNodeState
-from oan.network.bridge import OANBridge
-from oan.network.server import OANListen
+from oan.network.network import OANNetworkServer
 
 class NetworksCommandConnectToNode:
+    _auth = None
+    _node = None
+
     @classmethod
-    def create(cls, node):
+    def create(cls, node, auth):
         obj = cls()
-        obj.node = node
+        obj._auth = auth
+        obj._node = node
         return obj
 
     def execute(self):
-        log.debug("NetworksCommandConnectToNode:execute: %s" % (self.node.oan_id))
-        if self.node.is_disconnected():
-            (name, host, port, state, blocked, heartbeat) = self.node.get()
+        log.debug("NetworksCommandConnectToNode:execute: %s" % (self._node.oan_id))
+        if self._node.is_disconnected():
+            (name, host, port, state, blocked, heartbeat) = self._node.get()
             log.info("Connect to %s:%s" % (host, port))
-            self.node.update(state = OANNetworkNodeState.CONNECTING)
-            bridge = OANBridge()
-            bridge.connect(host, port)
+            self._node.update(state = OANNetworkNodeState.CONNECTING)
+            OANNetworkServer.connect(host, port, self._auth)
 
 class OANNetworkCommandListen:
-    port = None
+    _auth = None
 
     @classmethod
-    def create(cls, port):
+    def create(cls, auth):
         obj = cls()
-        obj.port = port
+        obj._auth = auth
         return obj
 
     def execute(self):
         log.info("OANNetworkCommandListen:execute")
-        host = get_local_host()
-        OANListen(self, host, self.port)
-
+        OANNetworkServer.listen(self._auth)
 
 class OANNetworkCommandConnectOan:
-    host = None
-    port = None
+    _host = None
+    _port = None
+    _auth = None
 
     @classmethod
-    def create(cls, host, port):
+    def create(cls, host, port, auth):
         obj = cls()
-        obj.host = host
-        obj.port = port
+        obj._host = host
+        obj._port = port
+        obj._auth = auth
+
         return obj
 
     def execute(self):
-        print "connect_to_oan %s:%d" % (self.host, self.port)
+        print "connect_to_oan %s:%d" % (self._host, self._port)
         log.info("OANNetworkCommandConnectOan:execute")
-        bridge = OANBridge()
-        bridge.connect(self.host, self.port)
-
+        OANNetworkServer.connect(self._host, self._port, self._auth)

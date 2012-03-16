@@ -8,7 +8,6 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from operator import itemgetter
 from threading import Lock
 from Queue import Full
 
@@ -18,6 +17,8 @@ from oan.util import log
 from oan.dispatcher.message import OANMessageRelay
 from oan.network.network_node import OANNetworkNode
 from oan.network.command import NetworksCommandConnectToNode
+from oan.network.bridge import OANBridgeAuth
+from oan.util.network import get_local_host
 
 from oan.node_manager.command import OANCommandCleanOutQueue
 
@@ -38,6 +39,13 @@ class OANNodeManager():
 
     def __init__(self, config):
         self._config = config
+        self._auth = OANBridgeAuth.create(
+            version = "oand v1.0",
+            oan_id = config.oan_id,
+            host = get_local_host(),
+            port = config.node_port,
+            blocked = config.blocked)
+
         self._nodes = {}
         self._lock = Lock()
 
@@ -66,6 +74,10 @@ class OANNodeManager():
     @synchronized
     def get_my_node(self):
         return self._my_node
+
+    @synchronized
+    def get_auth(self):
+        return self._auth
 
     @synchronized
     def get_node(self, oan_id):
@@ -115,7 +127,7 @@ class OANNodeManager():
 
     @synchronized
     def shutdown(self):
-        pass
+        return True
 
 
     '''
@@ -240,11 +252,13 @@ class OANNodeManager():
         """
 
         try:
+            log.info("OANNodeManager: send to %s " % node.oan_id)
             node.send(message)
             node.add_message_statistic(message.__class__.__name__, sent_time = True)
 
             if node.is_disconnected():
-                network().execute(NetworksCommandConnectToNode.create(node))
+                log.info("OANNodeManager: connecting to %s " % node.oan_id)
+                network().execute(NetworksCommandConnectToNode.create(node, self._auth))
 
             if node.out_queue.qsize() == (OANNetworkNode.QUEUE_SIZE * 0.75):
                 dispatcher().execute(OANCommandCleanOutQueue.create(node))
