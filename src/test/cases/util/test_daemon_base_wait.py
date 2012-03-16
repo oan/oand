@@ -20,18 +20,17 @@ from test_daemon_base import (
 
 class TestDaemonWait(TestDaemon):
     def run(self):
-        while True:
-            try:
-                self.wait()
+        try:
+            self.wait()
 
-            except OANStatusInterrupt, e:
-                print e
-            except OANTerminateInterrupt, e:
-                break
-            finally:
-                f=open(F_DWN, "w")
-                f.write("shutdown")
-                f.close()
+        except OANStatusInterrupt, e:
+            print e
+        except OANTerminateInterrupt, e:
+            pass
+        finally:
+            f=open(F_DWN, "w")
+            f.write("shutdown")
+            f.close()
 
 
 class TestDeamonBaseWait(TestDeamonBase):
