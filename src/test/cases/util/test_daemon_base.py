@@ -19,7 +19,6 @@ from test.test_case import OANTestCase
 
 from oan.util.daemon_base import OANDaemonBase
 from oan.util.signal_handler import OANSignalHandler, OANTerminateInterrupt
-from oan.util.signal_handler import OANStatusInterrupt
 from oan.util.decorator.capture import capture
 
 # Files used in test.
@@ -27,7 +26,6 @@ F_DWN="/tmp/oand_ut_daemon.down"
 F_PID="/tmp/oand_ut_daemon.pid"
 F_OUT="/tmp/oand_ut_daemon.out"
 F_ERR="/tmp/oand_ut_daemon.err"
-
 
 class TestDaemon(OANDaemonBase):
     def run(self):

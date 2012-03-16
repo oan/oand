@@ -60,7 +60,7 @@ class OANDaemonBase:
         # Start the daemon
         if self._daemonize():
             self._register_signal()
-            self.run()
+            self._run()
             sys.exit(0)
         else:
             self._wait_for_deamon_to_start()
@@ -105,6 +105,22 @@ class OANDaemonBase:
     def wait(self):
         """Waits for signals, terminate or user defined signal status."""
         OANSignalHandler.wait()
+
+
+    def _run(self):
+        """
+        Minimum time to spend in run method, this is to ensure that
+        _wait_for_deamon_to_start have time to read the pid file.
+        if the it got a kill signal it will interrupt the sleep and exit.
+
+        """
+        start_time = time.time()
+        minimum_time = 5
+        self.run()
+        diff_time = time.time() - start_time
+
+        if diff_time < minimum_time:
+            time.sleep(minimum_time - diff_time)
 
     def _daemonize(self):
         """
@@ -192,6 +208,10 @@ class OANDaemonBase:
 
             time.sleep(i / 2)
 
+            if i > 10:
+                sys.stderr.write("Waiting for %s to be deleted" % self.pidfile)
+
+
     def _get_pid_wait(self):
         """
         Get the daemon pid from the pidfile, wait until it's created.
@@ -206,6 +226,9 @@ class OANDaemonBase:
                 return pid
 
             time.sleep(i / 2)
+
+            if i > 10:
+                sys.stderr.write("Waiting for %s to be created" % self.pidfile)
 
         return None
 
@@ -240,12 +263,16 @@ class OANDaemonBase:
 
     def _pid_terminate(self):
         """Kill the daemon process."""
+        print "process to terminate (%s)"
         try:
             pid = self._get_pid()
             for i in xrange(1,40):
                 os.kill(pid, SIGTERM)
-                #print "Waiting for process to terminate (%s)" % pid
                 time.sleep(i/2)
+
+                if i > 10:
+                    sys.stderr.write("Waiting for process (%s) to terminate" % pid)
+
 
         except OSError, err:
             err = str(err)
