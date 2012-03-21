@@ -15,11 +15,12 @@ import asyncore
 from threading import Thread
 from Queue import Queue
 from time import sleep
+from collections import deque
 
 from test.test_case import OANTestCase
 from oan.util import log
 from oan.util.daemon_base import OANDaemonBase
-from oan.util.signal_handler import OANTerminateInterrupt
+from oan.util.signal_handler import OANSignalHandler, OANTerminateInterrupt
 from oan.network.server import OANListen
 from oan.network.bridge import OANBridge
 from oan.network import serializer
@@ -33,6 +34,7 @@ def start_asyncore_loop(timeout, name = "asynco"):
 
     t = Thread(target=run, kwargs={
         'timeout' : timeout})
+
     t.name=name
     t.daemon = True
     t.start()
@@ -45,25 +47,48 @@ class MessageTest():
 
 
 class ServerNodeDaemon(OANDaemonBase):
+    _auth = None
+
+    _nodes = []
+
+    _connected_bridges = []
+
+    _concurrent_bridges = 10
+
+    def __init__(self, auth, nodes):
+        self._auth = auth
+        self._nodes = deque(nodes)
+
     def run(self):
-        try:
-            serializer.add(MessageTest)
-            listen = OANListen("localhost", 1338, self.accept)
-            start_asyncore_loop(60)
-            self.wait()
+        serializer.add(MessageTest)
+        listen = OANListen(self._auth)
+        listen.accept_callback = self.accept
+        listen.start()
 
-        except OANTerminateInterrupt:
-            pass
+        while True:
+            try:
+                OANSignalHandler.activate()
+                asyncore.loop(timeout = 60, use_poll = True)
+                OANSignalHandler.deactivate()
+                sleep(5)
+                self.send_heartbeat(self)
 
-    def accept(self, bridge):
+            except OANTerminateInterrupt:
+                break
+
+    def send_heartbeat(self):
+        while len(self._connected_bridges) < self._concurrent_bridges:
+            node_auth = self._nodes.popleft()
+            bridge = OANBridge(node_auth.host, node_auth.port, self._auth)
+            self._connected_bridges.append(bridge)
+
+    def bridge_accept(self, bridge):
         log.info("ServerNodeDaemon::accept")
-        bridge.out_queue = Queue()
-        bridge.received_callback = self.received
+        bridge.connect_callback = self.connected
+        bridge.message_callback = self.message
 
-    def received(self, bridge, message):
-        log.info("ServerNodeDaemon::received")
-        if message.__class__.__name__ == 'MessageTest':
-            bridge.out_queue.put(MessageTest(message.text))
+    def bridge_message(self, bridge, message):
+        log.info("ServerNodeDaemon::message")
 
 
 class TestOANBridge(OANTestCase):

@@ -69,7 +69,7 @@ class OANListen(asyncore.dispatcher):
             host, port = addr
             log.info('OANListen: accepting connection from %s' % repr(addr))
             bridge = OANBridge(host, port, self._auth, sock)
-            bridge.send_handshake()
+            bridge.handshake()
             self.accept_callback(bridge)
 
         except Exception:

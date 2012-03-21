@@ -63,8 +63,49 @@ class OANNetworkTimer(object):
         """Calculate and set the next time the cmd should be executed."""
         self._expires = datetime.utcnow() + timedelta(seconds = self._interval)
 
+class TestOanNetworkServer:
+
+    def test_connected(self):
+        pass
+
+    def test_send(self):
+        oan_ids = [UUID(""), UUID()]
+        message = TestMessage.create()
+        OANNetworkServer.send(oan_ids, message)
+        mock_dispatcher
+
+
+    def test_max_concurrent(self):
+        pass
+
 
 class OANNetworkServer:
+
+    _auth = None
+
+    """ tuple ((host, port), [messages]) """
+    _out = {}
+
+    """ connected bridges """
+    _bridges = {}
+
+    """ max concurrent open bridges """
+    _concurrent_bridges = 10
+
+    @staticmethod
+    def send(oan_ids, message):
+
+        for oan_id in oan_ids:
+            log.debug("OANNetworkServer: oan_id: %s, message: %s" % (oan_id, str(message)))
+            node = node_manager.get_node(oan_id)
+            if node is not None:
+                if node.is_blocked() and OANNetworkServer._auth.blocked:
+                    self._relay_to_node(oan_id, message)
+                else:
+                    self._send_to_node(node, message)
+            else:
+                log.info("OANNetworkServer:Error node is missing %s" % oan_id)
+
 
     @staticmethod
     def connect(host, port, auth):
@@ -88,7 +129,6 @@ class OANNetworkServer:
         node = node_manager().create_node(
             UUID(auth.oan_id), auth.host, auth.port, auth.blocked
         )
-        node.update(state = OANNetworkNodeState.CONNECTED)
         node.touch()
         bridge.node = node
         bridge.out_queue = node.out_queue
@@ -119,6 +159,7 @@ class OANNetworkServer:
         log.info("OANNetworkServer: bridge_message %s" % bridge)
         dispatcher().execute(message)
         pass
+
 
 
 class OANNetworkWorker(OANThread):

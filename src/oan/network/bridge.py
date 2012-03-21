@@ -20,8 +20,6 @@ import traceback
 
 from oan.util import log
 from oan.network import serializer
-from oan.heartbeat import OANHeartbeat
-from oan.network.network_node import OANNetworkNodeState
 
 class OANBridge(asyncore.dispatcher):
     """
@@ -49,9 +47,6 @@ class OANBridge(asyncore.dispatcher):
     close_callback = None
     error_callback = None
 
-    # Messages that should be sent to remote host.
-    out_queue = None
-
     # Remote host that the bridge is connected to.
     node = None
 
@@ -61,19 +56,21 @@ class OANBridge(asyncore.dispatcher):
     #
     _auth = None
 
-    _is_auth = None
-
     # Buffer of data to send to remote host.
     _out_buffer = ''
 
     # Buffer of data received from remote host.
     _in_buffer = ''
 
+    # got close message from remote host.
+    _closing = None
+
     def __init__(self, host, port, auth, sock = None):
         asyncore.dispatcher.__init__(self, sock)
         self._remote_addr = (host, port)
         self._auth = auth
-        self._is_auth = False
+        self._closing = False
+
         self.connect_callback = lambda bridge, auth : None
         self.message_callback = lambda bridge, msg : None
         self.close_callback = lambda bridge : None
@@ -88,21 +85,21 @@ class OANBridge(asyncore.dispatcher):
         self.create_socket(socket.AF_INET, socket.SOCK_STREAM)
         asyncore.dispatcher.connect(self, self._remote_addr)
 
+
+    def send(self, messages):
+        encoded_messages = []
+        for message in messages:
+            encoded_messages.append(self._encode_message(message))
+
+        self._out_buffer += ''.join(encoded_messages)
+
+    def handshake(self):
+        log.info("OANBridge:handshake %s" % repr(self._remote_addr))
+        self._out_buffer += self._encode_message(self._auth)
+
     def shutdown(self):
-        """
-        Shutdown the bridge.
-
-        All messages already in the out_queue will first be sent. But new
-        messages added after the shutdown will not be sent.
-
-        """
-        log.info("OANBridge:shutdown")
-        self.out_queue.put(None)
-
-    def send_handshake(self):
-        cmd = self._send_message(self._auth)
-        log.info("OANBridge:send_handshake CMD[%s]" % cmd)
-        self._out_buffer = cmd
+        log.info("OANBridge:shutdown %s" % repr(self._remote_addr))
+        self._out_buffer += self._encode_message(OANBridgeClose.create())
 
     #
     # Internal asyncore events.
@@ -119,7 +116,8 @@ class OANBridge(asyncore.dispatcher):
         """
         log.info("OANBridge:handle_connect, total connections: [%s]" %
                  len(asyncore.socket_map))
-        self.send_handshake()
+
+        self.handshake()
 
     def handle_close(self):
         """
@@ -131,8 +129,6 @@ class OANBridge(asyncore.dispatcher):
         """
         log.info("OANBridge:handle_close")
         self.close()
-        if self.node:
-            self.node.update(state = OANNetworkNodeState.DISCONNECTED)
         self.close_callback(self)
 
     def readable(self):
@@ -142,7 +138,9 @@ class OANBridge(asyncore.dispatcher):
         Called by asyncore to verify that asyncore can call handle_read.
 
         """
-        return True
+        is_readable = not self._closing
+        log.info("OANBridge %s: readable: [%s]" % (repr(self._remote_addr), is_readable))
+        return is_readable
 
     def writable(self):
         """
@@ -151,14 +149,9 @@ class OANBridge(asyncore.dispatcher):
         Called by asyncore to verify that asyncore can call handle_write.
 
         """
-        self._shutdown_if_idle()
 
-        is_empty_queue = (self.out_queue is None or self.out_queue.empty())
-        is_empty_buffer = len(self._out_buffer) == 0
-        is_writable = (not is_empty_buffer or not is_empty_queue)
-
+        is_writable = len(self._out_buffer) > 0
         log.info("OANBridge %s: writable: [%s]" % (repr(self._remote_addr), is_writable))
-
         return is_writable
 
     def handle_read(self):
@@ -177,6 +170,7 @@ class OANBridge(asyncore.dispatcher):
                 self.node.oan_id, data))
 
         if data:
+            self._read_state = 2
             self._in_buffer += data
 
             pos = self._in_buffer.find('\n')
@@ -185,11 +179,13 @@ class OANBridge(asyncore.dispatcher):
                 self._in_buffer = self._in_buffer[pos+1:]
 
                 log.info("OANBridge:handle_read CMD[%s]" % cmd)
-                message = self._read_message(cmd)
-                if self._is_auth:
-                    self.message_callback(self, message)
+                message = self._decode_message(cmd)
+                if isinstance(message, OANBridgeAuth):
+                    self._auth_message(message)
+                elif isinstance(message, OANBridgeClose):
+                    self._close_message(message)
                 else:
-                    self._handle_handshake(message)
+                    self.message_callback(self, message)
 
                 pos = self._in_buffer.find('\n')
 
@@ -198,25 +194,13 @@ class OANBridge(asyncore.dispatcher):
         Event called by asyncore when it's time to write to the socket.
 
         """
-        if (len(self._out_buffer) == 0):
-            if self.out_queue and not self.out_queue.empty():
-                message = self.out_queue.get()
-
-                if (message == None):
-                    log.info("OANBridge:handle_write closing")
-                    self.handle_close()
-                    return
-
-                cmd = self._send_message(message)
-                log.info("OANBridge:handle_write CMD[%s]" % cmd)
-                self._out_buffer = cmd
-
-        sent = self.send(self._out_buffer)
+        sent = asyncore.dispatcher.send(self, self._out_buffer)
         if self.node:
             log.info("OANBridge:handle_write OUT[%s][%s]" % (
                      self.node.oan_id, self._out_buffer[:sent]))
 
         self._out_buffer = self._out_buffer[sent:]
+        self._check_close()
 
     def handle_error(self):
         """
@@ -242,7 +226,7 @@ class OANBridge(asyncore.dispatcher):
         self.error_callback(self, exc_type, exc_value)
         self.handle_close()
 
-    def _read_message(self, raw_message):
+    def _decode_message(self, raw_message):
         """
         Creates/decodes a message object from a string.
 
@@ -252,10 +236,10 @@ class OANBridge(asyncore.dispatcher):
 
         """
         message = serializer.decode(raw_message.strip())
-        log.info("OANBridge:_read_message: %s" % message.__class__.__name__)
+        log.info("OANBridge:_decode_message: %s" % message.__class__.__name__)
 
         if self.node:
-            log.info("OANBridge:_read_message: %s from %s" % (
+            log.info("OANBridge:_decode_message: %s from %s" % (
                      message.__class__.__name__, self.node.oan_id))
             self.node.add_message_statistic(
                 message.__class__.__name__, in_time = True)
@@ -263,50 +247,44 @@ class OANBridge(asyncore.dispatcher):
 
         return message
 
-    def _send_message(self, message):
+    def _encode_message(self, message):
         """
         Creates/encodes a string from a message object.
 
         """
-        log.info("OANBridge:_send_message: %s" % message.__class__.__name__)
+        log.info("OANBridge:_encode_message: %s" % message.__class__.__name__)
 
         raw_message = serializer.encode(message)
         if self.node:
-            log.info("OANBridge:_send_message: %s to %s" % (message.__class__.__name__, self.node.oan_id))
+            log.info("OANBridge:_encode_message: %s to %s" % (message.__class__.__name__, self.node.oan_id))
             self.node.add_message_statistic(message.__class__.__name__, out_time = True)
 
         return raw_message + '\n'
 
-    def _shutdown_if_idle(self):
-        """
-        Shutdown the bridge if no data has been read or written for X seconds.
 
-        """
-        if self.node:
-            if self.node.has_heartbeat_state(OANHeartbeat.IDLE):
-                log.info("OANBridge:writable idling")
-                self.shutdown()
+    def _close_message(self, close):
+        log.info("OANBridge:_close_message")
+        self._closing = True
+        self._check_close()
 
-    def _handle_handshake(self, auth):
+    def _auth_message(self, auth):
         # Update with external ip. Sending node is only aware of internal ip,
         # firewall might MASQ/NAT to extetnal ip.
-        if not isinstance(auth, OANBridgeAuth):
-            log.info("OANBridge:_handle_handshake expected auth %s" %
-                     auth.__class__.__name__)
-            self.handle_close()
-            return
 
         if auth.version != self._auth.version:
-            log.info("OANBridge:_handle_handshake invalid version %s!=%s" %
+            log.info("OANBridge:_auth_message invalid version %s!=%s" %
                      (auth.version, self._auth.version))
             self.handle_close()
             return
 
-        log.info("OANBridge:_handle_handshake handshake accepted")
-        self._is_auth = True
-
+        log.info("OANBridge:_auth_message handshake accepted")
         auth.host = self._remote_addr[0]
         self.connect_callback(self, auth)
+
+    def _check_close(self):
+        if self._closing and not self.writable():
+            log.info("OANBridge:_close_message is closing")
+            self.handle_close()
 
 class OANBridgeAuth():
     version = None
@@ -324,9 +302,19 @@ class OANBridgeAuth():
         obj.port = port
         obj.blocked = blocked
 
-        log.info("OANBridgeAuth:__init__ %s %s:%s blocked: %s" % (
+        log.info("OANBridgeAuth: %s %s:%s blocked: %s" % (
             obj.oan_id, obj.host, obj.port, obj.blocked))
 
         return obj
 
+class OANBridgeClose():
+
+    @classmethod
+    def create(cls):
+        obj = cls()
+        log.info("OANBridgeClose")
+        return obj
+
+
 serializer.add(OANBridgeAuth)
+serializer.add(OANBridgeClose)

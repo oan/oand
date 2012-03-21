@@ -13,7 +13,6 @@ __status__ = "Test"
 
 import asyncore
 from threading import Thread
-from Queue import Queue
 
 from test.test_case import OANTestCase
 from oan.util import log
@@ -49,25 +48,10 @@ class ClientNodeDaemon(OANDaemonBase):
         )
 
         bridge = OANBridge("localhost", 1337, auth)
-        bridge.out_queue = Queue()
-        bridge.out_queue.put(MessageTest("Hello world"))
         bridge.connect()
-        bridge.message_callback = self.message_cb
-        bridge.close_callback = self.close_cb
+        bridge.send([MessageTest("Hello world")])
         start_asyncore_loop()
-        while not self.close_done:
-            pass
-
         log.info("ClientNodeDaemon:run end")
-
-    def message_cb(self, bridge, message):
-         if message.__class__.__name__ == 'MessageTest':
-            bridge.shutdown()
-
-    def close_cb(self, bridge):
-        log.info("ClientNodeDaemon:close_cb")
-        self.close_done = True
-
 
 class TestOANListen(OANTestCase):
     # Remote node to test network against.
@@ -100,7 +84,6 @@ class TestOANListen(OANTestCase):
 
     def accept_cb(self, bridge):
         log.info("TestOANListen::accept")
-        bridge.out_queue = Queue()
         bridge.connect_callback = self.connect_cb
         bridge.message_callback = self.message_cb
         bridge.close_callback = self.close_cb
@@ -111,7 +94,6 @@ class TestOANListen(OANTestCase):
     def message_cb(self, bridge, message):
         if message.__class__.__name__ == 'MessageTest':
             self.message_counter += 1
-            bridge.out_queue.put(MessageTest(message.text))
 
     def close_cb(self, bridge):
         self.close_counter += 1

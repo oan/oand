@@ -62,13 +62,12 @@ class ServerNodeDaemon(OANDaemonBase):
 
     def accept(self, bridge):
         log.info("ServerNodeDaemon::accept")
-        bridge.out_queue = Queue()
         bridge.message_callback = self.received
 
     def received(self, bridge, message):
         log.info("ServerNodeDaemon::received")
         if message.__class__.__name__ == 'MessageTest':
-            bridge.out_queue.put(MessageTest(message.text))
+            bridge.send([MessageTest(message.text)])
 
 
 class TestOANBridge(OANTestCase):
@@ -112,16 +111,14 @@ class TestOANBridge(OANTestCase):
         self.assertTrue(bridge.readable())
         self.assertFalse(bridge.writable())
 
-        bridge.out_queue = Queue()
         bridge.connect_callback = self.connect_cb
         bridge.message_callback = self.message_cb
         bridge.close_callback = self.close_cb
-        bridge.out_queue.put(MessageTest("Hello world"))
+        bridge.send([MessageTest("Hello world")])
         self.assertTrue(bridge.readable())
         self.assertTrue(bridge.writable())
 
         bridge.connect()
-
         start_asyncore_loop(1)
 
         self.assertTrueWait(lambda : bridge.connected)
@@ -140,8 +137,7 @@ class TestOANBridge(OANTestCase):
 
         """
         bridge = OANBridge("localhost", 1338, self._auth)
-        bridge.out_queue = Queue()
-        bridge.out_queue.put(MessageTest("Hello world"))
+        bridge.send([MessageTest("Hello world")])
         self.assertTrue(bridge.readable())
         self.assertTrue(bridge.writable())
 
@@ -150,8 +146,6 @@ class TestOANBridge(OANTestCase):
         start_asyncore_loop(4, name="async2")
 
         self.assertTrueWait(lambda : bridge.connected)
-
-        bridge.shutdown()
         self.assertTrueWait(lambda : bridge.connected == False)
         self.assertFalse(bridge.writable())
 
