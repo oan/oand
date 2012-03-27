@@ -11,45 +11,35 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import os
-import sys
 from time import sleep
 
 from test.test_case import OANTestCase
-
 from oan.util.daemon_base import OANDaemonBase
-from oan.util.signal_handler import OANSignalHandler, OANTerminateInterrupt
-from oan.util.decorator.capture import capture
+from oan.util import log
 
 # Files used in test.
-F_DWN="/tmp/oand_ut_daemon.down"
-F_PID="/tmp/oand_ut_daemon.pid"
-F_OUT="/tmp/oand_ut_daemon.out"
-F_ERR="/tmp/oand_ut_daemon.err"
+F_DWN="/tmp/ut_daemon.down"
+F_PID="/tmp/ut_daemon.pid"
+F_OUT="/tmp/ut_daemon.out"
+F_ERR="/tmp/ut_daemon.err"
 
 class TestDaemon(OANDaemonBase):
     def run(self):
         f=open(F_DWN, "w")
         f.write("shutdown")
         f.close()
+        log.info("run method")
 
 class TestDeamonExit(OANTestCase):
 
     def setUp(self):
-        self.remove_files()
+        self.init_files()
 
-    def remove_files(self):
-        if os.path.exists(F_DWN):
-            os.remove(F_DWN)
-
-        if os.path.exists(F_PID):
-            os.remove(F_PID)
-
-        if os.path.exists(F_OUT):
-            os.remove(F_OUT)
-
-        if os.path.exists(F_ERR):
-            os.remove(F_ERR)
+    def init_files(self):
+        open(F_DWN, "w").close()
+        open(F_PID, "w").close()
+        open(F_OUT, "w").close()
+        open(F_ERR, "w").close()
 
     def test_stop_already_exit(self):
         daemon = TestDaemon(F_PID, stdout=F_OUT, stderr=F_ERR)

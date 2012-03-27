@@ -11,11 +11,13 @@ Network Feature List
 --------------------
 * Asyncront message system, no functions should stop the "main-loop".
 * Auto-reconnect.
-* Either client or server could be firewalled, and the other side do the connections.
-  Requires TCP.
-* Limit the number of open sockets. We don't like 1000 connections at the same time.
+* Either client or server could be firewalled, and the other side do the
+  connections. Requires TCP.
+* Limit the number of open sockets. We don't like 1000 connections at the same
+  time.
 * Possible to unit test.
-* Possible to execute io and cpu calls with low priority and don't hang the computer.
+* Possible to execute io and cpu calls with low priority and don't hang the
+  computer.
 * REST-api
 * Easy to work with.
 * Stable code.
@@ -24,7 +26,7 @@ Network Feature List
 VERSION 0.1 - NODE AWARENESS
 ============================
 
-All nodes should be able to communicate, send heartbeats, sync-nodes,
+All nodes in a cell should be able to communicate, send heartbeats, sync-nodes,
 store node info in datbase, can handle nodes that comes and goes. All is
 well written with unit test and comments.
 
@@ -67,7 +69,20 @@ well written with unit test and comments.
 * Mock
   http://www.voidspace.org.uk/python/mock/getting-started.html
 
-VERSION 0.2
+VERSION 0.2 - NETWORK AWARENESS
+===============================
+
+Cells can communicate with other cells and create a network of millions of
+nodes.
+
+1 000 000 / 10 = 100 000 celler
+100*1000=100 000*1000=100 000 000*1000= 100 000 000 000
+1 node kommunicerar med 100 andra noder i en cell
+1 node kommunicerar med 1 andra noder i 10 olika celler
+1 node kommunicerar med 1 andra noder i 10 annan building block
+1 node kommunicerar med 1 andra noder i 10 annan world block
+
+VERSION 0.3
 ===========
 
 * Read/learn googles python guide

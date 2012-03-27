@@ -16,6 +16,7 @@ from time import sleep
 from Queue import Empty
 from datetime import datetime, timedelta
 from threading import Thread
+from uuid import UUID
 
 from oan.util import log
 from oan.passthru import OANPassthru
@@ -24,10 +25,8 @@ from oan.util.throttle import OANThrottle
 
 from oan.network.bridge import OANBridge
 from oan.network.server import OANListen
+from oan.network.node_manager import OANNodeManager
 
-from oan.manager import node_manager, dispatcher
-from oan.network.network_node import OANNetworkNodeState
-from uuid import UUID
 
 class OANNetworkTimer(object):
     """
@@ -63,103 +62,105 @@ class OANNetworkTimer(object):
         """Calculate and set the next time the cmd should be executed."""
         self._expires = datetime.utcnow() + timedelta(seconds = self._interval)
 
-class TestOanNetworkServer:
-
-    def test_connected(self):
-        pass
-
-    def test_send(self):
-        oan_ids = [UUID(""), UUID()]
-        message = TestMessage.create()
-        OANNetworkServer.send(oan_ids, message)
-        mock_dispatcher
-
-
-    def test_max_concurrent(self):
-        pass
-
 
 class OANNetworkServer:
+    """
+    The NetworkServer should always be connected (have an open socket) to
+    X number of servers.
 
+    """
     _auth = None
 
-    """ tuple ((host, port), [messages]) """
-    _out = {}
-
-    """ connected bridges """
     _bridges = {}
 
-    """ max concurrent open bridges """
-    _concurrent_bridges = 10
+    _connection_attempts = 0
 
     @staticmethod
-    def send(oan_ids, message):
-
-        for oan_id in oan_ids:
-            log.debug("OANNetworkServer: oan_id: %s, message: %s" % (oan_id, str(message)))
-            node = node_manager.get_node(oan_id)
-            if node is not None:
-                if node.is_blocked() and OANNetworkServer._auth.blocked:
-                    self._relay_to_node(oan_id, message)
-                else:
-                    self._send_to_node(node, message)
-            else:
-                log.info("OANNetworkServer:Error node is missing %s" % oan_id)
-
+    def init(auth):
+        OANNetworkServer._auth = auth
 
     @staticmethod
-    def connect(host, port, auth):
-        bridge = OANBridge(host, port, auth)
-        bridge.connect_callback = OANNetworkServer.bridge_connected
-        bridge.message_callback = OANNetworkServer.bridge_message
-        bridge.close_callback = OANNetworkServer.bridge_closed
-        bridge.error_callback = OANNetworkServer.bridge_error
-        bridge.connect()
-
-    @staticmethod
-    def listen(auth):
-        listen = OANListen(auth)
-        listen.accept_callback = OANNetworkServer.bridge_accepted
+    def listen():
+        listen = OANListen(OANNetworkServer._auth)
+        listen.accept_callback = OANNetworkServer._bridge_accepted
         listen.start()
 
     @staticmethod
-    def bridge_connected(bridge, auth):
-        log.info("OANNetworkServer: bridge_connected %s" % bridge)
+    def connect(max_connections = 100):
+        if OANNetworkServer._required_bridges() < 0:
+            OANNetworkServer._close_excess_bridges()
+        else:
+            for node in OANNodeManager.get_nodes():
+                if node._oan_id not in OANNetworkServer._bridges:
+                    OANNetworkServer._connect(node._host, node._port)
+                    OANNetworkServer._connection_attempts += 1
+                if OANNetworkServer._required_bridges() < 0:
+                    return
 
-        node = node_manager().create_node(
+    @staticmethod
+    def send(message):
+        OANNetworkServer.connect()
+        for bridge in OANNetworkServer._bridges:
+            log.debug("OANNetworkServer:send oan_id: %s, message: %s" % (
+                bridge.node._oan_id, str(message))
+            )
+
+            bridge.node.add_message_statistic(
+                message.__class__.__name__, sent_time = True
+            )
+            bridge.send([message])
+
+    @staticmethod
+    def _required_bridges(max_connections = 50):
+        return (max_connections
+                - len(OANNetworkServer._bridges)
+                - OANNetworkServer._connection_attempts)
+
+    @staticmethod
+    def _connect(host, port):
+        bridge = OANBridge(host, port, OANNetworkServer._auth)
+        bridge.connect_callback = OANNetworkServer._bridge_connected
+        bridge.message_callback = OANNetworkServer._bridge_message
+        bridge.close_callback = OANNetworkServer._bridge_closed
+        bridge.error_callback = OANNetworkServer._bridge_error
+        bridge.connect()
+
+    @staticmethod
+    def _bridge_connected(bridge, auth):
+        node = OANNodeManager.create_node(
             UUID(auth.oan_id), auth.host, auth.port, auth.blocked
         )
         node.touch()
         bridge.node = node
-        bridge.out_queue = node.out_queue
+        OANNetworkServer._bridges[node._oan_id] = bridge
+        OANNetworkServer._connection_attempts -= 1
+        log.info("OANNetworkServer:_bridge_connected %s" % bridge)
 
     @staticmethod
-    def bridge_closed(bridge):
-        log.info("OANNetworkServer: bridge_closed %s" % bridge)
-        if bridge.node is not None:
-            bridge.node.update(state = OANNetworkNodeState.DISCONNECTED)
-        pass
+    def _bridge_closed(bridge):
+        log.info("OANNetworkServer:_bridge_closed %s" % bridge)
+        if bridge.node:
+            del OANNetworkServer._bridges[bridge.node._oan_id]
+        OANNetworkServer._connection_attempts -= 1
+        OANNetworkServer.connect()
 
     @staticmethod
-    def bridge_error(bridge, exc_type, exc_value):
-        log.info("OANNetworkServer: bridge_error %s" % bridge)
-        pass
+    def _bridge_error(bridge, exc_type, exc_value):
+        log.info("OANNetworkServer:_bridge_error %s" % bridge)
+        #???OANNetworkServer._connection_attempts -= 1
 
     @staticmethod
-    def bridge_accepted(bridge):
-        log.info("OANNetworkServer: bridge_accepted %s" % bridge)
-        bridge.connect_callback = OANNetworkServer.bridge_connected
-        bridge.message_callback = OANNetworkServer.bridge_message
-        bridge.close_callback = OANNetworkServer.bridge_closed
-        bridge.error_callback = OANNetworkServer.bridge_error
-        pass
+    def _bridge_accepted(bridge):
+        log.info("OANNetworkServer:_bridge_accepted %s" % bridge)
+        bridge.connect_callback = OANNetworkServer._bridge_connected
+        bridge.message_callback = OANNetworkServer._bridge_message
+        bridge.close_callback = OANNetworkServer._bridge_closed
+        bridge.error_callback = OANNetworkServer._bridge_error
 
     @staticmethod
-    def bridge_message(bridge, message):
-        log.info("OANNetworkServer: bridge_message %s" % bridge)
-        dispatcher().execute(message)
-        pass
-
+    def _bridge_message(bridge, message):
+        log.info("OANNetworkServer:_bridge_message %s" % bridge)
+        message.execute()
 
 
 class OANNetworkWorker(OANThread):

@@ -68,25 +68,18 @@ class TestDeamonBase(OANTestCase):
     daemon = None
 
     def setUp(self):
-        self.remove_files()
+        self.init_files()
         self.daemon = TestDaemon(F_PID, stdout=F_OUT, stderr=F_ERR)
 
     def tearDown(self):
         """Stop deamon in case any test fails."""
         self.daemon.stop()
 
-    def remove_files(self):
-        if os.path.exists(F_DWN):
-            os.remove(F_DWN)
-
-        if os.path.exists(F_PID):
-            os.remove(F_PID)
-
-        if os.path.exists(F_OUT):
-            os.remove(F_OUT)
-
-        if os.path.exists(F_ERR):
-            os.remove(F_ERR)
+    def init_files(self):
+        open(F_DWN, "w").close()
+        open(F_PID, "w").close()
+        open(F_OUT, "w").close()
+        open(F_ERR, "w").close()
 
     def test_stopped_status(self):
         status = self.daemon.status()[0].strip()

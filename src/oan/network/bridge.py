@@ -76,6 +76,15 @@ class OANBridge(asyncore.dispatcher):
         self.close_callback = lambda bridge : None
         self.error_callback = lambda bridge, exc_type, exc_value: None
 
+    def __repr__(self):
+        repr = "%s:%s" % self._remote_addr
+        if self.node:
+            repr += "(%s)" % self.node._oan_id
+        return repr
+
+    def __str__(self):
+        return self.__repr__()
+
     def connect(self):
         """
         Connect to a remote host and establish the bridge.
@@ -139,7 +148,7 @@ class OANBridge(asyncore.dispatcher):
 
         """
         is_readable = not self._closing
-        log.info("OANBridge %s: readable: [%s]" % (repr(self._remote_addr), is_readable))
+        log.info("OANBridge:readable: [%s][%s]" % (repr(self._remote_addr), is_readable))
         return is_readable
 
     def writable(self):
@@ -151,7 +160,7 @@ class OANBridge(asyncore.dispatcher):
         """
 
         is_writable = len(self._out_buffer) > 0
-        log.info("OANBridge %s: writable: [%s]" % (repr(self._remote_addr), is_writable))
+        log.info("OANBridge:writable: [%s][%s]" % (repr(self._remote_addr), is_writable))
         return is_writable
 
     def handle_read(self):
@@ -165,9 +174,6 @@ class OANBridge(asyncore.dispatcher):
         """
         log.info("OANBridge:handle_read")
         data = self.recv(1024)
-        if self.node:
-            log.info("OANBridge:handle_read IN[%s][%s]" % (
-                self.node.oan_id, data))
 
         if data:
             self._read_state = 2
@@ -178,7 +184,9 @@ class OANBridge(asyncore.dispatcher):
                 cmd = self._in_buffer[:pos]
                 self._in_buffer = self._in_buffer[pos+1:]
 
-                log.info("OANBridge:handle_read CMD[%s]" % cmd)
+                log.info("OANBridge:handle_read: [%s] CMD[%s]" % (
+                    repr(self._remote_addr), cmd)
+                )
                 message = self._decode_message(cmd)
                 if isinstance(message, OANBridgeAuth):
                     self._auth_message(message)
@@ -195,9 +203,9 @@ class OANBridge(asyncore.dispatcher):
 
         """
         sent = asyncore.dispatcher.send(self, self._out_buffer)
-        if self.node:
-            log.info("OANBridge:handle_write OUT[%s][%s]" % (
-                     self.node.oan_id, self._out_buffer[:sent]))
+        log.info("OANBridge:handle_write: [%s][%s]" % (
+            repr(self._remote_addr), self._out_buffer[:sent])
+        )
 
         self._out_buffer = self._out_buffer[sent:]
         self._check_close()
