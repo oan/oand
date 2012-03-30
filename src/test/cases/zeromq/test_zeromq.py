@@ -126,7 +126,7 @@ class TestDaemon(OANDaemonBase):
         # just create one context
         context = zmq.Context()
         ZeroSever.start(context, self.port)
-        ZeroClient.start(context, range(8000, 8100))
+        ZeroClient.start(context, range(8000, 8050))
 
         try:
             OANSignalHandler.wait()
@@ -150,7 +150,7 @@ class TestZeroMqServer(OANTestCase):
 
     def test_multi_deamon(self):
         daemon=[]
-        for port in range(8000,8100):
+        for port in range(8000,8050):
             d = TestDaemon(F_PID % port, stdout=F_OUT % port, stderr=F_ERR % port)
             d.port = port
             d.start()
