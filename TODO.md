@@ -82,6 +82,22 @@ nodes.
 1 node kommunicerar med 1 andra noder i 10 annan building block
 1 node kommunicerar med 1 andra noder i 10 annan world block
 
+1000*1000*1000=1 000 000 000 varje node kräver 3000 sockets och 3 hopp
+100*100*100*100*10=1 000 000 000 varje node kräver 410 sockets och 5 hopp
+
+1000*1000*1000=1 000 000 000 varje node kräver 9 sockets och 50 hopp
+1000*1000*1000=1 000 000 000 varje node kräver 9 sockets och 50 hopp
+
+100 = 20 hopp och 3 sockets
+100 = 16 hopp och 3.7599 sockets
+100 = 8 hopp och 7.5 sockets
+100 = 4 hopp och 15 sockets
+100 = 2 hopp och 30 sockets
+10  = 2 hopp och 3 sockets
+
+100 = x Något 3 sockets
+100/3 = x
+
 VERSION 0.3
 ===========
 
