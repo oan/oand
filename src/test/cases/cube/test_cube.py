@@ -40,21 +40,28 @@ class MessageConnect(Message):
             c_list = node.x_list[x_pos]
 
             if len(c_list) < 4:
-                log.info("1 %s" % x_pos )
+                log.info("1 x: %s y: %s" % (x_pos, node.y_pos) )
                 c_list.append(self.origin_url)
 
-                msg = MessageGiveSlotid((x_pos, 0, 0))
+                msg = MessageGiveSlotid((x_pos, node.y_pos, 0))
                 node.send(self.origin_url, msg)
                 return
 
         if len(node.x_list) == 3:
-            log.info("2 %s" % len(node.x_list) )
-            msg = MessageConnectOnThisInstead(node.y_list[node.y_pos + 1])
-            node.send(self.origin_url, msg)
+            if len(node.y_list) <= node.y_pos + 1:
+                log.info("2 %s" % len(node.x_list) )
+                node.y_list.append([self.origin_url])
+                msg = MessageGiveSlotid((0, len(node.y_list)-1, 0))
+                node.send(self.origin_url, msg)
+            else:
+                log.info("3 x:%s y:%s" % (len(node.x_list), len(node.y_list) ))
+                msg = MessageConnectOnThisInstead(node.y_list[node.y_pos + 1][0])
+                node.send(self.origin_url, msg)
+
         else:
-            log.info("3 %s" % len(node.x_list) )
+            log.info("4 %s" % len(node.x_list) )
             node.x_list.append([self.origin_url])
-            msg = MessageGiveSlotid((len(node.x_list)-1, 0, 0))
+            msg = MessageGiveSlotid((len(node.x_list)-1, node.y_pos, 0))
             node.send(self.origin_url, msg)
 
 
@@ -67,26 +74,42 @@ class MessageGiveSlotid(Message):
     def execute(self, node):
         node.slot_id = self.slot_id
         node.x_pos, node.y_pos, node.z_pos = node.slot_id
+        node.send(self.origin_url, MessageSnapshot(self.slot_id, "oan://node-list/all"))
 
 
 class MessageConnectOnThisInstead(Message):
     bind_url = None
     def __init__(self, bind_url):
         self.bind_url = bind_url
+        log.info("connect instead %s" % self.bind_url)
 
     def execute(self, node):
         node.send(self.bind_url, MessageConnect())
 
 
 class MessageSnapshot(Message):
+    origin_slot_id = None
     url = None
 
-    def __init__(self, url):
+    def __init__(self, slot_id, url):
+        self.origin_slot_id = slot_id
         self.url = url
 
     def execute(self, node):
         if self.url == "oan://node-list/all":
-            msg = MessageResource((node.x_list, node.y_list, node.z_list))
+            x_pos, y_pos, z_pos = self.origin_slot_id
+            if y_pos == node.y_pos:
+                x_list = node.x_list
+            else:
+                x_list = [[self.origin_url]]
+
+            if x_pos == node.x_pos:
+                y_list = node.y_list
+            else:
+                y_list = [[self.origin_url]]
+
+            z_list = [[]]
+            msg = MessageResource((x_list, y_list, z_list))
             node.send(self.origin_url, msg)
 
 
@@ -148,9 +171,9 @@ class TestOANCube(OANTestCase):
         pass
 
     def connect_node(self, node_id, slot_id, test_list):
+        log.info("Create %s with slot_id %s" % (node_id, slot_id))
         new_node = Node(node_id)
         new_node.send('001', MessageConnect())
-        new_node.send('001', MessageSnapshot("oan://node-list/all"))
         self.assertEqual(new_node.slot_id, slot_id)
         self.assertEqual(new_node.x_list, self.get_x_list(slot_id, test_list))
         #self.assertEqual(new_node.y_list, self.get_y_list(test_list))
@@ -159,7 +182,7 @@ class TestOANCube(OANTestCase):
         x, y, z = slot_id
 
         new_x_list = []
-        for c_list in test_list[y*3:3]:
+        for c_list in test_list[y*3:y*3+3]:
             new_c_list = []
             for node in c_list:
                 if node != "___":
