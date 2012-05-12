@@ -1,102 +1,333 @@
 #!/usr/bin/env python
-'''
+"""
 Test cases for oan.cube
 
-'''
+OAN Cube Rules
+* All nodes will push their node lists to their bffs every hour.
+  So all nodes can see if any node has expired, and a slot is free.
+* When a new node should be assigned a slot, an empty slot is primary taken
+  and if none are free an expired slot will be assigned.
+* All new slots are choosen from the lowest possible x, y, z coordinate.
+* If more then x nodes exist in the same slot, the node with the highest
+  node_id (uuid) has to move.
 
-__author__ = "martin.palmer.develop@gmail.com"
+"""
+
+__author__ = "martin@amivono.com, daniel@amivono.com"
 __copyright__ = "Copyright 2011, Amivono AB"
-__maintainer__ = "martin.palmer.develop@gmail.com"
+__maintainer__ = "martin@amivono.com, daniel@amivono.com"
 __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
+
 
 from test.test_case import OANTestCase
 from oan.util import log
 
 
-'''
-# * Alla noder skickar sin node lista till sina 3 kompisar varje timme.
-#   Pa det sattet sa far du reda pa om nagon node ar dad, och en slot har blivit
-#   ledig.
-# * Nar en ny slot ska tilldelas sa tas i farsta hand en slot som ar helt tom,
-#   och i andra hand en slot som ar "dad" och i tredje hand pa annan niva.
-# * Alla nya slottar valjs ifran lagsta x,y,z kordinat.
-# * Alla nya slottar valjs ifran den y,z list som har lagst antal nodes.
-# * Om tva noder har samma slot, far den som har lagst uuid behalla slotten.
-# * Valj ut tre noder per x/y/z list att kommunicera med.
-'''
 class Connections:
+    """Roughly emulate a network and time."""
+
+    """
+    Holdes a reference to all nodes on the emulated network.
+    key   - a bind url ie. "001"
+    value - reference to node instance.
+
+    """
     all = {}
 
     @staticmethod
     def trigger_5minute_cron():
+        """
+        Emulates a cron job that is executed every 5 minute.
+
+        Naturally a unit test don't have any scheduler/cron, so this function
+        should be called manually.
+
+        """
         for node in Connections.all.itervalues():
             node.trigger_5minute_cron()
 
 
-class Message:
+class Counter:
+    """
+    Statistics for things done by and to a node.
+
+    receive        - received messages
+    push           - pushed messages
+    send           - sent messages
+    bff_connect    - attempts to reconnect to all bff nodes
+    socket_connect - attempts to connect to a socket
+
+    """
+    receive = None
+    push = None
+    send = None
+    bff_connect = None
+    socket_connect = None
+
+    def __init__(self):
+        self.receive = 0
+        self.push = 0
+        self.send = 0
+        self.bff_connect = 0
+        self.socket_connect = 0
+
+    def __str__(self):
+        return ("receive:{0:>4}, push:{1:>4}, send:{2:>4}, " +
+               "bff_connect:{3:>4}, socket_connect:{4:>4}").format(
+                    self.receive, self.push, self.send,
+                    self.bff_connect, self.socket_connect
+                )
+
+    def __iadd__(self, obj):
+        if isinstance(obj, Counter):
+            self.receive += obj.receive
+            self.push += obj.push
+            self.send += obj.send
+            self.bff_connect += obj.bff_connect
+            self.socket_connect += obj.socket_connect
+            return self
+        else:
+            raise TypeError("Not a Counter object.")
+
+
+class SlotId:
+    """
+    The position of a slot in the cube.
+
+    """
+    x = None
+    y = None
+    z = None
+
+    def __init__(self, x = 0 , y = 0 , z = 0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def id(self):
+        return (self.x, self.y ,self.z)
+
+class NodeList:
+    """
+    List of nodes in x, y, z direction.
+
+    """
+    s = None
+    x = None
+    y = None
+    z = None
+
+    def __init__(self):
+        self.s = []
+        self.x = [self.s]
+        self.y = [self.s]
+        self.z = [self.s]
+
+
+class Node():
+    """
+    A computer node.
+
+    """
+
+    # Bind address to this node.
+    bind_url = None
+
+    # Coordinates/slot_id of the slot assigned to this node.
+    slot = None
+
+    # Lists of nodes in x, y, z direction.
+    node_list = None
+
+    # Emulation of sockets/nodes this node is connected to.
+    sockets = None
+
+    # Statistic counters.
+    counter = None
+
+    def __init__(self, bind_url):
+        self.bind_url = bind_url
+        self.slot = SlotId()
+        self.node_list = NodeList()
+        self.node_list.s.append(bind_url)
+
+        self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
+        self.counter = Counter()
+
+        # Start listening for connections.
+        Connections.all[bind_url] = self
+
+    def trigger_5minute_cron(self):
+        """
+        Called every 5 minute.
+
+        Reconnect if nodes has been disconnected, or new node are online.
+
+        """
+        self.connect_to_bff_nodes()
+
+    def connect_to_bff_nodes(self):
+        """
+        Connect to all bff nodes in s, x, y, z direction.
+
+        * Each node will communicate with all other nodes in the same slot.
+        * Each node will communicate with one node in the the nearest slot forward
+          and backward in x, y and z direction.
+        * Each node will communicate with one node in a slot that is faraway forward
+          and backward in x, y and z direction. Faraway is rougly defined as
+          x_pos + (max_x_size/2).
+
+        """
+        self.counter.bff_connect += 1
+        old_sockets = { key : set(value) for key, value in self.sockets.items()}
+        self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
+        self._connect_to_all_in_current_slot("c")
+
+        #self._connect_to_previous_slot(self.slot.x, self.node_list.x, "x")
+        self._connect_to_next_slot(self.slot.x, self.node_list.x, "x")
+        #self._connect_to_faraway_previous_slot(self.slot.x, self.node_list.x, "x")
+        self._connect_to_faraway_slot(self.slot.x, self.node_list.x, "x")
+
+        #self._connect_to_previous_slot(self.slot.y, self.node_list.y, "y")
+        self._connect_to_next_slot(self.slot.y, self.node_list.y, "y")
+        #self._connect_to_faraway_previous_slot(self.slot.y, self.node_list.y, "y")
+        self._connect_to_faraway_slot(self.slot.y, self.node_list.y, "y")
+
+        new_sockets = { key:set(value) for key, value in self.sockets.items()}
+        new_connections =  {key:new_sockets[key] - old_sockets[key] for key, value in new_sockets.items()}
+        if new_connections:
+            log.info(self.bind_url + " Connect to bff nodes %s" % new_connections)
+            log.info(self.bind_url + " is now connected to %s" % self.sockets)
+
+    def _connect_to_all_in_current_slot(self, direction):
+        """Connect to all nodes in current slot."""
+        for bind_url in self.node_list.x[self.slot.x]:
+            self._connect_socket(bind_url, direction)
+
+    def _connect_to_next_slot(self, pos, local_list, direction):
+        """Connect to the next slot, the slot after current slot."""
+        if pos >= len(local_list)-1:
+            # If current slot is the last slot, connect to first slot,
+            if pos != 0:
+                if len(local_list[0]) > 0:
+                    self._connect_socket(local_list[0][0], direction)
+        elif pos + 1 <= len(local_list)-1:
+            # Connect to next node if it exists.
+            self._connect_socket(local_list[pos + 1][0], direction)
+
+    def _connect_to_faraway_slot(self, pos, local_list, direction):
+        """Connect to a faraway slot."""
+        # TODO
+        return
+        local_list_middle = (len(local_list)/2)
+        q_far = pos + local_list_middle
+
+        if q_far >= len(local_list):
+            q_far -= len(local_list)
+
+        if q_far in local_list:
+            self._connect_socket(local_list[q_far][0], direction)
+
+    def _connect_socket(self, bind_url, direction):
+        if bind_url != self.bind_url and not self._is_already_connected(bind_url):
+            self.counter.socket_connect += 1
+            log.info(self.bind_url + " Connect to socket: %s to %s on %s-list" % (self.bind_url, bind_url, direction))
+            self.sockets[direction].append(bind_url)
+
+            #if self.bind_url not in Connections.all[bind_url].sockets[direction]:
+            #    Connections.all[bind_url].sockets[direction].append(self.bind_url)
+
+    def _is_already_connected(self, bind_url):
+        for direction in self.sockets:
+            if bind_url in self.sockets[direction]:
+                return True
+        return False
+
+
+    def send(self, url, message):
+        self.counter.send += 1
+        log.info("Send: %s from %s to %s " % (message.__class__.__name__, self.bind_url, Connections.all[url].bind_url))
+        message.origin_url = self.bind_url
+        Connections.all[url].receive(message)
+
+    def push(self, direction, message):
+        self.counter.push += 1
+        for bind_url in self.sockets[direction]:
+            self.send(bind_url, message)
+
+    def receive(self, message):
+        self.counter.receive += 1
+        message.execute(self)
+
+
+
+
+class Message(object):
+    """Base class for all Messages."""
+
+    """
+    The bind url for the node that sends the message.
+
+    """
     origin_url = None
-    destination_slot_id = None
 
 
 class MessageConnect(Message):
     def execute(self, node):
-        #@todo: What is added to current pos in x_list should also be added to current pos y_list.
-
         c_max_list = 4
-        if len(node.y_list[len(node.y_list)-1]) < c_max_list:
-            x_max_size = max(3, len(node.y_list)-1)
+        if len(node.node_list.y[len(node.node_list.y)-1]) < c_max_list:
+            x_max_size = max(3, len(node.node_list.y)-1)
         else:
-            x_max_size = max(3, len(node.y_list))
+            x_max_size = max(3, len(node.node_list.y))
         log.info("X-max-size: %s, x: %s, y: %s" % (
-                 x_max_size, len(node.x_list), len(node.y_list)))
+                 x_max_size, len(node.node_list.x), len(node.node_list.y)))
 
-        for x_pos in xrange(0, len(node.x_list)):
-            c_list = node.x_list[x_pos]
+        for x_pos in xrange(0, len(node.node_list.x)):
+            c_list = node.node_list.x[x_pos]
 
             if len(c_list) < c_max_list:
-                log.info("Step: 1 x: %s y: %s" % (x_pos, node.y_pos) )
+                log.info("Step: 1 x: %s y: %s" % (x_pos, node.slot.y) )
                 c_list.append(self.origin_url)
 
-                msg = MessageGiveSlotid((x_pos, node.y_pos, 0))
+                msg = MessageGiveSlotid(SlotId(x_pos, node.slot.y, 0))
                 node.send(self.origin_url, msg)
-                node.push('c', MessageGiveNodeList('x', node.x_list))
-                node.push('c', MessageGiveNodeList('y', node.y_list))
-                node.push('c', MessageGiveNodeList('z', node.z_list))
+                node.push('c', MessageGiveNodeList('x', node.node_list.x))
+                node.push('c', MessageGiveNodeList('y', node.node_list.y))
+                node.push('c', MessageGiveNodeList('z', node.node_list.z))
                 return
 
-        if len(node.x_list) == x_max_size:
-            if len(node.y_list) <= node.y_pos + 1:
-                log.info("Step: 2 %s" % len(node.x_list) )
-                node.y_list.append([self.origin_url])
-                msg = MessageGiveSlotid((0, len(node.y_list)-1, 0))
+        if len(node.node_list.x) == x_max_size:
+            if len(node.node_list.y) <= node.slot.y + 1:
+                log.info("Step: 2 %s" % len(node.node_list.x) )
+                node.node_list.y.append([self.origin_url])
+                msg = MessageGiveSlotid(SlotId(0, len(node.node_list.y)-1, 0))
                 node.send(self.origin_url, msg)
-                node.push('y', MessageGiveNodeList('y', node.y_list))
-                node.push('c', MessageGiveNodeList('y', node.y_list))
+                node.push('y', MessageGiveNodeList('y', node.node_list.y))
+                node.push('c', MessageGiveNodeList('y', node.node_list.y))
             else:
-                log.info("Step: 3 x:%s y:%s" % (len(node.x_list), len(node.y_list) ))
-                msg = MessageRedirect(node.y_list[node.y_pos + 1][0], self)
+                log.info("Step: 3 x:%s y:%s" % (len(node.node_list.x), len(node.node_list.y) ))
+                msg = MessageRedirect(node.node_list.y[node.slot.y + 1][0], self)
                 node.send(self.origin_url, msg)
         else:
-            log.info("Step: 4 %s" % len(node.x_list) )
-            node.x_list.append([self.origin_url])
-            msg = MessageGiveSlotid((len(node.x_list)-1, node.y_pos, 0))
+            log.info("Step: 4 %s" % len(node.node_list.x) )
+            node.node_list.x.append([self.origin_url])
+            msg = MessageGiveSlotid(SlotId(len(node.node_list.x)-1, node.slot.y, 0))
             node.send(self.origin_url, msg)
-            node.push('x', MessageGiveNodeList('x', node.x_list))
-            node.push('c', MessageGiveNodeList('x', node.x_list))
+            node.push('x', MessageGiveNodeList('x', node.node_list.x))
+            node.push('c', MessageGiveNodeList('x', node.node_list.x))
 
 
 class MessageGiveSlotid(Message):
-    slot_id = None
+    slot = None
 
-    def __init__(self, slot_id):
-        self.slot_id = slot_id
+    def __init__(self, slot):
+        self.slot = slot
 
     def execute(self, node):
-        node.slot_id = self.slot_id
-        node.x_pos, node.y_pos, node.z_pos = node.slot_id
-        node.send(self.origin_url, MessageSnapshot(self.slot_id, "oan://node-list/all"))
+        node.slot = self.slot
+        node.send(self.origin_url, MessageSnapshot(self.slot, "oan://node-list/all"))
 
 
 class MessageRedirect(Message):
@@ -113,31 +344,31 @@ class MessageRedirect(Message):
 
 
 class MessageSnapshot(Message):
-    origin_slot_id = None
+    origin_slot = None
     url = None
 
-    def __init__(self, slot_id, url):
-        self.origin_slot_id = slot_id
+    def __init__(self, slot, url):
+        self.origin_slot = slot
         self.url = url
 
     def execute(self, node):
         if self.url == "oan://node-list/all":
-            x_pos, y_pos, z_pos = self.origin_slot_id
-            if y_pos == node.y_pos:
-                x_list = node.x_list
+            x_pos, y_pos, z_pos = self.origin_slot.id()
+            if y_pos == node.slot.y:
+                x_list = node.node_list.x
             else:
                 x_list = []
                 for pos in xrange(0, x_pos):
                     x_list.append([])
-                x_list.append(node.y_list[y_pos])
+                x_list.append(node.node_list.y[y_pos])
 
-            if x_pos == node.x_pos:
-                y_list = node.y_list
+            if x_pos == node.slot.x:
+                y_list = node.node_list.y
             else:
                 y_list = []
                 for pos in xrange(0, y_pos):
                     y_list.append([])
-                y_list.append(node.x_list[x_pos])
+                y_list.append(node.node_list.x[x_pos])
 
             z_list = [[]]
 
@@ -146,32 +377,31 @@ class MessageSnapshot(Message):
 
 
 class MessageGiveSnapshotResource(Message):
-    x_list = None
-    y_list = None
-    z_list = None
+    node_list= None
 
     def __init__(self, x, y, z):
-        self.x_list = x[:]
-        self.y_list = y[:]
-        self.z_list = z[:]
+        self.node_list = NodeList()
+        self.node_list.x = x[:]
+        self.node_list.y = y[:]
+        self.node_list.z = z[:]
 
     def execute(self, node):
-        node.x_list = self.x_list
-        node.y_list = self.y_list
-        node.z_list = self.z_list
+        node.node_list.x = self.node_list.x
+        node.node_list.y = self.node_list.y
+        node.node_list.z = self.node_list.z
 
         #todo self.sync_x_list(node)
         self.sync_y_list(node)
 
         node.connect_to_bff_nodes()
 
-        node.push('x', MessageGiveNodeList('x', node.x_list))
-        node.push('y', MessageGiveNodeList('y', node.y_list))
-        node.push('z', MessageGiveNodeList('z', node.z_list))
+        node.push('x', MessageGiveNodeList('x', node.node_list.x))
+        node.push('y', MessageGiveNodeList('y', node.node_list.y))
+        node.push('z', MessageGiveNodeList('z', node.node_list.z))
 
-        node.push('c', MessageGiveNodeList('x', node.x_list))
-        node.push('c', MessageGiveNodeList('y', node.y_list))
-        node.push('c', MessageGiveNodeList('z', node.z_list))
+        node.push('c', MessageGiveNodeList('x', node.node_list.x))
+        node.push('c', MessageGiveNodeList('y', node.node_list.y))
+        node.push('c', MessageGiveNodeList('z', node.node_list.z))
 
     def empty_list(self, node, local_list):
         """Check if only one slot is occupied in y-list"""
@@ -181,51 +411,51 @@ class MessageGiveSnapshotResource(Message):
         return True
 
     def sync_y_list(self, node):
-        if self.empty_list(node, node.y_list) and node.y_pos != 0:
+        if self.empty_list(node, node.node_list.y) and node.slot.y != 0:
             log.info("sync_y_list")
 
-            left_origin_url = node.x_list[node.x_pos - 1][0]
-            msg = MessageGetYList(node.x_pos, node.y_pos)
+            left_origin_url = node.node_list.x[node.slot.x - 1][0]
+            msg = MessageGetYList(node.slot.x, node.slot.y)
             node.send(left_origin_url, msg)
 
 
 class MessageGetYList(Message):
-    x_pos = None
-    y_pos = None
+    slot = None
 
     def __init__(self, x_pos, y_pos):
-        self.x_pos = x_pos
-        self.y_pos = y_pos
+        self.slot = SlotId()
+        self.slot.x = x_pos
+        self.slot.y = y_pos
 
     def execute(self, node):
         log.info("MessageGetYList slot:%s x:%s y:%s x_pos %s of %s" % (
                  node.bind_url,
-                 node.x_pos, node.y_pos,
-                 self.x_pos, len(node.x_list)))
-        log.info(node.x_list)
-        if self.x_pos == node.x_pos and self.y_pos > node.y_pos:
+                 node.slot.x, node.slot.y,
+                 self.slot.x, len(node.node_list.x)))
+        log.info(node.node_list.x)
+        if self.slot.x == node.slot.x and self.slot.y > node.slot.y:
             log.info("MessageGetYList step 1 to %s" % self.origin_url)
-            node.send(self.origin_url, MessageGiveNodeList('y', node.y_list))
-        elif (len(node.x_list)-1 >= self.x_pos and
-              len(node.x_list[self.x_pos]) > 0 and
-              self.y_pos > node.y_pos):
-            log.info("MessageGetYList step 2 to %s" % node.x_list[self.x_pos][0])
-            msg = MessageRedirect(node.x_list[self.x_pos][0], self)
+            node.send(self.origin_url, MessageGiveNodeList('y', node.node_list.y))
+        elif (len(node.node_list.x)-1 >= self.slot.x and
+              len(node.node_list.x[self.slot.x]) > 0 and
+              self.slot.y > node.slot.y):
+            log.info("MessageGetYList step 2 to %s" % node.node_list.x[self.slot.x][0])
+            msg = MessageRedirect(node.node_list.x[self.slot.x][0], self)
             node.send(self.origin_url, msg)
-        elif self.y_pos >= node.y_pos:
+        elif self.slot.y >= node.slot.y:
             destination_url = None
-            for y in reversed(xrange(node.y_pos)):
+            for y in reversed(xrange(node.slot.y)):
                 log.info("y %s" % y)
-                if len(node.y_list[y]) > 0:
-                    destination_url = node.y_list[y][0]
+                if len(node.node_list.y[y]) > 0:
+                    destination_url = node.node_list.y[y][0]
                     log.info("hit 1")
                     break
 
             if not destination_url:
-                for x in reversed(xrange(node.x_pos)):
+                for x in reversed(xrange(node.slot.x)):
                     log.info("x %s" % x)
-                    if len(node.x_list[x]) > 0:
-                        destination_url = node.x_list[x][0]
+                    if len(node.node_list.x[x]) > 0:
+                        destination_url = node.node_list.x[x][0]
                         log.info("hit 2")
                         break
             log.info("MessageGetYList step 3 to %s" % destination_url)
@@ -245,11 +475,11 @@ class MessageGiveNodeList(Message):
     def execute(self, node):
         log.info("On %s Merge list %s" % (node.bind_url, self.direction))
         if self.direction == 'x':
-            changed = self.merge_node_list(node.x_list, self.remote_list)
+            changed = self.merge_node_list(node.node_list.x, self.remote_list)
         elif self.direction == 'y':
-            changed = self.merge_node_list(node.y_list, self.remote_list)
+            changed = self.merge_node_list(node.node_list.y, self.remote_list)
         elif self.direction == 'z':
-            changed = self.merge_node_list(node.z_list, self.remote_list)
+            changed = self.merge_node_list(node.node_list.z, self.remote_list)
 
         # Forward new synced list to all bff nodes.
         if changed:
@@ -275,159 +505,15 @@ class MessageGiveNodeList(Message):
         log.info("after %s" % local_list)
         return changed
 
-class MessageGetSlotNode(): pass
 
+class MessageGetSlotNode(): pass
 class MessagePing(): pass
 class MessageHeartbeat(): pass
 class MessageGetValue(): pass
 class MessageSetValue(): pass
 
 
-class Counter:
-    receive = None
-    push = None
-    send = None
-    bff_connect = None
-    socket_connect = None
 
-    def __init__(self):
-        self.receive = 0
-        self.push = 0
-        self.send = 0
-        self.bff_connect = 0
-        self.socket_connect = 0
-
-    def __str__(self):
-        return ("receive:{0:>4}, push:{1:>4}, send:{2:>4}, " +
-               "bff_connect:{3:>4}, socket_connect:{4:>4}").format(
-                    self.receive,
-                    self.push,
-                    self.send,
-                    self.bff_connect,
-                    self.socket_connect
-                )
-    def __iadd__(self, obj):
-        if isinstance(obj, Counter):
-            self.receive += obj.receive
-            self.push += obj.push
-            self.send += obj.send
-            self.bff_connect += obj.bff_connect
-            self.socket_connect += obj.socket_connect
-            return self
-        else:
-            raise TypeError("Not a Counter object.")
-
-
-class Node():
-    bind_url = None
-    slot_id = None
-    c_list = None
-    x_list = None
-    y_list = None
-    z_list = None
-    x_pos = None
-    y_pos = None
-    z_pos = None
-    sockets = None
-    counter = None
-
-    def __init__(self, bind_url):
-        self.bind_url = bind_url
-        self.slot_id = (0, 0, 0)
-        self.x_pos = 0
-        self.y_pos = 0
-        self.z_pos = 0
-        self.c_list = [bind_url]
-        self.x_list = [self.c_list]
-        self.y_list = [self.c_list]
-        self.z_list = [self.c_list]
-        self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
-        self.counter = Counter()
-
-        Connections.all[bind_url] = self
-
-    def trigger_5minute_cron(self):
-        # Reconnect if nodes has been disconnected, or new node are oline.
-        self.connect_to_bff_nodes()
-
-    def connect_to_bff_nodes(self):
-        self.counter.bff_connect += 1
-        old_sockets = { key : set(value) for key, value in self.sockets.items()}
-        self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
-        self._connect_to_all_in_current_slot("c")
-
-        self._connect_to_next_slot(self.x_pos, self.x_list, "x")
-        # TODO
-        #self._connect_to_faraway_slot(self.x_pos, self.x_list, "x")
-
-        self._connect_to_next_slot(self.y_pos, self.y_list, "y")
-        # TODO
-        #self._connect_to_faraway_slot(self.y_pos, self.y_list, "y")
-
-        new_sockets = { key:set(value) for key, value in self.sockets.items()}
-        new_connections =  {key:new_sockets[key] - old_sockets[key] for key, value in new_sockets.items()}
-        if new_connections:
-            log.info(self.bind_url + " Connect to bff nodes %s" % new_connections)
-            log.info(self.bind_url + " is now connected to %s" % self.sockets)
-
-    def _connect_to_all_in_current_slot(self, direction):
-        """Connect to all nodes in current slot."""
-        for bind_url in self.x_list[self.x_pos]:
-            self._connect_socket(bind_url, direction)
-
-    def _connect_to_next_slot(self, pos, local_list, direction):
-        """Connect to the next slot, the slot after current slot."""
-        if pos >= len(local_list)-1:
-            # If current slot is the last slot, connect to first slot,
-            if pos != 0:
-                if len(local_list[0]) > 0:
-                    self._connect_socket(local_list[0][0], direction)
-        elif pos + 1 <= len(local_list)-1:
-            # Connect to next node if it exists.
-            self._connect_socket(local_list[pos + 1][0], direction)
-
-    def _connect_to_faraway_slot(self, pos, local_list, direction):
-        """Connect to a faraway slot."""
-        local_list_middle = (len(local_list)/2)
-        q_far = pos + local_list_middle
-
-        if q_far >= len(local_list):
-            q_far -= len(local_list)
-
-        if q_far in local_list:
-            self._connect_socket(local_list[q_far][0], direction)
-
-    def _connect_socket(self, bind_url, direction):
-        if bind_url != self.bind_url and bind_url not in self.sockets[direction]:
-            self.counter.socket_connect += 1
-            log.info(self.bind_url + " Connect to socket: %s to %s on %s-list" % (self.bind_url, bind_url, direction))
-            self.sockets[direction].append(bind_url)
-
-            #if self.bind_url not in Connections.all[bind_url].sockets[direction]:
-            #    Connections.all[bind_url].sockets[direction].append(self.bind_url)
-
-    def send(self, url, message):
-        self.counter.send += 1
-        log.info("Send: %s from %s to %s " % (message.__class__.__name__, self.bind_url, Connections.all[url].bind_url))
-        message.origin_url = self.bind_url
-        Connections.all[url].receive(message)
-
-    def push(self, direction, message):
-        self.counter.push += 1
-        for bind_url in self.sockets[direction]:
-            self.send(bind_url, message)
-
-    def receive(self, message):
-        self.counter.receive += 1
-        if (message.destination_slot_id == None or
-            message.destination_slot_id == self.slot_id):
-            message.execute(self)
-        else:
-            dst_x, dst_y, dst_z = message.destination_slot_id
-            if dst_x == self.x_pos:
-                self.send(self.y_list[dst_y][0], message)
-            elif dst_y == self.y_pos:
-                self.send(self.x_list[dst_x][0], message)
 
 
 class TestOANCube(OANTestCase):
@@ -439,19 +525,19 @@ class TestOANCube(OANTestCase):
     def connect_node(self, node_id, slot_id, test_list):
         log.info("======= %s =======================================================================================" % node_id)
         log.info("Create %s with slot_id %s" % (node_id, slot_id))
-        new_node = Node(node_id)
-        new_node.send('001', MessageConnect())
+        node = Node(node_id)
+        node.send('001', MessageConnect())
         Connections.trigger_5minute_cron()
 
-        x_max_size = max(3, len(Connections.all['001'].x_list))
+        x_max_size = max(3, len(Connections.all['001'].node_list.x))
 
-        self.assertEqual(new_node.slot_id, slot_id)
+        self.assertEqual(node.slot.id(), slot_id)
 
         x_list = self.get_x_list(slot_id, test_list, x_max_size)
-        self.assertEqual(new_node.x_list, x_list)
+        self.assertEqual(node.node_list.x, x_list)
 
         y_list = self.get_y_list(slot_id, test_list, x_max_size)
-        self.assertEqual(new_node.y_list, y_list)
+        self.assertEqual(node.node_list.y, y_list)
 
     def get_x_list(self, slot_id, test_list, width):
         x, y, z = slot_id
@@ -485,7 +571,7 @@ class TestOANCube(OANTestCase):
 
     def test_connection(self):
         first_node = Node('001')
-        self.assertEqual(first_node.slot_id, (0, 0, 0))
+        self.assertEqual(first_node.slot.id(), (0, 0, 0))
 
         self.connect_node("002", (0, 0, 0), [["001", "002", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
                                              ["___", "___", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
@@ -777,12 +863,12 @@ class TestOANCube(OANTestCase):
         log.info("=========================")
         for node_key in keys:
             node = Connections.all[node_key]
-            log.info("x-list: %s %s" % (node.bind_url, node.x_list))
+            log.info("x-list: %s %s" % (node.bind_url, node.node_list.x))
 
         log.info("=========================")
         for node_key in keys:
             node = Connections.all[node_key]
-            log.info("slot_id: %s %s" % (node.bind_url, node.slot_id))
+            log.info("slot_id: %s %s" % (node.bind_url, node.slot.id()))
 
         log.info("=========================")
         for node_key in keys:
