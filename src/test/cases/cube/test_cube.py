@@ -166,69 +166,9 @@ class Node():
         Reconnect if nodes has been disconnected, or new node are online.
 
         """
-        self.connect_to_bff_nodes()
+        self.bff_network = BFFNetworkBuilder(xxx)
+        self.bff_network.build()
 
-    def connect_to_bff_nodes(self):
-        """
-        Connect to all bff nodes in s, x, y, z direction.
-
-        * Each node will communicate with all other nodes in the same slot.
-        * Each node will communicate with one node in the the nearest slot forward
-          and backward in x, y and z direction.
-        * Each node will communicate with one node in a slot that is faraway forward
-          and backward in x, y and z direction. Faraway is rougly defined as
-          x_pos + (max_x_size/2).
-
-        """
-        self.counter.bff_connect += 1
-        old_sockets = { key : set(value) for key, value in self.sockets.items()}
-        self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
-        self._connect_to_all_in_current_slot("c")
-
-        #self._connect_to_previous_slot(self.pos.x, self.node_list.x, "x")
-        self._connect_to_next_slot(self.pos.x, self.node_list.x, "x")
-        #self._connect_to_faraway_previous_slot(self.pos.x, self.node_list.x, "x")
-        self._connect_to_faraway_slot(self.pos.x, self.node_list.x, "x")
-
-        #self._connect_to_previous_slot(self.pos.y, self.node_list.y, "y")
-        self._connect_to_next_slot(self.pos.y, self.node_list.y, "y")
-        #self._connect_to_faraway_previous_slot(self.pos.y, self.node_list.y, "y")
-        self._connect_to_faraway_slot(self.pos.y, self.node_list.y, "y")
-
-        new_sockets = { key:set(value) for key, value in self.sockets.items()}
-        new_connections =  {key:new_sockets[key] - old_sockets[key] for key, value in new_sockets.items()}
-        if new_connections:
-            log.info(self.bind_url + " Connect to bff nodes %s" % new_connections)
-            log.info(self.bind_url + " is now connected to %s" % self.sockets)
-
-    def _connect_to_all_in_current_slot(self, direction):
-        """Connect to all nodes in current slot."""
-        for bind_url in self.node_list.x[self.pos.x]:
-            self._connect_socket(bind_url, direction)
-
-    def _connect_to_next_slot(self, pos, local_list, direction):
-        """Connect to the next slot, the slot after current slot."""
-        if pos >= len(local_list)-1:
-            # If current slot is the last slot, connect to first slot,
-            if pos != 0:
-                if len(local_list[0]) > 0:
-                    self._connect_socket(local_list[0][0], direction)
-        elif pos + 1 <= len(local_list)-1:
-            # Connect to next node if it exists.
-            self._connect_socket(local_list[pos + 1][0], direction)
-
-    def _connect_to_faraway_slot(self, pos, local_list, direction):
-        """Connect to a faraway slot."""
-        # TODO
-        return
-        local_list_middle = (len(local_list)/2)
-        q_far = pos + local_list_middle
-
-        if q_far >= len(local_list):
-            q_far -= len(local_list)
-
-        if q_far in local_list:
-            self._connect_socket(local_list[q_far][0], direction)
 
     def _connect_socket(self, bind_url, direction):
         if bind_url != self.bind_url and not self._is_already_connected(bind_url):
@@ -996,20 +936,20 @@ class CubeView:
     y = None
     z = None
 
-    def __init__(self):
+    def __init__(self, block_pos):
         self.b = []
         self.x = BlockList()
-        self.x.set(0, self.b)
+        self.x.set(block_pos.x, self.b)
 
         self.y = BlockList()
-        self.y.set(0, self.b)
+        self.y.set(block_pos.y, self.b)
 
         self.z = BlockList()
-        self.z.set(0, self.b)
+        self.z.set(block_pos.z, self.b)
 
 class TestCubeView(OANTestCase):
     def test_cube_view_block_pos_0(self):
-        cube_view = CubeView()
+        cube_view = CubeView(BlockPosition())
         cube_view.b.append("000")
         self.assertEqual(cube_view.b, ["000"])
 
@@ -1029,162 +969,359 @@ class TestCubeView(OANTestCase):
         self.assertEqual(cube_view.z.get(0), ["000", "001", "002", "003"])
 
     # def test_cube_view_block_pos_2(self):
-    #     cube_view = CubeView()
+    #     cube_view = CubeView(BlockPosition())
     #     cube_view.set_block_pos(2, 2, 2)
     #     cube_view.b.append("000")
     #     self.assertEqual(cube_view.b, ["000"])
 
 
 
-class BFFConnections:
+class BFFNetworkBuilder:
     bind_url = None
     block_pos = None
 
     block = None
+
     previous_x = None
     next_x = None
     faraway_x = None
 
+    previous_y = None
+    next_y = None
+    faraway_y = None
+
+    previous_z = None
+    next_z = None
+    faraway_z = None
 
     def __init__(self, bind_url, block_pos):
         self.bind_url = bind_url
         self.block_pos = block_pos
+        self._clear()
 
+    def _clear(self):
         self.block = []
 
         self.previous_x = []
         self.next_x = []
         self.faraway_x = []
 
-    def connect(self, cube_view):
+        self.previous_y = []
+        self.next_y = []
+        self.faraway_y = []
+
+        self.previous_z = []
+        self.next_z = []
+        self.faraway_z = []
+
+    def get_urls(self):
+        urls = (self.block + self.previous_x + self.next_x + self.faraway_x +
+                self.previous_y + self.next_y + self.faraway_y +
+                self.previous_z + self.next_z + self.faraway_z)
+
+        return set(urls)
+
+    def build(self, cube_view):
         """
-        Connect to all bff nodes in s, x, y, z direction.
+        Build a bff network view of urls in b, x, y, z direction.
 
         * Each node will communicate with all other nodes in the same block.
-        * Each node will communicate with one node in the the nearest block forward
-          and backward in x, y and z direction.
-        * Each node will communicate with one node in a block that is faraway forward
-          and backward in x, y and z direction. Faraway is rougly defined as
+        * Each node will communicate with one slot/node in the the nearest
+          block forward and backward in x, y and z direction.
+        * Each node will communicate with one slot/node in a block that is
+          faraway x, y and z direction. Faraway is rougly defined as
           x_pos + (max_x_size/2).
 
+        * TODO:
+          When a node connects to another block, it will connect to the node
+          with the same slot postion as the connection node. If that slot
+          doesn't exist, the highest slot id will be used.
+
         """
-        #self.counter.bff_connect += 1
-        #old_sockets = { key : set(value) for key, value in self.sockets.items()}
-        #self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
-        self._connect_to_all_in_current_block(cube_view)
+        self._clear()
+        self._add_current_block(cube_view)
 
-        # self._connect_to_previous_block(self.block.x, self.cube_view.x, "x")
-        self._connect_to_next_block(self.block_pos.x, cube_view.x, self.next_x)
-        # self._connect_to_faraway_previous_block(self.slot.x, self.cube_view.x, "x")
-        # self._connect_to_faraway_next_slot(self.slot.x, self.cube_view.x, "x")
+        self._add_previous_block(self.block_pos.x, cube_view.x, self.previous_x)
+        self._add_next_block(self.block_pos.x, cube_view.x, self.next_x)
+        self._add_faraway_block(self.block_pos.x, cube_view.x, self.faraway_x)
 
-        # #self._connect_to_previous_slot(self.slot.y, self.cube_view.y, "y")
-        # self._connect_to_next_slot(self.slot.y, self.cube_view.y, "y")
-        # #self._connect_to_faraway_previous_slot(self.slot.y, self.cube_view.y, "y")
-        # self._connect_to_faraway_slot(self.slot.y, self.cube_view.y, "y")
+        self._add_previous_block(self.block_pos.y, cube_view.y, self.previous_y)
+        self._add_next_block(self.block_pos.y, cube_view.y, self.next_y)
+        self._add_faraway_block(self.block_pos.y, cube_view.y, self.faraway_y)
 
-        # new_sockets = { key:set(value) for key, value in self.sockets.items()}
-        # new_connections =  {key:new_sockets[key] - old_sockets[key] for key, value in new_sockets.items()}
-        # if new_connections:
-        #     log.info(self.bind_url + " Connect to bff nodes %s" % new_connections)
-        #     log.info(self.bind_url + " is now connected to %s" % self.sockets)
+        self._add_previous_block(self.block_pos.z, cube_view.z, self.previous_z)
+        self._add_next_block(self.block_pos.z, cube_view.z, self.next_z)
+        self._add_faraway_block(self.block_pos.z, cube_view.z, self.faraway_z)
 
-    def _connect_to_all_in_current_block(self, cube_view):
+    def _add_current_block(self, cube_view):
         """Connect to all nodes in current block."""
         for bind_url in cube_view.b:
-            self._connect_socket(bind_url, self.block)
+            self._add_url(bind_url, self.block)
 
-        for bind_url in self.block:
-            if bind_url not in cube_view.b:
-                self._disconnect_socket(bind_url, self.block)
+    def _add_previous_block(self, block_pos_cord, block_list, urls):
+        """Connect to the previous block, the block before current block."""
+        # If current block is the first block, connect to last block,
+        if block_pos_cord == 0:
+            # But not if the current block is the last block
+            last_block_cord = block_list.size()-1
+            if block_pos_cord != last_block_cord:
+                self._add_url(block_list.get(last_block_cord, 0), urls)
 
-    def _connect_to_next_block(self, block_pos, block_list, sockets):
+        # Connect to previous node if it exists.
+        elif block_pos_cord - 1 >= 0:
+            self._add_url(block_list.get(block_pos_cord - 1, 0), urls)
+
+        else:
+            raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
+
+    def _add_next_block(self, block_pos_cord, block_list, urls):
         """Connect to the next block, the block after current block."""
-        if block_pos >= block_list.size()-1:
-            # If current block is the last block, connect to first block,
-            if block_pos != 0:
-                if len(block_list[0]) > 0:
-                    self._connect_socket(block_list[0][0], sockets)
-        elif block_pos + 1 <= block_list.size()-1:
-            # Connect to next node if it exists.
-            self._connect_socket(block_list.get(block_pos + 1, 0), sockets)
+        # If current block is the last block, connect to first block,
+        last_block_cord = block_list.size()-1
+        if block_pos_cord == last_block_cord:
+            # But not if the current block is the first block
+            if block_pos_cord != 0:
+                self._add_url(block_list.get(0, 0), urls)
 
-    def _connect_to_faraway_block(self, block_pos, block_list, sockets):
+        # Connect to next node if it exists.
+        elif block_pos_cord + 1 <= block_list.size()-1:
+            self._add_url(block_list.get(block_pos_cord + 1, 0), urls)
+
+        else:
+            raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
+
+    def _add_faraway_block(self, block_pos_cord, block_list, urls):
         """Connect to a faraway block."""
-        # TODO
-        return
-        block_list_middle = (len(block_list)/2)
-        q_far = block_pos + block_list_middle
+        block_list_middle_cord = int(block_list.size()/2)
+        faraway_block_pos_cord = block_pos_cord + block_list_middle_cord
 
-        if q_far >= len(block_list):
-            q_far -= len(block_list)
+        if faraway_block_pos_cord >= block_list.size()-1:
+            faraway_block_pos_cord -= block_list.size()
 
-        if q_far in block_list:
-            self._connect_socket(block_list[q_far][0], sockets)
+        self._add_url(block_list.get(faraway_block_pos_cord, 0), urls)
 
-    def _connect_socket(self, url, sockets):
-        if url != self.bind_url and not self._is_already_connected(url):
-            log.info("%s connects to %s." % (self.bind_url, url))
-            sockets.append(url)
-
-            #if self.bind_url not in Connections.all[bind_url].sockets[sockets]:
-            #    Connections.all[bind_url].sockets[sockets].append(self.bind_url)
-            #self.counter.socket_connect += 1
-
-    def _disconnect_socket(self, bind_url, sockets):
-        if self._is_already_connected(bind_url):
-            log.info(self.bind_url + " Disconnect from %s." % (bind_url))
-            sockets.remove(bind_url)
-
-    def _is_already_connected(self, bind_url):
-        if bind_url in self.block:
-            return True
-
-        if bind_url in self.next_x:
-            return True
-
-        return False
+    def _add_url(self, url, urls):
+        if url and url != self.bind_url:
+            log.info("%s added %s to bff-list." % (self.bind_url, url))
+            urls.append(url)
 
 
-class TestOANBFFConnections(OANTestCase):
-    block_pos = None
-
-    def setUp(self):
-        self.block_pos = BlockPosition()
-
-    def xtest_connect(self):
-        cube_view = CubeView()
+class TestOANBFFNetworkBuilder(OANTestCase):
+    def test_connect(self):
+        cube_view = CubeView(BlockPosition(0, 0, 0))
         cube_view.b.append("001")
         cube_view.b.append("002")
         cube_view.b.append("003")
         cube_view.b.append("004")
 
-        bff = BFFConnections("002", self.block_pos)
-        bff.connect(cube_view)
+        bff = BFFNetworkBuilder("002", BlockPosition(0, 0, 0))
+        bff.build(cube_view)
         self.assertEqual(bff.block, ["001", "003", "004"])
 
         cube_view.b.append("005")
-        bff.connect(cube_view)
+        bff.build(cube_view)
         self.assertEqual(bff.block, ["001", "003", "004", "005"])
 
         cube_view.b.remove("003")
-        bff.connect(cube_view)
+        bff.build(cube_view)
         self.assertEqual(bff.block, ["001", "004", "005"])
 
-    def test_connect_next(self):
-        cube_view = CubeView()
+        self.assertEqual(bff.get_urls(), set(["001", "004", "005"]))
+
+    def get_cube_view(self, block_pos):
+        cube_view = CubeView(block_pos)
         cube_view.x.add(0, "000")
         cube_view.x.add(1, "001")
         cube_view.x.add(2, "002")
         cube_view.x.add(3, "003")
         cube_view.x.add(4, "004")
 
-        bff = BFFConnections("000", self.block_pos)
-        bff.connect(cube_view)
-        self.assertEqual(bff.next_x, ["001"])
+        cube_view.y.add(0, "100")
+        cube_view.y.add(1, "101")
+        cube_view.y.add(2, "102")
+        cube_view.y.add(3, "103")
+        cube_view.y.add(4, "104")
 
-        self.block_pos.x = 2
-        bff = BFFConnections("002", self.block_pos)
-        bff.connect(cube_view)
+        cube_view.z.add(0, "200")
+        cube_view.z.add(1, "201")
+        cube_view.z.add(2, "202")
+        cube_view.z.add(3, "203")
+        cube_view.z.add(4, "204")
+
+        return cube_view
+
+    def test_build_from_first_node(self):
+        block_pos = BlockPosition(0, 0, 0)
+        cube_view = self.get_cube_view(block_pos)
+        bff = BFFNetworkBuilder("000", block_pos)
+        bff.build(cube_view)
+
+        self.assertEqual(bff.previous_x, ["004"])
+        self.assertEqual(bff.next_x, ["001"])
+        self.assertEqual(bff.faraway_x, ["002"])
+
+        self.assertEqual(bff.previous_y, ["104"])
+        self.assertEqual(bff.next_y, ["101"])
+        self.assertEqual(bff.faraway_y, ["102"])
+
+        self.assertEqual(bff.previous_z, ["204"])
+        self.assertEqual(bff.next_z, ["201"])
+        self.assertEqual(bff.faraway_z, ["202"])
+
+        self.assertEqual(bff.get_urls(), set(['201', '200', '202', '204', '002', '001', '004', '102', '100', '101', '104']))
+
+    def test_build_from_middle_node(self):
+        block_pos = BlockPosition(2, 2, 2)
+
+        cube_view = self.get_cube_view(block_pos)
+        bff = BFFNetworkBuilder("002", block_pos)
+        bff.build(cube_view)
+
+        self.assertEqual(bff.previous_x, ["001"])
         self.assertEqual(bff.next_x, ["003"])
+        self.assertEqual(bff.faraway_x, ["004"])
+
+        self.assertEqual(bff.previous_y, ["101"])
+        self.assertEqual(bff.next_y, ["103"])
+        self.assertEqual(bff.faraway_y, ["104"])
+
+        self.assertEqual(bff.previous_z, ["201"])
+        self.assertEqual(bff.next_z, ["203"])
+        self.assertEqual(bff.faraway_z, ["204"])
+
+        self.assertEqual(bff.get_urls(), set(['201', '203', '202', '204', '003', '001', '004', '102', '103', '101', '104']))
+
+    def test_build_from_last_node(self):
+        block_pos = BlockPosition(4, 4, 4)
+
+        cube_view = self.get_cube_view(block_pos)
+        bff = BFFNetworkBuilder("004", block_pos)
+        bff.build(cube_view)
+
+        self.assertEqual(bff.previous_x, ["003"])
+        self.assertEqual(bff.next_x, ["000"])
+        self.assertEqual(bff.faraway_x, ["001"])
+
+        self.assertEqual(bff.previous_y, ["103"])
+        self.assertEqual(bff.next_y, ["100"])
+        self.assertEqual(bff.faraway_y, ["101"])
+
+        self.assertEqual(bff.previous_z, ["203"])
+        self.assertEqual(bff.next_z, ["200"])
+        self.assertEqual(bff.faraway_z, ["201"])
+
+        self.assertEqual(bff.get_urls(), set(['201', '200', '203', '204', '003', '001', '000', '103', '100', '101', '104']))
+
+    # def test_build_from_last_node(self):
+    #     cube_view = CubeView(self.block_pos)
+    #     for x in xrange(0, 100):
+    #         cube_view.x.add(x, "{0:0>3}".format(x))
+    #         cube_view.x.add(x, "{0:0>3}B".format(x))
+    #     log.info(cube_view.x._blocks)
+
+    #     block_pos = BlockPosition()
+
+    #     for x in xrange(0, 100):
+    #         block_pos.x = x
+    #         bff = BFFNetworkBuilder("{0:0>3}".format(x), block_pos)
+    #         bff.build(cube_view)
+
+
+class OANNetworkView():
+    _sockets = None
+    _bind_url = None
+
+    def __init__(self, bind_url):
+        self._sockets = {}
+        self._bind_url = bind_url
+
+        # Start listening for connections.
+        log.info("%s starts listening." % bind_url)
+        Connections.all[bind_url] = self
+
+    def connect(self, bff_connection):
+        urls = bff_connection.get_urls()
+
+        for url in urls:
+            if url not in self._sockets:
+                if url in Connections.all:
+                    log.info("%s connects to %s" % (self._bind_url, url))
+                    self._sockets[url] = Connections.all[url]
+                    #self.counter.socket_connect += 1
+
+                    # Emulate connection from other side to this side.
+                    if self._bind_url not in Connections.all[url]._sockets:
+                        Connections.all[url]._sockets[self._bind_url] = self
+                else:
+                    log.info("%s connects to %s failed" % (self._bind_url, url))
+
+        for url in self._sockets.keys():
+            if url not in urls:
+                log.info("%s disconnects from %s" % (self._bind_url, url))
+                del self._sockets[url]
+
+
+    def disconnect(self):
+        socket.disconect_all()
+
+    def send(self, url, message):
+        #self.counter.send += 1
+        log.info("Send: %s from %s to %s " % (message.__class__.__name__, self.bind_url, Connections.all[url].bind_url))
+        message.origin_url = self.bind_url
+        Connections.all[url].receive(message)
+
+    def push(self, urls, message):
+        #self.counter.push += 1
+        for url in urls:
+            self.send(url, message)
+
+    def receive(self, message):
+        #self.counter.receive += 1
+        message.execute(self)
+
+        self.counter.bff_connect += 1
+        old_urls = { key : set(value) for key, value in self.urls.items()}
+
+        new_urls = { key:set(value) for key, value in self.urls.items()}
+        new_connections =  {key:new_urls[key] - old_urls[key] for key, value in new_urls.items()}
+        if new_connections:
+            log.info(self.bind_url + " Connect to bff nodes %s" % new_connections)
+            log.info(self.bind_url + " is now connected to %s" % self.urls)
+
+
+
+class TestOANNetwork(OANTestCase):
+
+    def test_network_connect(self):
+        block_pos = BlockPosition(2, 2, 2)
+
+        cube_view = CubeView(block_pos)
+        cube_view.x.add(0, "000")
+        cube_view.x.add(1, "001")
+        cube_view.x.add(2, "002")
+        cube_view.x.add(3, "003")
+        cube_view.x.add(4, "004")
+
+        cube_view.y.add(0, "100")
+        cube_view.y.add(1, "101")
+        cube_view.y.add(2, "102")
+        cube_view.y.add(3, "103")
+        cube_view.y.add(4, "104")
+
+        cube_view.z.add(0, "200")
+        cube_view.z.add(1, "201")
+        cube_view.z.add(2, "202")
+        cube_view.z.add(3, "203")
+        cube_view.z.add(4, "204")
+
+        bff = BFFNetworkBuilder("002", block_pos)
+        bff.build(cube_view)
+
+        for i in range(000, 005) + range(100, 105) + range(200, 205):
+            network = OANNetworkView("{0:0>3}".format(i))
+
+        network = OANNetworkView("002")
+        network.connect(bff)
+        #network.send('001', MessageConnect())
+
 
