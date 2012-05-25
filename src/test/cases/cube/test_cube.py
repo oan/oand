@@ -92,9 +92,9 @@ class Counter:
             raise TypeError("Not a Counter object.")
 
 
-class SlotId:
+class BlockPosition:
     """
-    The position of a slot in the cube.
+    The position of a block in the cube.
 
     """
     x = None
@@ -136,7 +136,7 @@ class Node():
     bind_url = None
 
     # Coordinates/slot_id of the slot assigned to this node.
-    slot = None
+    pos = None
 
     # Lists of nodes in x, y, z direction.
     node_list = None
@@ -149,7 +149,7 @@ class Node():
 
     def __init__(self, bind_url):
         self.bind_url = bind_url
-        self.slot = SlotId()
+        self.pos = BlockPosition()
         self.node_list = NodeList()
         self.node_list.s.append(bind_url)
 
@@ -185,15 +185,15 @@ class Node():
         self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
         self._connect_to_all_in_current_slot("c")
 
-        #self._connect_to_previous_slot(self.slot.x, self.node_list.x, "x")
-        self._connect_to_next_slot(self.slot.x, self.node_list.x, "x")
-        #self._connect_to_faraway_previous_slot(self.slot.x, self.node_list.x, "x")
-        self._connect_to_faraway_slot(self.slot.x, self.node_list.x, "x")
+        #self._connect_to_previous_slot(self.pos.x, self.node_list.x, "x")
+        self._connect_to_next_slot(self.pos.x, self.node_list.x, "x")
+        #self._connect_to_faraway_previous_slot(self.pos.x, self.node_list.x, "x")
+        self._connect_to_faraway_slot(self.pos.x, self.node_list.x, "x")
 
-        #self._connect_to_previous_slot(self.slot.y, self.node_list.y, "y")
-        self._connect_to_next_slot(self.slot.y, self.node_list.y, "y")
-        #self._connect_to_faraway_previous_slot(self.slot.y, self.node_list.y, "y")
-        self._connect_to_faraway_slot(self.slot.y, self.node_list.y, "y")
+        #self._connect_to_previous_slot(self.pos.y, self.node_list.y, "y")
+        self._connect_to_next_slot(self.pos.y, self.node_list.y, "y")
+        #self._connect_to_faraway_previous_slot(self.pos.y, self.node_list.y, "y")
+        self._connect_to_faraway_slot(self.pos.y, self.node_list.y, "y")
 
         new_sockets = { key:set(value) for key, value in self.sockets.items()}
         new_connections =  {key:new_sockets[key] - old_sockets[key] for key, value in new_sockets.items()}
@@ -203,7 +203,7 @@ class Node():
 
     def _connect_to_all_in_current_slot(self, direction):
         """Connect to all nodes in current slot."""
-        for bind_url in self.node_list.x[self.slot.x]:
+        for bind_url in self.node_list.x[self.pos.x]:
             self._connect_socket(bind_url, direction)
 
     def _connect_to_next_slot(self, pos, local_list, direction):
@@ -288,10 +288,10 @@ class MessageConnect(Message):
             c_list = node.node_list.x[x_pos]
 
             if len(c_list) < c_max_list:
-                log.info("Step: 1 x: %s y: %s" % (x_pos, node.slot.y) )
+                log.info("Step: 1 x: %s y: %s" % (x_pos, node.pos.y) )
                 c_list.append(self.origin_url)
 
-                msg = MessageGiveSlotid(SlotId(x_pos, node.slot.y, 0))
+                msg = MessageGiveSlotid(SlotPosition(x_pos, node.pos.y, 0))
                 node.send(self.origin_url, msg)
                 node.push('c', MessageGiveNodeList('x', node.node_list.x))
                 node.push('c', MessageGiveNodeList('y', node.node_list.y))
@@ -299,35 +299,35 @@ class MessageConnect(Message):
                 return
 
         if len(node.node_list.x) == x_max_size:
-            if len(node.node_list.y) <= node.slot.y + 1:
+            if len(node.node_list.y) <= node.pos.y + 1:
                 log.info("Step: 2 %s" % len(node.node_list.x) )
                 node.node_list.y.append([self.origin_url])
-                msg = MessageGiveSlotid(SlotId(0, len(node.node_list.y)-1, 0))
+                msg = MessageGiveSlotid(BlockPosition(0, len(node.node_list.y)-1, 0))
                 node.send(self.origin_url, msg)
                 node.push('y', MessageGiveNodeList('y', node.node_list.y))
                 node.push('c', MessageGiveNodeList('y', node.node_list.y))
             else:
                 log.info("Step: 3 x:%s y:%s" % (len(node.node_list.x), len(node.node_list.y) ))
-                msg = MessageRedirect(node.node_list.y[node.slot.y + 1][0], self)
+                msg = MessageRedirect(node.node_list.y[node.pos.y + 1][0], self)
                 node.send(self.origin_url, msg)
         else:
             log.info("Step: 4 %s" % len(node.node_list.x) )
             node.node_list.x.append([self.origin_url])
-            msg = MessageGiveSlotid(SlotId(len(node.node_list.x)-1, node.slot.y, 0))
+            msg = MessageGiveSlotid(BlockPosition(len(node.node_list.x)-1, node.pos.y, 0))
             node.send(self.origin_url, msg)
             node.push('x', MessageGiveNodeList('x', node.node_list.x))
             node.push('c', MessageGiveNodeList('x', node.node_list.x))
 
 
 class MessageGiveSlotid(Message):
-    slot = None
+    pos = None
 
-    def __init__(self, slot):
-        self.slot = slot
+    def __init__(self, pos):
+        self.pos = pos
 
     def execute(self, node):
-        node.slot = self.slot
-        node.send(self.origin_url, MessageSnapshot(self.slot, "oan://node-list/all"))
+        node.pos = self.pos
+        node.send(self.origin_url, MessageSnapshot(self.pos, "oan://node-list/all"))
 
 
 class MessageRedirect(Message):
@@ -354,7 +354,7 @@ class MessageSnapshot(Message):
     def execute(self, node):
         if self.url == "oan://node-list/all":
             x_pos, y_pos, z_pos = self.origin_slot.id()
-            if y_pos == node.slot.y:
+            if y_pos == node.pos.y:
                 x_list = node.node_list.x
             else:
                 x_list = []
@@ -362,7 +362,7 @@ class MessageSnapshot(Message):
                     x_list.append([])
                 x_list.append(node.node_list.y[y_pos])
 
-            if x_pos == node.slot.x:
+            if x_pos == node.pos.x:
                 y_list = node.node_list.y
             else:
                 y_list = []
@@ -411,40 +411,40 @@ class MessageGiveSnapshotResource(Message):
         return True
 
     def sync_y_list(self, node):
-        if self.empty_list(node, node.node_list.y) and node.slot.y != 0:
+        if self.empty_list(node, node.node_list.y) and node.pos.y != 0:
             log.info("sync_y_list")
 
-            left_origin_url = node.node_list.x[node.slot.x - 1][0]
-            msg = MessageGetYList(node.slot.x, node.slot.y)
+            left_origin_url = node.node_list.x[node.pos.x - 1][0]
+            msg = MessageGetYList(node.pos.x, node.pos.y)
             node.send(left_origin_url, msg)
 
 
 class MessageGetYList(Message):
-    slot = None
+    pos = None
 
     def __init__(self, x_pos, y_pos):
-        self.slot = SlotId()
-        self.slot.x = x_pos
-        self.slot.y = y_pos
+        self.pos = BlockPosition()
+        self.pos.x = x_pos
+        self.pos.y = y_pos
 
     def execute(self, node):
         log.info("MessageGetYList slot:%s x:%s y:%s x_pos %s of %s" % (
                  node.bind_url,
-                 node.slot.x, node.slot.y,
-                 self.slot.x, len(node.node_list.x)))
+                 node.pos.x, node.pos.y,
+                 self.pos.x, len(node.node_list.x)))
         log.info(node.node_list.x)
-        if self.slot.x == node.slot.x and self.slot.y > node.slot.y:
+        if self.pos.x == node.pos.x and self.pos.y > node.pos.y:
             log.info("MessageGetYList step 1 to %s" % self.origin_url)
             node.send(self.origin_url, MessageGiveNodeList('y', node.node_list.y))
-        elif (len(node.node_list.x)-1 >= self.slot.x and
-              len(node.node_list.x[self.slot.x]) > 0 and
-              self.slot.y > node.slot.y):
-            log.info("MessageGetYList step 2 to %s" % node.node_list.x[self.slot.x][0])
-            msg = MessageRedirect(node.node_list.x[self.slot.x][0], self)
+        elif (len(node.node_list.x)-1 >= self.pos.x and
+              len(node.node_list.x[self.pos.x]) > 0 and
+              self.pos.y > node.pos.y):
+            log.info("MessageGetYList step 2 to %s" % node.node_list.x[self.pos.x][0])
+            msg = MessageRedirect(node.node_list.x[self.pos.x][0], self)
             node.send(self.origin_url, msg)
-        elif self.slot.y >= node.slot.y:
+        elif self.pos.y >= node.pos.y:
             destination_url = None
-            for y in reversed(xrange(node.slot.y)):
+            for y in reversed(xrange(node.pos.y)):
                 log.info("y %s" % y)
                 if len(node.node_list.y[y]) > 0:
                     destination_url = node.node_list.y[y][0]
@@ -452,7 +452,7 @@ class MessageGetYList(Message):
                     break
 
             if not destination_url:
-                for x in reversed(xrange(node.slot.x)):
+                for x in reversed(xrange(node.pos.x)):
                     log.info("x %s" % x)
                     if len(node.node_list.x[x]) > 0:
                         destination_url = node.node_list.x[x][0]
@@ -531,7 +531,7 @@ class TestOANCube(OANTestCase):
 
         x_max_size = max(3, len(Connections.all['001'].node_list.x))
 
-        self.assertEqual(node.slot.id(), slot_id)
+        self.assertEqual(node.pos.id(), slot_id)
 
         x_list = self.get_x_list(slot_id, test_list, x_max_size)
         self.assertEqual(node.node_list.x, x_list)
@@ -569,9 +569,9 @@ class TestOANCube(OANTestCase):
         log.info('Expected: y(%s) %s' % (slot_id, new_y_list))
         return new_y_list
 
-    def test_connection(self):
+    def xtest_connection(self):
         first_node = Node('001')
-        self.assertEqual(first_node.slot.id(), (0, 0, 0))
+        self.assertEqual(first_node.pos.id(), (0, 0, 0))
 
         self.connect_node("002", (0, 0, 0), [["001", "002", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
                                              ["___", "___", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
@@ -868,7 +868,7 @@ class TestOANCube(OANTestCase):
         log.info("=========================")
         for node_key in keys:
             node = Connections.all[node_key]
-            log.info("slot_id: %s %s" % (node.bind_url, node.slot.id()))
+            log.info("slot_id: %s %s" % (node.bind_url, node.pos.id()))
 
         log.info("=========================")
         for node_key in keys:
@@ -882,4 +882,309 @@ class TestOANCube(OANTestCase):
             log.info("Counters: %s %s" % (node.bind_url, node.counter))
             counter_total += node.counter
         log.info("TOTAL         %s" % (counter_total))
+
+
+
+
+
+
+
+
+
+
+
+
+class BlockList:
+    # List of blocks where each block holds many slots.
+    _blocks = None
+
+    # Number of blocks the block list will expand with.
+    EXPAND_SIZE = 1
+
+    class OccupiedSlotException(Exception):
+        pass
+
+    def __init__(self):
+        self._blocks = []
+
+    def clear(self, block_pos):
+        del self.get(block_pos)[:]
+
+    def add(self, block_pos, url):
+        self.get(block_pos).append(url)
+        return self.size(block_pos)-1
+
+    def get(self, block_pos, slot_pos = None):
+        self._expand_size(block_pos)
+        if slot_pos == None:
+            return self._blocks[block_pos]
+        else:
+            return self._blocks[block_pos][slot_pos]
+
+    def remove(self, block_pos, url):
+        self._blocks[block_pos].remove(url)
+
+    def set(self, block_pos, block):
+        if self.size(block_pos):
+            raise BlockList.OccupiedSlotException()
+        else:
+            self._blocks[block_pos] = block
+
+    def _expand_size(self, length):
+        if length >= len(self._blocks):
+            for dummy in xrange(self.size(), length + BlockList.EXPAND_SIZE):
+                self._blocks.append([])
+
+    def size(self, block_pos = None):
+        if block_pos == None:
+            return len(self._blocks)
+        else:
+            return len(self.get(block_pos))
+
+
+class TestBlockList(OANTestCase):
+    def test_block_list(self):
+        block_list = BlockList()
+        self.assertEqual(block_list.add(2, "002"), 0)
+        self.assertEqual(block_list.size(2), 1)
+        self.assertEqual(block_list.size(), 3)
+
+        self.assertEqual(block_list.add(1, "001"), 0)
+        self.assertEqual(block_list.size(1), 1)
+        self.assertEqual(block_list.size(), 3)
+
+        self.assertEqual(block_list.add(3, "003"), 0)
+        self.assertEqual(block_list.size(3), 1)
+        self.assertEqual(block_list.size(), 4)
+
+        self.assertEqual(block_list.add(0, "000"), 0)
+        self.assertEqual(block_list.add(2, "002B"), 1)
+
+        self.assertEqual(block_list.get(2, 0), "002")
+        self.assertEqual(block_list.get(2, 1), "002B")
+        self.assertEqual(block_list.get(2), ["002", "002B"])
+        self.assertEqual(block_list.get(0), ["000"])
+        self.assertEqual(block_list.get(1), ["001"])
+        self.assertEqual(block_list.get(3), ["003"])
+
+        block_list.remove(2, "002")
+        self.assertEqual(block_list.get(2), ["002B"])
+
+        with self.assertRaises(BlockList.OccupiedSlotException):
+            block_list.set(2, ["002C"])
+
+        block_list.clear(2)
+        self.assertEqual(block_list.get(2), [])
+
+        block_list.set(2, ["002C"])
+        self.assertEqual(block_list.get(2), ["002C"])
+
+        # Complete list test.
+        self.assertEqual(block_list.get(0), ["000"])
+        self.assertEqual(block_list.get(1), ["001"])
+        self.assertEqual(block_list.get(2), ["002C"])
+        self.assertEqual(block_list.get(3), ["003"])
+
+
+class CubeView:
+    """
+    List of nodes in x, y, z direction.
+
+    """
+    b = None
+    x = None
+    y = None
+    z = None
+
+    def __init__(self):
+        self.b = []
+        self.x = BlockList()
+        self.x.set(0, self.b)
+
+        self.y = BlockList()
+        self.y.set(0, self.b)
+
+        self.z = BlockList()
+        self.z.set(0, self.b)
+
+class TestCubeView(OANTestCase):
+    def test_cube_view_block_pos_0(self):
+        cube_view = CubeView()
+        cube_view.b.append("000")
+        self.assertEqual(cube_view.b, ["000"])
+
+        cube_view.x.add(0, "001")
+        self.assertEqual(cube_view.x.get(0), ["000", "001"])
+
+        cube_view.y.add(0, "002")
+        self.assertEqual(cube_view.y.get(0), ["000", "001", "002"])
+
+        cube_view.z.add(0, "003")
+        self.assertEqual(cube_view.z.get(0), ["000", "001", "002", "003"])
+
+        # Total cube view
+        self.assertEqual(cube_view.b, ["000", "001", "002", "003"])
+        self.assertEqual(cube_view.x.get(0), ["000", "001", "002", "003"])
+        self.assertEqual(cube_view.y.get(0), ["000", "001", "002", "003"])
+        self.assertEqual(cube_view.z.get(0), ["000", "001", "002", "003"])
+
+    # def test_cube_view_block_pos_2(self):
+    #     cube_view = CubeView()
+    #     cube_view.set_block_pos(2, 2, 2)
+    #     cube_view.b.append("000")
+    #     self.assertEqual(cube_view.b, ["000"])
+
+
+
+class BFFConnections:
+    bind_url = None
+    block_pos = None
+
+    block = None
+    previous_x = None
+    next_x = None
+    faraway_x = None
+
+
+    def __init__(self, bind_url, block_pos):
+        self.bind_url = bind_url
+        self.block_pos = block_pos
+
+        self.block = []
+
+        self.previous_x = []
+        self.next_x = []
+        self.faraway_x = []
+
+    def connect(self, cube_view):
+        """
+        Connect to all bff nodes in s, x, y, z direction.
+
+        * Each node will communicate with all other nodes in the same block.
+        * Each node will communicate with one node in the the nearest block forward
+          and backward in x, y and z direction.
+        * Each node will communicate with one node in a block that is faraway forward
+          and backward in x, y and z direction. Faraway is rougly defined as
+          x_pos + (max_x_size/2).
+
+        """
+        #self.counter.bff_connect += 1
+        #old_sockets = { key : set(value) for key, value in self.sockets.items()}
+        #self.sockets = {'c': [], 'x': [], 'y': [], 'z': []}
+        self._connect_to_all_in_current_block(cube_view)
+
+        # self._connect_to_previous_block(self.block.x, self.cube_view.x, "x")
+        self._connect_to_next_block(self.block_pos.x, cube_view.x, self.next_x)
+        # self._connect_to_faraway_previous_block(self.slot.x, self.cube_view.x, "x")
+        # self._connect_to_faraway_next_slot(self.slot.x, self.cube_view.x, "x")
+
+        # #self._connect_to_previous_slot(self.slot.y, self.cube_view.y, "y")
+        # self._connect_to_next_slot(self.slot.y, self.cube_view.y, "y")
+        # #self._connect_to_faraway_previous_slot(self.slot.y, self.cube_view.y, "y")
+        # self._connect_to_faraway_slot(self.slot.y, self.cube_view.y, "y")
+
+        # new_sockets = { key:set(value) for key, value in self.sockets.items()}
+        # new_connections =  {key:new_sockets[key] - old_sockets[key] for key, value in new_sockets.items()}
+        # if new_connections:
+        #     log.info(self.bind_url + " Connect to bff nodes %s" % new_connections)
+        #     log.info(self.bind_url + " is now connected to %s" % self.sockets)
+
+    def _connect_to_all_in_current_block(self, cube_view):
+        """Connect to all nodes in current block."""
+        for bind_url in cube_view.b:
+            self._connect_socket(bind_url, self.block)
+
+        for bind_url in self.block:
+            if bind_url not in cube_view.b:
+                self._disconnect_socket(bind_url, self.block)
+
+    def _connect_to_next_block(self, block_pos, block_list, sockets):
+        """Connect to the next block, the block after current block."""
+        if block_pos >= block_list.size()-1:
+            # If current block is the last block, connect to first block,
+            if block_pos != 0:
+                if len(block_list[0]) > 0:
+                    self._connect_socket(block_list[0][0], sockets)
+        elif block_pos + 1 <= block_list.size()-1:
+            # Connect to next node if it exists.
+            self._connect_socket(block_list.get(block_pos + 1, 0), sockets)
+
+    def _connect_to_faraway_block(self, block_pos, block_list, sockets):
+        """Connect to a faraway block."""
+        # TODO
+        return
+        block_list_middle = (len(block_list)/2)
+        q_far = block_pos + block_list_middle
+
+        if q_far >= len(block_list):
+            q_far -= len(block_list)
+
+        if q_far in block_list:
+            self._connect_socket(block_list[q_far][0], sockets)
+
+    def _connect_socket(self, url, sockets):
+        if url != self.bind_url and not self._is_already_connected(url):
+            log.info("%s connects to %s." % (self.bind_url, url))
+            sockets.append(url)
+
+            #if self.bind_url not in Connections.all[bind_url].sockets[sockets]:
+            #    Connections.all[bind_url].sockets[sockets].append(self.bind_url)
+            #self.counter.socket_connect += 1
+
+    def _disconnect_socket(self, bind_url, sockets):
+        if self._is_already_connected(bind_url):
+            log.info(self.bind_url + " Disconnect from %s." % (bind_url))
+            sockets.remove(bind_url)
+
+    def _is_already_connected(self, bind_url):
+        if bind_url in self.block:
+            return True
+
+        if bind_url in self.next_x:
+            return True
+
+        return False
+
+
+class TestOANBFFConnections(OANTestCase):
+    block_pos = None
+
+    def setUp(self):
+        self.block_pos = BlockPosition()
+
+    def xtest_connect(self):
+        cube_view = CubeView()
+        cube_view.b.append("001")
+        cube_view.b.append("002")
+        cube_view.b.append("003")
+        cube_view.b.append("004")
+
+        bff = BFFConnections("002", self.block_pos)
+        bff.connect(cube_view)
+        self.assertEqual(bff.block, ["001", "003", "004"])
+
+        cube_view.b.append("005")
+        bff.connect(cube_view)
+        self.assertEqual(bff.block, ["001", "003", "004", "005"])
+
+        cube_view.b.remove("003")
+        bff.connect(cube_view)
+        self.assertEqual(bff.block, ["001", "004", "005"])
+
+    def test_connect_next(self):
+        cube_view = CubeView()
+        cube_view.x.add(0, "000")
+        cube_view.x.add(1, "001")
+        cube_view.x.add(2, "002")
+        cube_view.x.add(3, "003")
+        cube_view.x.add(4, "004")
+
+        bff = BFFConnections("000", self.block_pos)
+        bff.connect(cube_view)
+        self.assertEqual(bff.next_x, ["001"])
+
+        self.block_pos.x = 2
+        bff = BFFConnections("002", self.block_pos)
+        bff.connect(cube_view)
+        self.assertEqual(bff.next_x, ["003"])
 
