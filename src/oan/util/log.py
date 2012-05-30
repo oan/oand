@@ -64,11 +64,11 @@ class ContextFilter(Filter):
         #record.levelname_ex = "[%s][%s]" % (record.levelname, record.threadName)
         record.extra = ""
         # Text to display on debugging messages.
-        if record.levelno == DEBUG:
-            record.extra = "(%s:%s:%s)" % (
-                record.filename,
-                record.funcName, record.lineno
-            )
+        #if record.levelno == DEBUG:
+        record.extra = "(%s:%s:%s)" % (
+            record.filename,
+            record.funcName, record.lineno
+        )
 
         #
         record.trace = ""
