@@ -14,7 +14,7 @@ __status__ = "Test"
 from uuid import UUID
 from test.test_case import OANTestCase
 
-from oan.async.network_node import OANNetworkNode, OANNetworkNodeState
+from oan.network.network_node import OANNetworkNode, OANNetworkNodeState
 from oan.heartbeat import OANHeartbeat
 
 class TestOANNetworkNode(OANTestCase):

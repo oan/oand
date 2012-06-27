@@ -13,7 +13,7 @@ __status__ = "Test"
 
 from test.test_case import OANTestCase
 
-from oan.async import serializer
+from oan.network import serializer
 
 class Test(object):
     def __init__(self, name= None, content = None):

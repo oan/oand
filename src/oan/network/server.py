@@ -69,37 +69,48 @@ class OANMessageDictionary:
 
 class OANController:
 
-    _client_socket = None
-    _server_socket = None
-    _buffer = None
-    _connected = None
+    client_socket = None
+    server_socket = None
 
     def __init__(self, client_socket, server_socket):
-        self._connected = False
-        self._client_socket = client_socket
-        self._server_socket = server_socket
-        self._buffer = ""
-
-    def fileno(self):
-        return self._server_socket.fileno()
-
-    def connected(self):
-        return self._connected
-
-    def handle_connect(self):
-        self._connected = True
+        self.client_socket = client_socket
+        self.server_socket = server_socket
 
     def close(self):
-        self._server_socket.close()
-        self._client_socket.close()
+        self.server_socket.close()
+        self.client_socket.close()
 
     def handle_write(self):
-        self._client_socket.send('\n')
+        self.client_socket.send('\n')
 
     def handle_read(self):
-        data = self._server_socket.recv(128)
-        #if data:
-        #    log.info("OANController:handle_read: [%s]" % (data))
+        data = self.server_socket.recv(128)
+
+class OANSendNotify:
+    _socket = None
+
+    def __init__(self, socket):
+        self._socket = socket
+
+    def close(self):
+        self._socket.close()
+
+    def handle(self):
+        self._socket.send('\n')
+        log.info("OANSendNotify")
+
+class OANRecvNotify:
+    _socket = None
+
+    def __init__(self, socket):
+        self._socket = socket
+
+    def close(self):
+        self._socket.close()
+
+    def handle(self):
+        self._socket.recv(256)
+        log.info("OANRecvNotify")
 
 class OANLogEntry():
     counter = None
@@ -119,7 +130,7 @@ class OANLogEntry():
         return "counter:%s total:%s avg: %s min:%s max:%s " % (
             self.counter,
             self.total_elapsed,
-            self.total_elapsed / self.counter,
+            self.total_elapsed / (self.counter or 1),
             self.min_elapsed,
             self.max_elapsed)
 
@@ -159,34 +170,61 @@ class OANLogCounter():
         return ret
 
 
+class OANListen:
+    _socket = None
+    _accept_callback = None
+
+    def __init__(self, socket, accept_callback = lambda sock : None):
+        self._socket = socket
+        self._accept_callback = accept_callback
+
+    def close(self):
+        self._socket.close()
+
+    def handle(self):
+        log.info("OANListen")
+        sock, addr = self._socket.accept()
+        sock.setblocking(0)
+        self._accept_callback(sock)
+
 class OANReader:
 
     _socket = None
+    _fd = None
+    _message_callback = None
+    _connect_callback = None
+    _handshake_callback = None
+    _close_callback = None
     _buffer = None
     _buffer_size = None
     _frame_size = None
     _connected = None
 
-    def __init__(self, socket):
+    def __init__(self, socket,
+                 message_callback = lambda fd, messages : None,
+                 connect_callback = lambda fd : None,
+                 handshake_callback = lambda fd, handshake : None,
+                 close_callback = lambda fd : None
+                ):
         self._socket = socket
+        self._fd = socket.fileno()
+        self._message_callback = message_callback
+        self._connect_callback = connect_callback
+        self._handshake_callback = handshake_callback
+        self._close_callback = close_callback
         self._buffer = deque()
         self._buffer_size = 0
         self._frame_size = 0
         self._connected = False
 
     def fileno(self):
-        return self._socket.fileno()
-
-    def connected(self):
-        return self._connected
+        return self._fd
 
     def close(self):
         self._socket.close()
+        self._close_callback(self._fd)
 
-    def handle_connect(self):
-        self._connected = True
-
-    def handle_read(self):
+    def handle(self):
         """
         method called by OANIn when it's time to read from the socket.
         """
@@ -212,8 +250,15 @@ class OANReader:
                     break
 
         OANLogCounter.end("handle_read")
-        OANCounter.in_count += len(ret)
-        return ret
+        if ret:
+            if not self._connected:
+                self._connected = True
+                self._connect_callback(self._fd)
+                self._handshake_callback(self._fd, ret[0])
+                del ret[0]
+
+            self._message_callback(self._fd, ret)
+            OANCounter.in_count += len(ret)
 
     def _read_data(self):
         """
@@ -260,28 +305,34 @@ class OANReader:
 class OANWriter:
 
     _socket = None
+    _connect_callback = None
+    _close_callback = None
+    _fd = None
     _buffer = None
     _data = None
     _connected = None
     _current = None
     _size = None
 
-    def __init__(self, socket):
+    def __init__(self, socket,
+            connect_callback = lambda fd : None,
+            close_callback = lambda fd : None):
         self._connected = False
         self._socket = socket
+        self._fd = socket.fileno()
+        self._connect_callback = connect_callback
+        self._close_callback = close_callback
         self._buffer = []
         self._current = 0
         self._size = 0
         self._data = ""
 
-    def connected(self):
-        return self._connected
-
     def fileno(self):
-        return self._socket.fileno()
+        return self._fd
 
     def close(self):
         self._socket.close()
+        self._close_callback(self._fd)
 
     def push(self, messages):
         for message in messages:
@@ -293,10 +344,7 @@ class OANWriter:
     def empty(self):
         return len(self._buffer) == 0 and len(self._data) == self._current
 
-    def handle_connect(self):
-        self._connected = True
-
-    def handle_write(self):
+    def handle(self):
 
         OANLogCounter.begin("handle_write")
 
@@ -314,6 +362,10 @@ class OANWriter:
 
         ## send data
         if self._data:
+            if not self._connected:
+                self._connected = True
+                self._connect_callback(self._fd)
+
             sent = self._socket.send(self._data[self._current:self._current + 64000])
             self._current += sent
             OANCounter.out_bytes += sent
@@ -330,26 +382,21 @@ class OANOut:
     _fds = []
     _thread = None
     _started = None
-    _controller = None
+    _send_notify = None
 
     connect_callback = staticmethod(lambda fd : None)
     disconnect_callback = staticmethod(lambda fd : None)
 
     @staticmethod
-    def start(controller):
-        OANOut._controller = controller
-        OANOut._writers[controller.fileno()] = controller
-        OANOut._fds.append(controller.fileno())
+    def start(notify_sock):
+        OANOut._send_notify = OANSendNotify(notify_sock)
+        OANOut._writers[notify_sock.fileno()] = OANOut._send_notify
 
         OANOut._started = Event()
         OANOut._thread = Thread(target=OANOut._run, kwargs={})
         OANOut._thread.name="out"
         OANOut._thread.start()
         OANOut._started.wait()
-
-    def connect(url):
-        sock = OANOut._connect(url)
-        OANOut._add(OANWriter(sock))
 
     @staticmethod
     def shutdown():
@@ -361,13 +408,17 @@ class OANOut:
         OANOut._out.push(urls, messages)
 
     @staticmethod
-    def add(sock):
-        writer = OANWriter(sock)
+    def add(sock, handshake):
+        writer = OANWriter(sock, OANOut._connect_occured, OANOut._disconnect_occured)
+        writer.push([handshake])
         OANOut._writers[writer.fileno()] = writer
-        OANOut._fds.append(int(writer.fileno()))
+        OANOut._fds.append(writer.fileno())
+        OANOut._out.interrupt()
 
     @staticmethod
     def _connect_occured(fd):
+        OANOut._send_notify.handle()
+
         try:
             #log.info("OANOut:_connect_occured %s" % fd)
             OANOut.connect_callback(fd)
@@ -393,13 +444,13 @@ class OANOut:
             OANOut._writers[fd].close()
             del OANOut._writers[fd]
 
-        OANOut._disconnect_occured(fd)
         OANOut._out.clear(fd)
 
     @staticmethod
     def _run():
         inputs = []
-        outputs = []
+        outputs = OANOut._fds
+
         OANOut._started.set()
         while OANServer._running:
             #log.info("OANOut: loop")
@@ -418,11 +469,6 @@ class OANOut:
                     for fd in writable:
                         writer = OANOut._writers[fd]
 
-                        if not writer.connected():
-                            OANOut._controller.handle_write()
-                            OANOut._connect_occured(fd)
-                            writer.handle_connect()
-
                         if writer.empty():
                             data = OANOut._out.pop(fd)
                             #log.info("OANOut: data %s" % data)
@@ -432,9 +478,10 @@ class OANOut:
                                 outputs.remove(fd)
 
                         try:
-                            writer.handle_write()
+                            writer.handle()
+
                         except Exception, e:
-                            log.info("handle_write error: %s " % e)
+                            log.info("handle_error: %s " % e)
                             outputs.remove(fd)
                             OANOut._close(fd)
 
@@ -453,26 +500,25 @@ class OANOut:
 
 class OANIn:
 
-    _controller = None
     _readers = {}
     _fds = []
     _thread = None
     _started = None
-    _listen_sock = None
+
     connect_callback = staticmethod(lambda fd : None)
     disconnect_callback = staticmethod(lambda fd : None)
+    handshake_callback = staticmethod(lambda fd, handshake : None)
     accept_callback = staticmethod(lambda socket : None)
     message_callback = staticmethod(lambda fd, messages : None)
 
     @staticmethod
-    def start(controller, listen_sock):
-        OANIn._controller = controller
-        OANIn._listen_sock = listen_sock
+    def start(notify_sock, listen_sock):
+        OANIn._readers[notify_sock.fileno()] = OANRecvNotify(notify_sock)
+        OANIn._readers[listen_sock.fileno()] = OANListen(listen_sock, OANIn._accept_occured)
+
         log.info("listen on: %s " % listen_sock.fileno())
 
-        OANIn._readers[controller.fileno()] = controller
-
-        OANIn._fds = [listen_sock.fileno(), controller.fileno()]
+        OANIn._fds = [listen_sock.fileno(), notify_sock.fileno()]
         OANIn._started = Event()
         OANIn._thread = Thread(target=OANIn._run, kwargs={})
         OANIn._thread.name="in"
@@ -481,7 +527,11 @@ class OANIn:
 
     @staticmethod
     def add(sock):
-        reader = OANReader(sock)
+        reader = OANReader(sock,
+                           OANIn._message_occured,
+                           OANIn._connect_occured,
+                           OANIn._handshake_occured,
+                           OANIn._disconnect_occured)
         OANIn._readers[reader.fileno()] = reader
         OANIn._fds.append(reader.fileno())
 
@@ -490,19 +540,25 @@ class OANIn:
         OANIn._thread.join()
 
     @staticmethod
-    def _accept_occured():
-        sock, addr = OANIn._listen_sock.accept()
-        sock.setblocking(0)
+    def _accept_occured(sock):
         log.info("OANIn: accept %s " % sock.fileno())
         OANIn.accept_callback(sock)
 
     @staticmethod
-    def _message_occured(fd, messages):
+    def _message_occured(fd, mess):
         try:
             #log.info("OANIn: messages %s count:%s " % (fd, len(messages)))
-            OANIn.message_callback(fd, messages)
+            OANIn.message_callback(fd, mess)
         except Exception, e:
             log.info(e)
+
+    @staticmethod
+    def _handshake_occured(fd, handshake):
+        try:
+            #log.info("OANIn:_handshake_occured %s" % fd)
+            OANIn.handshake_callback(fd, handshake)
+        except Exception, e:
+            log.info("Error: OANIn:_handshake_occured %s %s" % (fd, e))
 
     @staticmethod
     def _connect_occured(fd):
@@ -510,7 +566,7 @@ class OANIn:
             #log.info("OANIn:_connect_occured %s" % fd)
             OANIn.connect_callback(fd)
         except Exception, e:
-            log.info("OANIn:_connect_occured %s %s" % (fd, e))
+            log.info("Error: OANIn:_connect_occured %s %s" % (fd, e))
 
     @staticmethod
     def _disconnect_occured(fd):
@@ -518,22 +574,18 @@ class OANIn:
             #log.info("OANIn:_disconnect_occured %s" % fd)
             OANIn.disconnect_callback(fd)
         except Exception, e:
-            log.info("OANIn:_disconnect_occured %s %s" % (fd, e))
-
+            log.info("Error: OANIn:_disconnect_occured %s %s" % (fd, e))
 
     @staticmethod
     def _close_all():
         for fd in OANIn._readers.keys()[:]:
             OANIn._close(fd)
 
-        OANIn._listen_sock.close()
-
     @staticmethod
     def _close(fd):
-        OANIn._readers[fd].close()
         OANIn._fds.remove(fd)
+        OANIn._readers[fd].close()
         del OANIn._readers[fd]
-        OANIn._disconnect_occured(fd)
 
     @staticmethod
     def _run():
@@ -547,25 +599,15 @@ class OANIn:
                 readable, writable, exceptional = select.select(OANIn._fds, outputs, OANIn._fds)
                 #log.info("OANIn: %s, %s, %s" % (readable, writable, exceptional))
                 for fd in readable:
-                    if (fd == OANIn._listen_sock.fileno()):
-                        OANIn._accept_occured()
-                    else:
-                        reader = OANIn._readers[fd]
-                        if not reader.connected():
-                            reader.handle_connect()
-                            OANIn._connect_occured(fd)
+                    try:
+                        if fd in OANIn._readers:
+                            OANIn._readers[fd].handle()
+                        else:
+                            log.info("OANIn:missing reader on : %s " % fd)
 
-                        try:
-                            mess = reader.handle_read()
-
-                            if reader.fileno() != OANIn._controller.fileno():
-                                if len(mess) > 0:
-                                    OANIn._message_occured(fd, mess)
-
-                        except Exception, e:
-                            log.info("handle_read error: %s " % e)
-                            OANIn._close(fd)
-
+                    except Exception, e:
+                        log.info("OANIn:handle_error: %s " % e)
+                        OANIn._close(fd)
 
             except Exception, e:
                 log.info("Error: %s on %s " % (e, OANIn._fds))
@@ -602,14 +644,12 @@ class OANAuth():
             self.oan_id, self.host, self.port, self.blocked))
 
 
-
 class OANServer:
     host = None
     port = None
     auth = None
 
     _bind_socket = None
-    _controller = None
     _running = None
     _thread = None
     _started = None
@@ -634,12 +674,13 @@ class OANServer:
         OANServer._bind_socket = OANServer._bind(OANServer.auth.host, OANServer.auth.port)
         OANServer._running = True
 
-        OANServer._controller = OANServer._create_controller(
+        client_notify_socket, server_notify_socket = OANServer._create_controller(
                 OANServer.auth.host,
                 OANServer.auth.port,
                 OANServer._bind_socket)
 
         OANIn.disconnect_callback = staticmethod(OANServer._disconnect_occured)
+        OANIn.handshake_callback = staticmethod(OANServer._handshake_occured)
         OANIn.connect_callback = staticmethod(OANServer._connect_occured)
         OANIn.message_callback = staticmethod(OANServer._message_occured)
         OANIn.accept_callback = staticmethod(OANServer._accept_occured)
@@ -647,8 +688,8 @@ class OANServer:
         OANOut.disconnect_callback = staticmethod(OANServer._disconnect_occured)
         OANOut.connect_callback = staticmethod(OANServer._connect_occured)
 
-        OANIn.start(OANServer._controller, OANServer._bind_socket)
-        OANOut.start(OANServer._controller)
+        OANIn.start(server_notify_socket, OANServer._bind_socket)
+        OANOut.start(client_notify_socket)
 
     @staticmethod
     def shutdown():
@@ -673,7 +714,6 @@ class OANServer:
                 sock = OANServer._connect(url)
                 OANServer._add_socket(sock)
                 OANServer._connected[url] = sock.fileno()
-                log.info("OANServer: connected %s %s" % (url, OANServer._connected[url]))
 
     @staticmethod
     def push(urls, messages):
@@ -687,36 +727,31 @@ class OANServer:
         OANOut.push(fds, messages)
 
     @staticmethod
-    def _send_handshake(sock):
-        OANOut.push([sock.fileno()], ["OAN %s %s %s" % (
+    def _create_handshake():
+        return "OAN %s %s %s" % (
             OANServer.auth.oan_id,
             OANServer.auth.host,
-            OANServer.auth.port)]
-        )
+            OANServer.auth.port)
 
     @staticmethod
-    def _validate_handshake(fd, message):
-        log.info("_validate_handshake %s" % message)
+    def _handshake_occured(fd, handshake):
+        log.info("_handshake_occured %s" % handshake)
         try:
-            protocol, oan_id, host, port = message.split(' ')
+            protocol, oan_id, host, port = handshake.split(' ')
             auth = OANAuth(protocol, oan_id, host, int(port), False)
-            OANServer.connect_callback(auth)
             OANServer._handshaked[fd] = auth
             OANServer._connected[auth.url] = fd
-
-            return True
-
+            OANServer.connect_callback(auth)
         except Exception, e:
             raise e
 
-        return False
-
     @staticmethod
     def _connect_occured(fd):
-        pass
+        log.info("OANServer: connected %s" % (fd))
 
     @staticmethod
     def _disconnect_occured(fd):
+        log.info("OANServer: disconnected %s" % (fd))
         try:
             if fd in OANServer._handshaked:
                 auth = OANServer._handshaked[fd]
@@ -735,8 +770,7 @@ class OANServer:
     @staticmethod
     def _add_socket(sock):
         OANIn.add(sock)
-        OANOut.add(sock)
-        OANServer._send_handshake(sock)
+        OANOut.add(sock, OANServer._create_handshake())
 
     @staticmethod
     def _accept_occured(sock):
@@ -744,25 +778,16 @@ class OANServer:
 
     @staticmethod
     def _message_occured(fd, messages):
-
-        if fd not in OANServer._handshaked:
-            if OANServer._validate_handshake(fd, messages[0]):
-                del messages[0]
-            else:
-                log.info("invalid handshake")
-
-        if len(messages) > 0:
-            auth = OANServer._handshaked[fd]
-            url = (auth.host, auth.port)
-            OANServer.message_callback(url, messages)
+        auth = OANServer._handshaked[fd]
+        url = (auth.host, auth.port)
+        OANServer.message_callback(url, messages)
 
     @staticmethod
     def _create_controller(host, port, bind_socket):
-
         client_socket = OANServer._connect((host, port))
         readable, writable, exceptional = select.select([bind_socket.fileno()], [], [])
         server_socket, addr = bind_socket.accept()
-        return OANController(client_socket, server_socket)
+        return (client_socket, server_socket)
 
     @staticmethod
     def _bind(host, port):
