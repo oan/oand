@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test cases for oan.async.network_node.py
+Test cases for oan.network.network_node.py
 
 """
 
@@ -14,7 +14,7 @@ __status__ = "Test"
 from uuid import UUID
 from test.test_case import OANTestCase
 
-from oan.async.network_node import OANNetworkNode, OANNetworkNodeState
+from oan.network.network_node import OANNetworkNode, OANNetworkNodeState
 from oan.heartbeat import OANHeartbeat
 
 class TestOANNetworkNode(OANTestCase):

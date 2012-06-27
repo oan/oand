@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test cases for oan.async.bridge
+Test cases for oan.network.bridge
 
 """
 
@@ -15,14 +15,15 @@ import asyncore
 from threading import Thread
 from Queue import Queue
 from time import sleep
+from collections import deque
 
 from test.test_case import OANTestCase
 from oan.util import log
 from oan.util.daemon_base import OANDaemonBase
-from oan.util.signal_handler import OANTerminateInterrupt
-from oan.async.server import OANListen
-from oan.async.bridge import OANBridge, OANBridgeAuth
-from oan.async import serializer
+from oan.util.signal_handler import OANSignalHandler, OANTerminateInterrupt
+from oan.network.server import OANListen
+from oan.network.bridge import OANBridge
+from oan.network import serializer
 
 
 def start_asyncore_loop(timeout, name = "asynco"):
@@ -33,6 +34,7 @@ def start_asyncore_loop(timeout, name = "asynco"):
 
     t = Thread(target=run, kwargs={
         'timeout' : timeout})
+
     t.name=name
     t.daemon = True
     t.start()
@@ -45,30 +47,49 @@ class MessageTest():
 
 
 class ServerNodeDaemon(OANDaemonBase):
+    _auth = None
+
+    _nodes = []
+
+    _connected_bridges = []
+
+    _concurrent_bridges = 10
+
+    def __init__(self, auth, nodes):
+        self._auth = auth
+        self._nodes = deque(nodes)
+
     def run(self):
-        try:
-            serializer.add(MessageTest)
-            auth = OANBridgeAuth.create(
-                'oand v1.0', '00000000-0000-code-1338-000000000000',
-                'localhost', 1338, False
-            )
-            listen = OANListen(auth)
-            listen.accept_callback = self.accept
-            listen.start()
-            start_asyncore_loop(60)
-            self.wait()
+        serializer.add(MessageTest)
+        listen = OANListen(self._auth)
+        listen.accept_callback = self.accept
+        listen.start()
 
-        except OANTerminateInterrupt:
-            pass
+        while True:
+            try:
+                OANSignalHandler.activate()
+                asyncore.loop(timeout = 60, use_poll = True)
+                OANSignalHandler.deactivate()
+                sleep(5)
+                self.send_heartbeat(self)
 
-    def accept(self, bridge):
+            except OANTerminateInterrupt:
+                break
+
+    def send_heartbeat(self):
+        while len(self._connected_bridges) < self._concurrent_bridges:
+            node_auth = self._nodes.popleft()
+            bridge = OANBridge(node_auth.host, node_auth.port, self._auth)
+            self._connected_bridges.append(bridge)
+
+    def bridge_accept(self, bridge):
         log.info("ServerNodeDaemon::accept")
-        bridge.received_callback = self.received
+        bridge.connect_callback = self.connected
+        bridge.message_callback = self.message
 
-    def received(self, bridge, message):
-        log.info("ServerNodeDaemon::received")
-        if message.__class__.__name__ == 'MessageTest':
-            bridge.send([MessageTest(message.text)])
+    def bridge_message(self, bridge, message):
+        log.info("ServerNodeDaemon::message")
+
 
 class TestOANBridge(OANTestCase):
     # Remote node to test network against.
@@ -81,8 +102,6 @@ class TestOANBridge(OANTestCase):
     # Set by error_cb
     last_error = None
 
-    _auth = None
-
     def setUp(self):
         serializer.add(MessageTest)
 
@@ -92,11 +111,6 @@ class TestOANBridge(OANTestCase):
         self.received_counter = 0
         self.close_counter = 0
         self.last_error = None
-
-        self._auth = OANBridgeAuth.create(
-            'oand v1.0', '00000000-0000-code-1337-000000000000', 'localhost',
-            1337, False)
-
 
     def received_cb(self, bridge, message):
         if message.text == "Hello world":
@@ -112,17 +126,15 @@ class TestOANBridge(OANTestCase):
     def test_bridge(self):
         """Should be stopped before all messages has been echoed back"""
         self.daemon.start()
-        bridge = OANBridge("localhost", 1338, self._auth)
+        bridge = OANBridge()
+        bridge.out_queue = Queue()
         bridge.received_callback = self.received_cb
         bridge.close_callback = self.close_cb
-        bridge.connect()
+        bridge.connect("localhost", 1338)
         start_asyncore_loop(0.1)
 
-        messages = []
         for x in xrange(1, 300):
-            messages.append(MessageTest("Hello world"))
-
-        bridge.send(messages)
+            bridge.out_queue.put(MessageTest("Hello world"))
 
         bridge.shutdown()
 
@@ -132,10 +144,11 @@ class TestOANBridge(OANTestCase):
 
     def test_remote_is_gone(self):
         """Test that bridge can handle lost connection to remote node."""
-        bridge = OANBridge("localhost", 1338, self._auth)
+        bridge = OANBridge()
+        bridge.out_queue = Queue()
         bridge.error_callback = self.error_cb
-        bridge.send([MessageTest("Hello world")])
-        bridge.connect()
+        bridge.out_queue.put(MessageTest("Hello world"))
+        bridge.connect("localhost", 1338)
         start_asyncore_loop(0.1)
 
         self.assertTrueWait(lambda : self.last_error == "[Errno 61] Connection refused")

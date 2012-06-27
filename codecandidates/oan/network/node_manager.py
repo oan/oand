@@ -10,8 +10,8 @@ __status__ = "Test"
 
 #from oan.manager import database
 from oan.util import log
-from oan.async.network_node import OANNetworkNode
-from oan.async.bridge import OANBridgeAuth
+from oan.network.network_node import OANNetworkNode
+from oan.network.bridge import OANBridgeAuth
 from oan.util.network import get_local_host
 
 class OANNodeManager():

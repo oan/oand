@@ -10,8 +10,8 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from oan.util import log
-from oan.async.network_node import OANNetworkNodeState
-from oan.async.network import OANNetworkServer
+from oan.network.network_node import OANNetworkNodeState
+from oan.network.network import OANNetworkServer
 
 class NetworksCommandConnectToNode:
     _auth = None

@@ -20,7 +20,7 @@ from datetime import datetime, timedelta
 from oan import manager
 from oan.manager import dispatcher, node_manager
 from oan.config import OANConfig
-from oan.network.network_node import OANNetworkNode
+from oan.async.network_node import OANNetworkNode
 from oan.node_manager.node_manager import OANNodeManager
 from test.test_case import OANTestCase, OANMatcherClass
 from oan.heartbeat import OANHeartbeat
@@ -29,7 +29,7 @@ from oan.node_manager.command import (OANCommandStaticHeartbeat,
 
 from oan.dispatcher.message import OANMessageHeartbeat, OANMessageRelay
 
-from oan.network.command import NetworksCommandConnectToNode
+from oan.async.command import NetworksCommandConnectToNode
 
 class TestOANNodeManager(OANTestCase):
 

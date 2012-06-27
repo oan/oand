@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test cases for oan.async.bridge
+Test cases for oan.network.bridge
 
 """
 
@@ -12,32 +12,99 @@ __version__ = "0.1"
 __status__ = "Test"
 
 import asyncore
+import os
 from threading import Thread
+from Queue import Queue
 
 from test.test_case import OANTestCase
 from oan.util import log
 from oan.util.daemon_base import OANDaemonBase
 from oan.util.signal_handler import OANTerminateInterrupt
-from oan.async.server import OANListen
-from oan.async.bridge import OANBridge, OANBridgeAuth
-from oan.async import serializer
+from oan.util.decorator.synchronized import synchronized
+from oan.network.server import OANListen
+from oan.network.bridge import OANBridge, OANBridgeAuth
+from oan.network import serializer
 
-def start_asyncore_loop(timeout, name = "asynco"):
-    def run(timeout):
-        log.info("Start asyncore loop")
-        asyncore.loop(timeout = timeout, use_poll = True)
-        log.info("Stop asyncore loop")
+class OANAsyncController(asyncore.file_dispatcher):
 
-    t = Thread(target=run, kwargs={
-        'timeout' : timeout})
-    t.name=name
-    t.start()
+    def __init__(self):
+        self.r, self.w = os.pipe()
+        self._in_buffer = ""
+        asyncore.file_dispatcher.__init__(self, self.r)
+
+    def writable(self):
+        return False
+
+    def handle_read(self):
+        data = self.recv(1024)
+
+        if data:
+            self._in_buffer += data
+
+            pos = self._in_buffer.find('\n')
+            while pos > -1:
+                cmd = self._in_buffer[:pos]
+                self._in_buffer = self._in_buffer[pos+1:]
+
+                log.info("OANAsyncController:handle_read: CMD[%s]" % (cmd))
+
+                if cmd == "shutdown":
+                    self.handle_close()
+
+                pos = self._in_buffer.find('\n')
+
+    def handle_close(self):
+        self.close()
+
+    def write_data(self, fd, str):
+        total_count = 0
+        num = len(str)
+        while total_count < num:
+            write_count = os.write(fd, str)
+
+            if write_count > 0:
+                total_count += write_count
+                str = str[write_count:]
+            else:
+                log.info("write error")
+                return None
+
+    def shutdown(self):
+        self.write_data(self.w, "shutdown\n")
+
+    def notify(self):
+        self.write_data(self.w, "notify\n")
+
+class OANAsync:
+
+    controller = None
+    bridges = {}
+
+    @staticmethod
+    def start():
+        OANAsync.controller = OANAsyncController()
+        t = Thread(target=OANAsync.run, kwargs={})
+        t.name="Loop"
+        t.start()
+
+    @staticmethod
+    def run():
+        log.info("Start OANAsync loop")
+        asyncore.loop(timeout = 100000, use_poll = True, map = OANAsync.bridges, count = 1)
+        log.info("Stop OANAsync loop")
+
+    @staticmethod
+    def shutdown():
+        OANAsync.controller.shutdown()
+
+    @staticmethod
+    def notify():
+        OANAsync.controller.notify()
 
 class MessageTest():
     def __init__(self, text = None):
         self.status = "ok"
         self.text = text
-
 
 class ServerNodeDaemon(OANDaemonBase):
     def run(self):
@@ -50,11 +117,12 @@ class ServerNodeDaemon(OANDaemonBase):
             listen = OANListen(auth)
             listen.accept_callback = self.accept
             listen.start()
-            start_asyncore_loop(60)
+            OANAsync.start()
             self.wait()
 
         except OANTerminateInterrupt:
-            pass
+            listen.shutdown()
+            OANAsync.shutdown()
 
     def accept(self, bridge):
         log.info("ServerNodeDaemon::accept")
@@ -64,6 +132,7 @@ class ServerNodeDaemon(OANDaemonBase):
         log.info("ServerNodeDaemon::received")
         if message.__class__.__name__ == 'MessageTest':
             bridge.send([MessageTest(message.text)])
+            OANAsync.notify()
 
 
 class TestOANBridge(OANTestCase):
@@ -110,12 +179,21 @@ class TestOANBridge(OANTestCase):
         bridge.connect_callback = self.connect_cb
         bridge.message_callback = self.message_cb
         bridge.close_callback = self.close_cb
+
         bridge.send([MessageTest("Hello world")])
         self.assertTrue(bridge.readable())
         self.assertTrue(bridge.writable())
 
         bridge.connect()
-        start_asyncore_loop(1)
+        OANAsync.start()
+
+        import time
+        for x in xrange(1,10):
+            bridge.send([MessageTest("Hello world %s" % x)])
+            OANAsync.notify()
+            #time.sleep(1)
+
+        #start_asyncore_loop(1)
 
         log.info(bridge.connected)
         log.info(self.connect_counter)
@@ -123,30 +201,10 @@ class TestOANBridge(OANTestCase):
 
         self.assertTrueWait(lambda : bridge.connected)
         self.assertTrueWait(lambda : self.connect_counter == 1)
-        self.assertTrueWait(lambda : self.message_counter == 1)
+        self.assertTrueWait(lambda : self.message_counter == 10)
 
+        OANAsync.shutdown()
         bridge.shutdown()
-        self.assertTrueWait(lambda : self.close_counter == 1)
-        self.assertTrueWait(lambda : bridge.connected == False)
-        self.assertFalse(bridge.writable())
-
-    def disabled_test_two_asyncoreloops(self):
-        """
-        Test that two asyncore loops can be started after each other in the
-        same main thread.
-
-        """
-        bridge = OANBridge("localhost", 1338, self._auth)
-        bridge.send([MessageTest("Hello world")])
-        self.assertTrue(bridge.readable())
-        self.assertTrue(bridge.writable())
-
-        bridge.connect()
-
-        start_asyncore_loop(4, name="async2")
-
-        self.assertTrueWait(lambda : bridge.connected)
-        self.assertTrueWait(lambda : bridge.connected == False)
-        self.assertFalse(bridge.writable())
-
-
+        #self.assertTrueWait(lambda : self.close_counter == 1)
+        #self.assertTrueWait(lambda : bridge.connected == False)
+        #self.assertFalse(bridge.writable())

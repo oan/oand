@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test cases for oan.network.bridge
+Test cases for oan.async.bridge
 
 """
 
@@ -21,9 +21,9 @@ from test.test_case import OANTestCase
 from oan.util import log
 from oan.util.daemon_base import OANDaemonBase
 from oan.util.signal_handler import OANSignalHandler, OANTerminateInterrupt
-from oan.network.server import OANListen
-from oan.network.bridge import OANBridge
-from oan.network import serializer
+from oan.async.server import OANListen
+from oan.async.bridge import OANBridge
+from oan.async import serializer
 
 
 def start_asyncore_loop(timeout, name = "asynco"):

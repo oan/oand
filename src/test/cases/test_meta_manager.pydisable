@@ -19,7 +19,7 @@ __status__ = "Test"
 # from oan.config import OANConfig
 # from oan.meta_manager import OANMetaManager
 # from oan.node_manager.node_manager import OANNodeManager
-# from oan.network_node import OANNetworkNode
+# from oan.async_node import OANNetworkNode
 
 # class TestOANMetaManager(OANTestCase):
 

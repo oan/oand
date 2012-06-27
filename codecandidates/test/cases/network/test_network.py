@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test cases for oan.async.network
+Test cases for oan.network.network
 
 """
 
@@ -19,10 +19,10 @@ from test.test_case import OANTestCase
 from oan.util import log
 from oan.util.daemon_base import OANDaemonBase
 from oan.util.signal_handler import OANTerminateInterrupt
-from oan.async.bridge import OANBridgeAuth
-from oan.async.network import OANNetworkServer
-from oan.async.node_manager import OANNodeManager
-from oan.async import serializer
+from oan.network.bridge import OANBridgeAuth
+from oan.network.network import OANNetworkServer
+from oan.network.node_manager import OANNodeManager
+from oan.network import serializer
 from oan.config import OANConfig
 
 

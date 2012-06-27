@@ -53,7 +53,7 @@ class OANBridge(asyncore.dispatcher):
     # Tuple of host and port to remote host.
     _remote_addr = None
 
-    #
+    # The auth for my node
     _auth = None
 
     # Buffer of data to send to remote host.
@@ -176,7 +176,6 @@ class OANBridge(asyncore.dispatcher):
         data = self.recv(1024)
 
         if data:
-            self._read_state = 2
             self._in_buffer += data
 
             pos = self._in_buffer.find('\n')

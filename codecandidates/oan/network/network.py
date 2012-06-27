@@ -23,9 +23,9 @@ from oan.passthru import OANPassthru
 from oan.util.thread import OANThread
 from oan.util.throttle import OANThrottle
 
-from oan.async.bridge import OANBridge
-from oan.async.server import OANListen
-from oan.async.node_manager import OANNodeManager
+from oan.network.bridge import OANBridge
+from oan.network.server import OANListen
+from oan.network.node_manager import OANNodeManager
 
 
 class OANNetworkTimer(object):

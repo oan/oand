@@ -85,4 +85,30 @@ class OANTestCase(unittest.TestCase):
         self.assertTrue(self.wait(condition, timeout))
 
 
+    assert_counters = {}
+    def reset_all_counters(self):
+        self.assert_counters = {}
+
+    def reset_counter(self, key):
+        self.assert_counters[key] = 0
+
+    def inc_counter(self, key):
+        if key not in self.assert_counters:
+            self.assert_counters[key] = 0
+
+        self.assert_counters[key] += 1
+
+    def dec_counter(self, key):
+        if key not in self.assert_counters:
+            self.assert_counters[key] = 0
+
+        self.assert_counters[key] -= 1
+
+    def assert_counter_wait(self, key, value):
+        if key not in self.assert_counters:
+            self.assert_counters[key] = 0
+
+        self.assertTrueWait(lambda : self.assert_counters[key] == value)
+
+
 
