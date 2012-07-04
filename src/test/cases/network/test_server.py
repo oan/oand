@@ -1,5 +1,6 @@
 import time
 import os
+import sys
 
 from struct import *
 
@@ -18,11 +19,6 @@ class ServerDaemon(OANDaemonBase):
         try:
             log.info("ServerDaemon::run::begin")
 
-            self.auth = OANAuth(
-                'oand v1.0', '00000000-0000-code-8000-000000000000',
-                'localhost', 8000, False
-            )
-
             OANServer.connect_callback = self.my_test_connected
             OANServer.close_callback = self.my_test_closed
             OANServer.message_callback = self.my_test_message
@@ -32,6 +28,10 @@ class ServerDaemon(OANDaemonBase):
             self.wait()
 
         except OANTerminateInterrupt:
+            OANServer.shutdown()
+            log.info("ServerDaemon::run::OANTerminateInterrupt")
+        except Exception, e:
+            log.info("ServerDaemon::run::Error %s" % e)
             OANServer.shutdown()
 
     def my_test_connected(self, auth):
@@ -47,6 +47,7 @@ class ServerDaemon(OANDaemonBase):
 
 class TestOanSocket(OANTestCase):
     daemon = None
+    daemon2 = None
     auth = None
     start = None
 
@@ -55,7 +56,23 @@ class TestOanSocket(OANTestCase):
             "/tmp/ut_socket.pid", stdout='/tmp/ut_socket_out.log',
             stderr='/tmp/ut_socket_err.log')
 
+
+        self.daemon.auth = OANAuth(
+                'oand v1.0', '00000000-0000-code-8000-000000000000',
+                'localhost', 8000, False
+            )
+
         self.daemon.start()
+
+
+        self.daemon2 = ServerDaemon(
+            "/tmp/ut_socket_8002.pid", stdout='/tmp/ut_socket_8002_out.log',
+            stderr='/tmp/ut_socket_8002_err.log')
+
+        self.daemon2.auth = OANAuth("OAN v0.1", '00000000-0000-code-8002-000000000000', "localhost", 8002, False)
+
+        self.daemon2.start()
+
 
         self.reset_all_counters()
         self.auth = OANAuth("OAN v0.1", '00000000-0000-code-8001-000000000000', "localhost", 8001, False)
@@ -84,6 +101,7 @@ class TestOanSocket(OANTestCase):
 
         OANServer.shutdown()
         self.daemon.stop()
+        self.daemon2.stop()
 
     def my_test_connected(self, auth):
         log.info("my_test_connected")
@@ -129,7 +147,7 @@ class TestOanSocket(OANTestCase):
         with self.assertRaises(OANNetworkError):
             OANServer.connect([("localhost", 8002)])
 
-    def test_connect(self):
+    def atest_connect(self):
         OANServer.connect([("localhost", 8000)])
         self.assert_counter_wait('my_test_connected', 1)
 
@@ -142,46 +160,33 @@ class TestOanSocket(OANTestCase):
         OANServer.connect([("localhost", 8000)])
         OANServer.connect([("localhost", 8000)])
 
+
+    def atest_two_connect(self):
+
+        OANServer.connect([("localhost", 8000)])
+        OANServer.connect([("localhost", 8002)])
+        self.assert_counter_wait('my_test_connected', 2)
+
     my_queue = OANQueue()
     def got_message(self, url, messages):
         self.my_queue.put(messages)
 
-    def atest_server(self):
+    def test_server(self):
 
-        num_push = 100
-        num_clients = 1
-        to_push = ["M" * 500]
-        clients = []
+        num_push = 10000
+        to_push = ["M" * 50, "D" * 50, "X" * 50]
 
         OANServer.message_callback = self.got_message
+        OANServer.connect([("localhost", 8000)])
 
-        start = time.time()
+        for x in xrange(0,num_push):
+            OANServer.push([("localhost", 8000)], to_push)
+            #time.sleep(0.00001)
 
-        for x in xrange(0,num_clients):
-            OANServer.connect([("localhost", 8000)])
-
-            for x in xrange(0,num_push):
-                OANServer.push([("localhost", 8000)], to_push)
-                #time.sleep(0.00001)
-
-        excepted = num_push * num_clients * len(to_push)
+        excepted = num_push * len(to_push)
         c = 0
         while c < excepted:
             c += len(self.my_queue.get())
-
-        elapsed = (time.time() - start)
-        (utime, stime, cutime, cstime, elapsed_time) = os.times()
-
-        log.info("sec[%s] avg[%s] in[%s][%s KB] out[%s][%s KB] speed[%s MB/S]" % (
-            elapsed, (c / elapsed),
-            OANCounter.in_count, OANCounter.in_bytes / 1000,
-            OANCounter.out_count, OANCounter.out_bytes / 1000,
-            OANCounter.out_bytes / elapsed / 1000000)
-        )
-
-        log.info("Stat: %s, %s, %s, %s, %s" % (utime, stime, cutime, cstime, elapsed_time))
-
-        log.info(OANLogCounter.result())
 
 
 

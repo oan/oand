@@ -45,7 +45,7 @@ level_convert = {
 
 
 # Format of log output, used together with ContextFilter
-FORMATTER="%(small_time)s [%(small_levelname)-3s][%(threadName)-6s] " \
+FORMATTER="%(small_time)s [%(small_levelname)-3s][%(process)d][%(threadName)-6s] " \
           "%(extra)s %(message)s %(trace)s"
 
 
