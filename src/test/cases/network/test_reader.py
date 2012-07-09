@@ -20,9 +20,11 @@ class FakeSocket():
     _data_size = 0
     _pos = 0
     _fd = None
+    _handshake = None
 
-    def __init__(self, fd, frame_size, frame_count, message_size, block_size):
+    def __init__(self, fd, handshake, frame_size, frame_count, message_size, block_size):
         self._fd = fd
+        self._handshake = handshake
         self._frame_size = frame_size
         self._frame_count = frame_count
         self._message_size = message_size
@@ -52,18 +54,23 @@ class FakeSocket():
         tmp = []
         for c in xrange(0, self._frame_count):
 
-            buf = []
+            if self._handshake:
+                buf = [self._handshake]
+                self._handshake = None
+            else:
+                buf = []
+
             buf.extend(['D'* self._message_size] * (self._frame_size / self._message_size))
             if self._frame_size % self._message_size != 0:
                 buf.append('D' * (self._frame_size % self._message_size))
 
-            # frame_size + size for all the crlf
-            tmp.append(pack('i', self._frame_size + (len(buf)-1)))
-            tmp.append('\n'.join(buf))
+            data = '\n'.join(buf)
+            tmp.append(pack('i', len(data)))
+            tmp.append(data)
 
         self._data = ''.join(tmp)
         self._data_size = len(self._data)
-        log.info("data_size : %s" % self._data_size)
+        log.info("_generate_data size : %s" % self._data_size)
 
 class TestOanReader(OANTestCase):
     start = None
@@ -90,7 +97,7 @@ class TestOanReader(OANTestCase):
 
 
     def do_fake_socket_test(self, frame_size, frame_count, message_size, block_size, buf_size):
-        sock = FakeSocket(1, frame_size, frame_count, message_size, block_size)
+        sock = FakeSocket(1, "", frame_size, frame_count, message_size, block_size)
 
         total = []
 
@@ -132,24 +139,41 @@ class TestOanReader(OANTestCase):
                          block_size = 30, buf_size = 2),
                          ['DDDDDDDDDDDDDDDDDDDD', 'DDDDDDDDDDDDDDDD'])
 
-    def test_handle_read(self):
-        frame_size = 6400
-        frame_count = 100
-        message_size = 1000
-        block_size = 100
+    all_messages = None
+    def message_cb(self, fd, sock, auth, messages):
+        self.all_messages.extend(messages)
 
-        reader = OANReader(FakeSocket(1, frame_size = frame_size,
+    def connect_cb(self, fd, sock, auth):
+        log.info("connect_cb")
+
+    def close_cb(self, fd, sock, auth):
+        log.info("close_cb")
+
+    def test_handle_read(self):
+        frame_size = 100
+        frame_count = 1000
+        message_size = 100
+        block_size = 10
+
+        reader = OANReader(FakeSocket(1, handshake = "OAN %s %s %s" % (
+                                                        "0000-8000",
+                                                        "localhost",
+                                                        8000),
+                                         frame_size = frame_size,
                                          frame_count = frame_count,
                                          message_size = message_size,
-                                         block_size = block_size))
+                                         block_size = block_size),
+                           message_callback = self.message_cb,
+                           connect_callback = self.connect_cb,
+                           close_callback = self.close_cb
 
-        result = []
+        )
 
+        self.all_messages = []
         try:
             while True:
-                data = reader.handle_read()
-                result.extend(data)
-        except OANNetworkError:
-            pass
+                reader.handle()
+        except OANNetworkError, e:
+            log.info(e)
 
-        self.assertEqual(len(''.join(result)), frame_size * frame_count)
+        self.assertEqual(len(''.join(self.all_messages)), frame_size * frame_count)

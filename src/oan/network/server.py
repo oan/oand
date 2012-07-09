@@ -82,7 +82,7 @@ class OANSendNotify:
 
     def handle(self):
         self._socket.send('\n')
-        log.info("OANSendNotify")
+        #log.info("OANSendNotify")
 
 class OANRecvNotify:
     auth = None
@@ -97,7 +97,7 @@ class OANRecvNotify:
 
     def handle(self):
         self._socket.recv(256)
-        log.info("OANRecvNotify")
+        #log.info("OANRecvNotify")
 
 class OANLogEntry():
     counter = None
@@ -169,10 +169,10 @@ class OANListen:
         self._socket.close()
 
     def handle(self):
-        log.info("OANListen")
         sock, addr = self._socket.accept()
         sock.setblocking(0)
         self._accept_callback(sock)
+        #log.info("OANListen")
 
 
 class OANReader:
@@ -243,7 +243,7 @@ class OANReader:
                 del ret[0]
 
             if ret:
-                self._message_callback(self._fd, self.auth, ret)
+                self._message_callback(self._fd, self._socket, self.auth, ret)
                 OANCounter.in_count += len(ret)
 
     def _create_auth(self, handshake):
@@ -414,6 +414,7 @@ class OANOut:
 
     @staticmethod
     def shutdown():
+        log.info("OANOut: shutdown begin")
         OANOut._out.interrupt()
         OANOut._thread.join()
 
@@ -483,11 +484,8 @@ class OANOut:
             #log.info("OANOut: loop")
 
             pop_data = OANOut._out.pop(OANOut._authorized.keys())
-            #log.info("waiting")
-            OANOut._out.wait(not outputs and not pop_data)
-            #log.info("interrupt")
+            OANOut._out.wait(not outputs and not pop_data and OANServer._running)
 
-            # only wait if outputs is empty
             for url, entry_data in pop_data:
                 #log.info("OANOut: url %s size %s" % (url, len(entry_data)))
                 #log.info(OANOut._authorized)
@@ -522,7 +520,6 @@ class OANOut:
                         try:
                             readable, writable, exceptional = select.select(inputs, [fd], inputs, 0)
                         except Exception, e:
-                            log.info("Found error sock: %s " % fd)
                             outputs.remove(fd)
                             OANOut._close(fd)
 
@@ -536,18 +533,15 @@ class OANIn:
     _thread = None
     _started = None
 
-    connect_callback = staticmethod(lambda fd : None)
-    disconnect_callback = staticmethod(lambda fd : None)
-    accept_callback = staticmethod(lambda socket : None)
-    message_callback = staticmethod(lambda fd, auth, messages : None)
+    connect_callback = staticmethod(lambda fd, sock, auth : None)
+    close_callback = staticmethod(lambda fd, sock, auth : None)
+    accept_callback = staticmethod(lambda fd, sock : None)
+    message_callback = staticmethod(lambda auth, messages : None)
 
     @staticmethod
     def start(notify_sock, listen_sock):
         OANIn._readers[notify_sock.fileno()] = OANRecvNotify(notify_sock)
         OANIn._readers[listen_sock.fileno()] = OANListen(listen_sock, OANIn._accept_occured)
-
-        log.info("listen on: %s " % listen_sock.fileno())
-
         OANIn._fds = [listen_sock.fileno(), notify_sock.fileno()]
         OANIn._started = Event()
         OANIn._thread = Thread(target=OANIn._run, kwargs={})
@@ -568,7 +562,7 @@ class OANIn:
         reader = OANReader(sock,
                            OANIn._message_occured,
                            OANIn._connect_occured,
-                           OANIn._disconnect_occured)
+                           OANIn._close_occured)
 
         OANIn._readers[reader.fileno()] = reader
         OANIn._fds.append(reader.fileno())
@@ -576,18 +570,19 @@ class OANIn:
 
     @staticmethod
     def shutdown():
+        log.info("OANIn: shutdown begin")
         OANIn._thread.join()
 
     @staticmethod
     def _accept_occured(sock):
-        log.info("OANIn: accept %s " % sock.fileno())
+        #log.info("OANIn: accept %s " % sock.fileno())
         OANIn.accept_callback(sock)
 
     @staticmethod
-    def _message_occured(fd, auth, mess):
+    def _message_occured(fd, sock, auth, mess):
         try:
             #log.info("OANIn: messages %s count:%s " % (fd, len(messages)))
-            OANIn.message_callback(fd, auth, mess)
+            OANIn.message_callback(auth, mess)
         except Exception, e:
             log.info(e)
 
@@ -600,12 +595,12 @@ class OANIn:
             log.info("Error: OANIn:_connect_occured %s %s" % (fd, e))
 
     @staticmethod
-    def _disconnect_occured(fd, sock, auth):
+    def _close_occured(fd, sock, auth):
         try:
             #log.info("OANIn:_disconnect_occured %s" % fd)
-            OANIn.disconnect_callback(fd, sock, auth)
+            OANIn.close_callback(fd, sock, auth)
         except Exception, e:
-            log.info("Error: OANIn:_disconnect_occured %s %s" % (fd, e))
+            log.info("Error: OANIn:_close_occured %s %s" % (fd, e))
 
     @staticmethod
     def _close_all():
@@ -622,14 +617,15 @@ class OANIn:
 
     @staticmethod
     def _run():
+        inputs = OANIn._fds
         outputs = []
         OANIn._started.set()
         while OANServer._running:
             #log.info("OANIn: loop")
             #time.sleep(0.5)
-            #log.info("OANIn current: %s" % (OANIn._fds))
+            #log.info("OANIn current: %s" % (inputs))
             try:
-                readable, writable, exceptional = select.select(OANIn._fds, outputs, OANIn._fds)
+                readable, writable, exceptional = select.select(inputs, outputs, inputs)
                 #log.info("OANIn: %s, %s, %s" % (readable, writable, exceptional))
                 for fd in readable:
                     try:
@@ -643,12 +639,11 @@ class OANIn:
                         OANIn._close(fd)
 
             except Exception, e:
-                log.info("Error: %s on %s " % (e, OANIn._fds))
-                for fd in OANIn._fds[:]:
+                log.info("Error: %s on %s " % (e, inputs))
+                for fd in inputs[:]:
                     try:
                         readable, writable, exceptional = select.select([fd], outputs, [], 0)
                     except Exception, e:
-                        log.info("Found error sock: %s " % fd)
                         OANIn._close(fd)
 
         OANIn._close_all()
@@ -709,7 +704,7 @@ class OANServer:
                 OANServer.auth.port,
                 OANServer._bind_socket)
 
-        OANIn.disconnect_callback = staticmethod(OANServer._in_disconnect_occured)
+        OANIn.close_callback = staticmethod(OANServer._in_close_occured)
         OANIn.connect_callback = staticmethod(OANServer._in_connect_occured)
         OANIn.message_callback = staticmethod(OANServer._message_occured)
         OANIn.accept_callback = staticmethod(OANServer._accept_occured)
@@ -748,7 +743,7 @@ class OANServer:
 
     @staticmethod
     def _in_connect_occured(fd, sock, auth):
-        log.info("OANServer: _in_connect_occured %s" % (fd))
+        log.info("OANServer: _in_connect_occured %s %s" % (fd, auth.url))
         try:
             if auth.url not in OANServer._connected:
                 OANOut.authorized(fd, auth)
@@ -768,17 +763,14 @@ class OANServer:
         OANIn.handshake(sock)
 
     @staticmethod
-    def _in_disconnect_occured(fd, sock, auth):
-        log.info("OANServer: _in_disconnect_occured %s" % (fd))
+    def _in_close_occured(fd, sock, auth):
+        log.info("OANServer: _in_close_occured %s %s" % (fd, auth.url))
         try:
             if auth != None:
                 del OANServer._connected[auth.url]
                 OANServer.close_callback(auth, [])
             else:
-                for url, v in OANServer._connected.items()[:]:
-                    if v == fd:
-                        log.info("disconnect without handshake: %s" % fd)
-                        del OANServer._connected[url]
+                raise OANNetworkError("auth is None")
 
         except Exception, e:
             log.info("Error: %s" % e)
@@ -796,10 +788,9 @@ class OANServer:
         OANServer._add_socket(sock)
 
     @staticmethod
-    def _message_occured(fd, auth, messages):
+    def _message_occured(auth, messages):
         #log.info("OANServer: _message_occured %s, %s" % (auth, fd))
-        url = (auth.host, auth.port)
-        OANServer.message_callback(url, messages)
+        OANServer.message_callback(auth.url, messages)
 
     @staticmethod
     def _create_controller(host, port, bind_socket):
@@ -842,7 +833,6 @@ class OANServer:
         err = s.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
         if err != 0:
             log.info("my socket err %s" % err)
-            raise OANNetworkError("socket error %s" % err)
 
         return s
 
