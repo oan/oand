@@ -36,59 +36,223 @@ class Message(object):
 
 
 class MessageConnect(Message):
-    def execute(self, network_view):
-        c_max_list = 4
-        if len(node.node_list.y[len(node.node_list.y)-1]) < c_max_list:
-            x_max_size = max(3, len(node.node_list.y)-1)
+    MAX_SLOTS_IN_BLOCK = 4
+
+    def get_x_size(self, block_list_y):
+        """
+        The maximum number of blocks in x direction is equal to the maximum
+        number of blocks in y direction + 1. The result of this is that
+        when the y direction expands with one block, the x direction will
+        also automatically expand.
+
+        """
+        last_block_cord = block_list_y.size()
+        slots_in_last_block = block_list_y.size(last_block_cord)
+        if slots_in_last_block < MessageConnect.MAX_SLOTS_IN_BLOCK:
+            return max(3, last_block_cord-1)
         else:
-            x_max_size = max(3, len(node.node_list.y))
+            return max(3, last_block_cord)
+
+    def add_url_to_current_x_list(self, app, origin_url, x_pos):
+        """
+        Add url to first free slot on existing blocks in x direction.
+
+        """
+        block = app.cube_view.x.get_block(x_pos)
+        log.info("add_url_to_current_x_list x: %s y: %s" % (x_pos, app.block_position.y) )
+        log.info(app.cube_view.x.get_blocks())
+        block.append(origin_url)
+        log.info(app.cube_view.x.get_blocks())
+
+        msg = MessageGiveBlockPosition(app, BlockPosition(x_pos, app.block_position.y, 0))
+        app.send(origin_url, msg)
+        app.push(app.network_builder.get_x(), MessageGiveBlockListX(app.cube_view.x))
+        app.push(app.network_builder.get_y(), MessageGiveBlockListY(app.cube_view.y))
+        app.push(app.network_builder.get_z(), MessageGiveBlockListZ(app.cube_view.z))
+
+        app.push(app.network_builder.get_block(), MessageGiveBlockListX(app.cube_view.x))
+        app.push(app.network_builder.get_block(), MessageGiveBlockListY(app.cube_view.y))
+        app.push(app.network_builder.get_block(), MessageGiveBlockListZ(app.cube_view.z))
+
+    def add_url_to_expanded_x_list(self, app, origin_url):
+        """
+        Expand the number of blocks in the x direction, and add the url to
+        the last block.
+
+        """
+        log.info("add_url_to_expanded_x_list %s" % app.cube_view.x.size() )
+        app.cube_view.x.add(app.cube_view.x.size()-1, self.origin_url)
+        msg = MessageGiveBlockPosition(app, BlockPosition(app.cube_view.x.size()-1, app.block_position.y, 0))
+        app.send(origin_url, msg)
+        app.push(app.network_builder.get_x(),     MessageGiveBlockListX(app.cube_view.x))
+        app.push(app.network_builder.get_block(), MessageGiveBlockListX(app.cube_view.x))
+
+
+    def add_url_to_expanded_y_list(self, app, origin_url):
+        """
+        Expand the number of blocks in the y direction, and add the url to
+        the last block.
+
+        """
+        log.info("add_url_to_expanded_y_list %s" % len(app.cube_view.x) )
+        app.cube_view.y.add(app.cube_view.y.size()-1, origin_url)
+        msg = MessageGiveBlockPosition(app, BlockPosition(0, app.cube_view.y.size()-1, 0))
+
+        app.send(origin_url, msg)
+        app.push(app.network_builder.get_y(),     MessageGiveBlockListY(app.cube_view.y))
+        app.push(app.network_builder.get_block(), MessageGiveBlockListY(app.cube_view.y))
+
+    def redirect_to_next_y_block(self, app, origin_url):
+        """
+        The current applications all slots on all blocks are occupied. Redirect
+        to an url on the next block on y list. Let the connecting application
+        ask the application on that url for a free slot.
+
+        """
+        log.info("redirect_to_next_y_block x:%s y:%s" % (app.cube_view.x.size(), app.cube_view.y.size()))
+        msg = MessageRedirect(app.cube_view.y.get(app.block_position.y + 1, 0), self)
+        app.send(origin_url, msg)
+
+    def execute(self, app):
+        x_max_size = self.get_x_size(app.cube_view.y)
+
         log.info("X-max-size: %s, x: %s, y: %s" % (
-                 x_max_size, len(node.node_list.x), len(node.node_list.y)))
+                 x_max_size, app.cube_view.x.size(), app.cube_view.y.size()))
 
-        for x_pos in xrange(0, len(node.node_list.x)):
-            c_list = node.node_list.x[x_pos]
+        for x_pos in xrange(0, app.cube_view.x.size()):
+            block = app.cube_view.x.get(x_pos)
 
-            if len(c_list) < c_max_list:
-                log.info("Step: 1 x: %s y: %s" % (x_pos, node.pos.y) )
-                c_list.append(self.origin_url)
-
-                msg = MessageGiveSlotid(SlotPosition(x_pos, node.pos.y, 0))
-                node.send(self.origin_url, msg)
-                node.push('c', MessageGiveNodeList('x', node.node_list.x))
-                node.push('c', MessageGiveNodeList('y', node.node_list.y))
-                node.push('c', MessageGiveNodeList('z', node.node_list.z))
+            if len(block) < MessageConnect.MAX_SLOTS_IN_BLOCK:
+                self.add_url_to_current_x_list(app, self.origin_url, x_pos)
                 return
 
-        if len(node.node_list.x) == x_max_size:
-            if len(node.node_list.y) <= node.pos.y + 1:
-                log.info("Step: 2 %s" % len(node.node_list.x) )
-                node.node_list.y.append([self.origin_url])
-                msg = MessageGiveSlotid(BlockPosition(0, len(node.node_list.y)-1, 0))
-                node.send(self.origin_url, msg)
-                node.push('y', MessageGiveNodeList('y', node.node_list.y))
-                node.push('c', MessageGiveNodeList('y', node.node_list.y))
+        if app.cube_view.x.size() == x_max_size:
+            if app.cube_view.y.size() <= app.block_position.y + 1:
+                self.add_url_to_expanded_y_list(app, self.origin_url)
             else:
-                log.info("Step: 3 x:%s y:%s" % (len(node.node_list.x), len(node.node_list.y) ))
-                msg = MessageRedirect(node.node_list.y[node.pos.y + 1][0], self)
-                node.send(self.origin_url, msg)
+                self.redirect_to_next_y_block(app, self.origin_url)
         else:
-            log.info("Step: 4 %s" % len(node.node_list.x) )
-            node.node_list.x.append([self.origin_url])
-            msg = MessageGiveSlotid(BlockPosition(len(node.node_list.x)-1, node.pos.y, 0))
-            node.send(self.origin_url, msg)
-            node.push('x', MessageGiveNodeList('x', node.node_list.x))
-            node.push('c', MessageGiveNodeList('x', node.node_list.x))
+            self.add_url_to_expanded_x_list(app, self.origin_url)
 
 
-class MessageGiveSlotid(Message):
+class MessageGiveBlockPosition(Message):
+    """
+    The connecting application will receive a cube_view from it's server. And
+    then connect to the network.
+
+    """
+    block_position = None
+    cube_view = None
+
+    def __init__(self, app, block_position):
+        self.block_position = block_position
+        self.create_cube_view(app)
+
+    def create_cube_view(self, app):
+        """
+        Create a cube view in the perspective of who the connecting application
+        will see the cube.
+
+        """
+        self.cube_view = CubeView(self.block_position)
+
+        x_pos, y_pos, z_pos = self.block_position.id()
+        if y_pos == app.block_position.y:
+            self.cube_view.x.set_block_list(app.cube_view.x)
+        else:
+            self.cube_view.x.set_block(x_pos, app.cube_view.y[y_pos])
+
+        if x_pos == app.block_position.x:
+            self.cube_view.y.set_block_list(app.cube_view.y)
+        else:
+            self.cube_view.y.set_block(y_pos, app.cube_view.x[x_pos])
+
+        # TODO Z
+
+    def execute(self, app):
+        app.set_block_position(self.block_position)
+        app.cube_view.set_cube_view(self.cube_view)
+
+        #todo self.sync_x_list(app)
+        self.sync_y_list(app)
+
+        log.info(app.cube_view.x.get_blocks())
+        log.info(self.cube_view.x.get_blocks())
+        app.connect()
+
+        log.info(app.cube_view.x.get_blocks())
+
+        app.push(app.network_builder.get_x(), MessageGiveBlockListX(app.cube_view.x))
+        app.push(app.network_builder.get_y(), MessageGiveBlockListY(app.cube_view.y))
+        app.push(app.network_builder.get_z(), MessageGiveBlockListZ(app.cube_view.z))
+
+        app.push(app.network_builder.get_block(), MessageGiveBlockListX(app.cube_view.x))
+        app.push(app.network_builder.get_block(), MessageGiveBlockListY(app.cube_view.y))
+        app.push(app.network_builder.get_block(), MessageGiveBlockListZ(app.cube_view.z))
+
+    def empty_list(self, app, block_list):
+        """Check if atleast on slot is occupied in block_list"""
+        for block in block_list.get_blocks():
+            if len(block) > 0 and app.bind_url not in block:
+                return False
+        return True
+
+    def sync_y_list(self, app):
+        if self.empty_list(app, app.cube_view.y) and app.block_position.y != 0:
+            log.info("sync_y_list")
+            # TODO handle if left block is empty.
+            left_origin_url = app.cube_view.x.get(app.block_position.x - 1, 0)
+            msg = MessageGetYList(app.block_position)
+            app.send(left_origin_url, msg)
+
+
+class MessageGetYList(Message):
     pos = None
 
-    def __init__(self, pos):
-        self.pos = pos
+    def __init__(self, block_position):
+        self.origin_position = block_position
 
-    def execute(self, network_view):
-        node.pos = self.pos
-        node.send(self.origin_url, MessageSnapshot(self.pos, "oan://node-list/all"))
+    def execute(self, app):
+        log.info("MessageGetYList slot:%s x:%s y:%s x_pos %s of %s" % (
+                 app.bind_url,
+                 app.block_position.x, app.block_position.y,
+                 self.origin_position.x, app.block_list.x.size())
+        )
+        log.info(app.block_list.x)
+        if self.origin_position.y <= app.block_position.y:
+            return
+
+        if self.origin_position.x == app.block_position.x:
+            log.info("MessageGetYList step 1 to %s" % self.origin_url)
+            app.send(self.origin_url, MessageGiveBlockListY( app.block_list.y))
+
+        elif (self.origin_position.x <= app.block_list.x.size()-1 and
+              app.block_list.x.size(self.origin_position.x)):
+            log.info("MessageGetYList step 2 to %s" % app.block_list.x.size(self.origin_position.x))
+            msg = MessageRedirect(app.block_list.x.get(self.origin_position.x, 0), self)
+            app.send(self.origin_url, msg)
+
+        else:
+            destination_url = None
+            for y_pos in reversed(xrange(app.block_position.y)):
+                log.info("y_pos %s" % y_pos)
+                if app.block_list.y.size():
+                    destination_url = app.block_list.y.get(y_pos, 0)
+                    log.info("hit 1")
+                    break
+
+            if not destination_url:
+                for x in reversed(xrange(app.block_position.x)):
+                    log.info("x %s" % x)
+                    if app.block_list.x.size(x):
+                        destination_url = app.block_position.x.get(x, 0)
+                        log.info("hit 2")
+                        break
+
+            log.info("MessageGetYList step 3 to %s" % destination_url)
+            if destination_url:
+                msg = MessageRedirect(destination_url, self)
+                app.send(self.origin_url, msg)
 
 
 class MessageRedirect(Message):
@@ -100,171 +264,47 @@ class MessageRedirect(Message):
         log.info("Redirect %s to %s" % (
                  self.message.__class__.__name__, self.bind_url))
 
-    def execute(self, network_view):
-        node.send(self.bind_url, self.message)
+    def execute(self, app):
+        app.send(self.bind_url, self.message)
 
 
-class MessageSnapshot(Message):
-    origin_slot = None
-    url = None
+class MessageGiveBlockList(Message):
+    """
+    Does a full sync between two nodes, and forwards new block_list to friends.
 
-    def __init__(self, slot, url):
-        self.origin_slot = slot
-        self.url = url
+    TODO: Possible to only forward changes to friends, with a hash of
+          block_list before new slots where merged with this cube_view. So
+          friend can decide if it needs a full sync.
+    """
+    block_list = None
 
-    def execute(self, network_view):
-        if self.url == "oan://node-list/all":
-            x_pos, y_pos, z_pos = self.origin_slot.id()
-            if y_pos == node.pos.y:
-                x_list = node.node_list.x
-            else:
-                x_list = []
-                for pos in xrange(0, x_pos):
-                    x_list.append([])
-                x_list.append(node.node_list.y[y_pos])
+    def __init__(self, block_list):
+        self.block_list = BlockList()
+        self.block_list.set_block_list(block_list)
 
-            if x_pos == node.pos.x:
-                y_list = node.node_list.y
-            else:
-                y_list = []
-                for pos in xrange(0, y_pos):
-                    y_list.append([])
-                y_list.append(node.node_list.x[x_pos])
+    def forward_sync(self, app):
+        """Forward new synced list to all bff nodes."""
+        log.info("Forward sync")
+        msg = MessageGiveBlockList(self.direction, self.block_list)
+        app.push(self.direction, msg)
 
-            z_list = [[]]
+class MessageGiveBlockListX(MessageGiveBlockList):
+    def execute(self, app):
+        log.info("On %s Merge list X" % (app.bind_url))
+        if app.cube_view.x.set_block_list(self.block_list):
+            self.forward_sync()
 
-            msg = MessageGiveSnapshotResource(x_list, y_list, z_list)
-            node.send(self.origin_url, msg)
+class MessageGiveBlockListY(MessageGiveBlockList):
+    def execute(self, app):
+        log.info("On %s Merge list Y" % (app.bind_url))
+        if app.cube_view.y.set_block_list(self.block_list):
+            self.forward_sync()
 
-
-class MessageGiveSnapshotResource(Message):
-    node_list= None
-
-    def __init__(self, x, y, z):
-        self.node_list = NodeList()
-        self.node_list.x = x[:]
-        self.node_list.y = y[:]
-        self.node_list.z = z[:]
-
-    def execute(self, network_view):
-        node.node_list.x = self.node_list.x
-        node.node_list.y = self.node_list.y
-        node.node_list.z = self.node_list.z
-
-        #todo self.sync_x_list(node)
-        self.sync_y_list(node)
-
-        node.connect_to_bff_nodes()
-
-        node.push('x', MessageGiveNodeList('x', node.node_list.x))
-        node.push('y', MessageGiveNodeList('y', node.node_list.y))
-        node.push('z', MessageGiveNodeList('z', node.node_list.z))
-
-        node.push('c', MessageGiveNodeList('x', node.node_list.x))
-        node.push('c', MessageGiveNodeList('y', node.node_list.y))
-        node.push('c', MessageGiveNodeList('z', node.node_list.z))
-
-    def empty_list(self, node, local_list):
-        """Check if only one slot is occupied in y-list"""
-        for c_list in local_list:
-            if len(c_list) > 0 and node.bind_url not in c_list:
-                return False
-        return True
-
-    def sync_y_list(self, network_view):
-        if self.empty_list(node, node.node_list.y) and node.pos.y != 0:
-            log.info("sync_y_list")
-
-            left_origin_url = node.node_list.x[node.pos.x - 1][0]
-            msg = MessageGetYList(node.pos.x, node.pos.y)
-            node.send(left_origin_url, msg)
-
-
-class MessageGetYList(Message):
-    pos = None
-
-    def __init__(self, x_pos, y_pos):
-        self.pos = BlockPosition()
-        self.pos.x = x_pos
-        self.pos.y = y_pos
-
-    def execute(self, network_view):
-        log.info("MessageGetYList slot:%s x:%s y:%s x_pos %s of %s" % (
-                 node.bind_url,
-                 node.pos.x, node.pos.y,
-                 self.pos.x, len(node.node_list.x)))
-        log.info(node.node_list.x)
-        if self.pos.x == node.pos.x and self.pos.y > node.pos.y:
-            log.info("MessageGetYList step 1 to %s" % self.origin_url)
-            node.send(self.origin_url, MessageGiveNodeList('y', node.node_list.y))
-        elif (len(node.node_list.x)-1 >= self.pos.x and
-              len(node.node_list.x[self.pos.x]) > 0 and
-              self.pos.y > node.pos.y):
-            log.info("MessageGetYList step 2 to %s" % node.node_list.x[self.pos.x][0])
-            msg = MessageRedirect(node.node_list.x[self.pos.x][0], self)
-            node.send(self.origin_url, msg)
-        elif self.pos.y >= node.pos.y:
-            destination_url = None
-            for y in reversed(xrange(node.pos.y)):
-                log.info("y %s" % y)
-                if len(node.node_list.y[y]) > 0:
-                    destination_url = node.node_list.y[y][0]
-                    log.info("hit 1")
-                    break
-
-            if not destination_url:
-                for x in reversed(xrange(node.pos.x)):
-                    log.info("x %s" % x)
-                    if len(node.node_list.x[x]) > 0:
-                        destination_url = node.node_list.x[x][0]
-                        log.info("hit 2")
-                        break
-            log.info("MessageGetYList step 3 to %s" % destination_url)
-            if destination_url:
-                msg = MessageRedirect(destination_url, self)
-                node.send(self.origin_url, msg)
-
-
-class MessageGiveNodeList(Message):
-    direction = None
-    remote_list = None
-
-    def __init__(self, direction, remote_list):
-        self.direction = direction
-        self.remote_list = remote_list[:]
-
-    def execute(self, network_view):
-        log.info("On %s Merge list %s" % (node.bind_url, self.direction))
-        if self.direction == 'x':
-            changed = self.merge_node_list(node.node_list.x, self.remote_list)
-        elif self.direction == 'y':
-            changed = self.merge_node_list(node.node_list.y, self.remote_list)
-        elif self.direction == 'z':
-            changed = self.merge_node_list(node.node_list.z, self.remote_list)
-
-        # Forward new synced list to all bff nodes.
-        if changed:
-            log.info("Forward sync")
-            msg = MessageGiveNodeList(self.direction, self.remote_list)
-            node.push(self.direction, msg)
-
-    def merge_node_list(self, local_list, remote_list):
-        changed = False
-        pos = 0
-        log.info("local_list %s" % local_list)
-
-        for slot in remote_list:
-            for node_bind_url in slot:
-                if pos > len(local_list)-1:
-                    local_list.append([node_bind_url])
-                    changed = True
-                elif not node_bind_url in local_list[pos]:
-                    local_list[pos].append(node_bind_url)
-                    changed = True
-
-            pos +=1
-        log.info("after %s" % local_list)
-        return changed
+class MessageGiveBlockListZ(MessageGiveBlockList):
+    def execute(self, app):
+        log.info("On %s Merge list Z" % (app.bind_url))
+        if app.cube_view.z.set_block_list(self.block_list):
+            self.forward_sync()
 
 
 class MessageGetSlotNode(): pass
@@ -348,24 +388,58 @@ class BlockList:
         del self.get(block_pos)[:]
 
     def add(self, block_pos, url):
+        # TODO rename add_slot
         self.get(block_pos).append(url)
         return self.size(block_pos)-1
 
+    def add_block(self, block):
+        self.get(self.size()).extend(block)
+
+    def merge_block_list(self, block_list):
+        pos=0
+        for block in block_list.get_blocks():
+            self.set(pos, block)
+            pos+=1
+
     def get(self, block_pos, slot_pos = None):
-        self._expand_size(block_pos)
         if slot_pos == None:
-            return self._blocks[block_pos]
+            return self.get_block(block_pos)
         else:
             return self._blocks[block_pos][slot_pos]
+
+    def get_blocks(self):
+        return self._blocks
+
+    def get_block(self, block_pos):
+        self._expand_size(block_pos)
+        return self._blocks[block_pos]
+
+    def get_slot(self, block_pos, slot_pos):
+        return self.get_block()[slot_pos]
+
+    def empty_slot(self, block_pos, slot_pos):
+        if (len(self._blocks) > block_pos and
+            len(self._blocks[block_pos]) > slot_pos):
+            return False
+        return True
 
     def remove(self, block_pos, url):
         self._blocks[block_pos].remove(url)
 
-    def set(self, block_pos, block):
+    def set_block_list(self, block_list):
+        pos = 0
+        for block in block_list.get_blocks():
+            self.set(pos, block)
+            pos+=1
+
+    def set_block(self, block_pos, block):
         if self.size(block_pos):
             raise BlockList.OccupiedSlotException()
         else:
             self._blocks[block_pos] = block
+
+    def set(self, block_pos, block):
+        self.set_block(block_pos, block)
 
     def _expand_size(self, length):
         if length >= len(self._blocks):
@@ -373,6 +447,7 @@ class BlockList:
                 self._blocks.append([])
 
     def size(self, block_pos = None):
+        # TODO split into two functions. size and block_size
         if block_pos == None:
             return len(self._blocks)
         else:
@@ -428,22 +503,41 @@ class CubeView:
     List of blocks in x, y, z direction.
 
     """
+    block_position = None
     b = None
     x = None
     y = None
     z = None
 
-    def __init__(self, block_pos):
+    def __init__(self, block_position = None):
+        if block_position:
+            self.set_block_position(block_position)
+        else:
+            self.set_block_position(BlockPosition(0, 0, 0))
+
+    def set_block_position(self, block_position):
+        self.block_position = block_position
+        self._clear()
+
+    def set_cube_view(self, cube_view):
+        self._clear()
+
+        self.x.merge_block_list(cube_view.x)
+        self.y.merge_block_list(cube_view.y)
+        self.z.merge_block_list(cube_view.z)
+
+    def _clear(self):
+        # Share the same block where each direction intersect/meet.
         self.b = []
+
         self.x = BlockList()
-        self.x.set(block_pos.x, self.b)
+        self.x.set(self.block_position.x, self.b)
 
         self.y = BlockList()
-        self.y.set(block_pos.y, self.b)
+        self.y.set(self.block_position.y, self.b)
 
         self.z = BlockList()
-        self.z.set(block_pos.z, self.b)
-
+        self.z.set(self.block_position.z, self.b)
 
 class TestCubeView(OANTestCase):
     def test_cube_view_block_pos_0(self):
@@ -466,6 +560,7 @@ class TestCubeView(OANTestCase):
         self.assertEqual(cube_view.y.get(0), ["000", "001", "002", "003"])
         self.assertEqual(cube_view.z.get(0), ["000", "001", "002", "003"])
 
+    # TODO
     # def test_cube_view_block_pos_2(self):
     #     cube_view = CubeView(BlockPosition())
     #     cube_view.set_block_pos(2, 2, 2)
@@ -567,45 +662,58 @@ class NetworkBuilder:
 
     def _add_previous_block(self, block_pos_cord, block_list, urls):
         """Connect to the previous block, the block before current block."""
-        # If current block is the first block, connect to last block,
-        if block_pos_cord == 0:
-            # But not if the current block is the last block
-            last_block_cord = block_list.size()-1
-            if block_pos_cord != last_block_cord:
-                self._add_url(block_list.get(last_block_cord, 0), urls)
+        if block_list.size() > 1:
+            # If current block is the first block, connect to last block,
+            if block_pos_cord == 0:
+                # But not if the current block is the last block
+                last_block_cord = block_list.size()-1
+                if block_pos_cord != last_block_cord:
+                    if not block_list.empty_slot(last_block_cord, 0):
+                        self._add_url(block_list.get(last_block_cord, 0), urls)
 
-        # Connect to previous node if it exists.
-        elif block_pos_cord - 1 >= 0:
-            self._add_url(block_list.get(block_pos_cord - 1, 0), urls)
+            # Connect to previous node if it exists.
+            elif block_pos_cord - 1 >= 0:
+                self._add_url(block_list.get(block_pos_cord - 1, 0), urls)
 
-        else:
-            raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
+            else:
+                raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
 
     def _add_next_block(self, block_pos_cord, block_list, urls):
         """Connect to the next block, the block after current block."""
-        # If current block is the last block, connect to first block,
-        last_block_cord = block_list.size()-1
-        if block_pos_cord == last_block_cord:
-            # But not if the current block is the first block
-            if block_pos_cord != 0:
-                self._add_url(block_list.get(0, 0), urls)
+        if block_list.size() > 1:
+            # If current block is the last block, connect to first block,
+            last_block_cord = block_list.size()-1
+            if block_pos_cord == last_block_cord:
+                # But not if the current block is the first block
+                if block_pos_cord != 0:
+                    self._add_url(block_list.get(0, 0), urls)
 
-        # Connect to next node if it exists.
-        elif block_pos_cord + 1 <= block_list.size()-1:
-            self._add_url(block_list.get(block_pos_cord + 1, 0), urls)
+            # Connect to next node if it exists.
+            elif block_pos_cord + 1 <= block_list.size()-1:
+                if not block_list.empty_slot(block_pos_cord + 1, 0):
+                    self._add_url(block_list.get(block_pos_cord + 1, 0), urls)
 
-        else:
-            raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
+            else:
+                raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
 
     def _add_faraway_block(self, block_pos_cord, block_list, urls):
-        """Connect to a faraway block."""
-        block_list_middle_cord = int(block_list.size()/2)
-        faraway_block_pos_cord = block_pos_cord + block_list_middle_cord
+        """
+        Connect to a faraway block.
 
-        if faraway_block_pos_cord >= block_list.size()-1:
-            faraway_block_pos_cord -= block_list.size()
+        Faraway blocks are only used when a list has more than X blocks.
 
-        self._add_url(block_list.get(faraway_block_pos_cord, 0), urls)
+        TODO: Add constant for minimum number of faraway blocks. Update
+              unit tests.
+        """
+        if block_list.size() > 2:
+            block_list_middle_cord = int(block_list.size()/2)
+            faraway_block_pos_cord = block_pos_cord + block_list_middle_cord
+
+            if faraway_block_pos_cord >= block_list.size()-1:
+                faraway_block_pos_cord -= block_list.size()
+
+            if not block_list.empty_slot(faraway_block_pos_cord, 0):
+                self._add_url(block_list.get(faraway_block_pos_cord, 0), urls)
 
     def _add_url(self, url, urls):
         if url and url != self.bind_url:
@@ -720,42 +828,6 @@ class TestNetworkBuilder(OANTestCase):
         self.assertEqual(bff.get_all(), set(['201', '200', '203', '204', '003', '001', '000', '103', '100', '101', '104']))
 
 
-class OANApplication:
-    bind_url = None
-    cube_view = None
-    block_position = None
-    network_view = None
-
-    def __init__(self, bind_url):
-        self.bind_url = bind_url
-        self.block_position = BlockPosition(0, 0, 0)
-        self.cube_view = None # CubeView(self.block_position)
-        self.network_view = NetworkView(self.bind_url)
-        self.network_view.received_cb = self.received_cb
-
-    def send(self, url, message):
-        self.network_view.send(url, message)
-
-    def push(self, url, message):
-        self.network_view.push(url, message)
-
-    def received_cb(self, network_view, message):
-        message.execute(self)
-
-    def trigger_5minute_cron(self):
-        """
-        Called every 5 minute.
-
-        Reconnect if nodes has been disconnected, or new node are online.
-
-        """
-        pass
-    #     self.bff_network = NetworkBuilder(xxx)
-    #     self.bff_network.build()
-    #     self.connect(xxx)
-
-
-
 class NetworkCounter:
     """
     Statistics for things done by and to a node.
@@ -865,7 +937,7 @@ class NetworkView():
 
         for url in self._sockets.keys():
             if url not in urls:
-                self._disconnect(self, url)
+                self._disconnect(url)
 
     def disconnect(self):
         for url in self._sockets.keys():
@@ -900,6 +972,9 @@ class NetworkView():
         # Close connection from remote NetworkView.
         if self._bind_url in Connections.all[url]._sockets:
             Connections.all[url].closed(self._bind_url)
+
+    def connected(self):
+        return len(self._sockets) > 0
 
 
 class MessageTest(Message):
@@ -965,7 +1040,7 @@ class TestNetworkView(OANTestCase):
         self.assertEqual(msg.counter, 6)
         self.assertEqual(result_counter["X.001"], 6)
 
-        #
+        # Verify that my BFFs increase the counter.
         msg = MessageTest(10)
         network_view[bind_url].push(network_builder.get_x(), msg)
         self.assertEqual(msg.counter, 13)
@@ -996,7 +1071,7 @@ class TestNetworkView(OANTestCase):
         self.assertEqual(result_counter["Y.002"], 11)
         self.assertEqual(result_counter["Z.002"], 12)
 
-        #
+        # Verify that the remote socket is connected to me.
         self.assertTrue(bind_url in Connections.all["Y.017"]._sockets)
         self.assertTrue(bind_url in Connections.all["Y.003"]._sockets)
         self.assertTrue(bind_url in Connections.all["X.017"]._sockets)
@@ -1009,12 +1084,14 @@ class TestNetworkView(OANTestCase):
         self.assertTrue(bind_url in Connections.all["Z.001"]._sockets)
         self.assertTrue(bind_url in Connections.all["X.001"]._sockets)
 
+        # Disconnect from everyone.
         network_view[bind_url].disconnect()
         self.assertEqual(
             set(network_view[bind_url]._sockets.keys()),
             set([])
         )
 
+        # Verify that the remote socket is no longer connected to me.
         self.assertTrue(bind_url not in Connections.all["Y.017"]._sockets)
         self.assertTrue(bind_url not in Connections.all["Y.003"]._sockets)
         self.assertTrue(bind_url not in Connections.all["X.017"]._sockets)
@@ -1027,19 +1104,53 @@ class TestNetworkView(OANTestCase):
         self.assertTrue(bind_url not in Connections.all["Z.001"]._sockets)
         self.assertTrue(bind_url not in Connections.all["X.001"]._sockets)
 
-        #
-        # DEBUG/LO
-        #
-        keys = Connections.all.keys()
-        keys.sort()
 
-        log.info("=========================")
-        counter_total = NetworkCounter()
-        for key in keys:
-            network_view = Connections.all[key]
-            log.info("Counters: %s %s" % (network_view._bind_url, network_view.counter))
-            counter_total += network_view.counter
-        log.info("TOTAL           %s" % (counter_total))
+class OANApplication:
+    bind_url = None
+    cube_view = None
+    block_position = None
+    network_builder = None
+    network_view = None
+
+    def __init__(self, bind_url):
+        self.bind_url = bind_url
+
+        self.cube_view = CubeView()
+        self.network_view = NetworkView(self.bind_url)
+        self.network_view.received_cb = self.received_cb
+
+        self.set_block_position(BlockPosition(0, 0, 0))
+        self.cube_view.b.append(self.bind_url)
+
+    def set_block_position(self, block_position):
+        self.block_position = block_position
+        self.cube_view.set_block_position(self.block_position)
+        self.network_builder = NetworkBuilder(self.bind_url, self.block_position)
+
+    def connect(self):
+        self.network_builder.build(self.cube_view)
+        self.network_view.connect(self.network_builder.get_all())
+
+    def send(self, url, message):
+        self.network_view.send(url, message)
+
+    def push(self, urls, message):
+        self.network_view.push(urls, message)
+
+    def received_cb(self, network_view, message):
+        message.execute(self)
+
+    def trigger_5minute_cron(self):
+        """
+        Called every 5 minute.
+
+        Reconnect if nodes has been disconnected, or new node are online.
+
+        """
+        pass
+    #     self.bff_network = NetworkBuilder(xxx)
+    #     self.bff_network.build()
+    #     self.connect(xxx)
 
 
 class TestOANCube(OANTestCase):
@@ -1094,8 +1205,8 @@ class TestOANCube(OANTestCase):
         return new_y_list
 
     def test_connection(self):
-        first_network_view = NetworkView('001')
-        #self.assertEqual(first_network_view.pos.id(), (0, 0, 0))
+        first_app = OANApplication('001')
+        self.assertEqual(first_app.block_position.id(), (0, 0, 0))
 
         self.connect_node("002", (0, 0, 0), [["001", "002", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
                                              ["___", "___", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
@@ -1379,20 +1490,29 @@ class TestOANCube(OANTestCase):
                                              ["037", "038", "039", "040"], ["053", "054", "055", "056"], ["057", "058", "059", "060"], ["061", "062", "063", "064"]])
 
         #
-        # DEBUG/LO
+        # DEBUG
         #
         keys = Connections.all.keys()
         keys.sort()
 
-        # log.info("=========================")
-        # for node_key in keys:
-        #     node = Connections.all[node_key]
-        #     log.info("x-list: %s %s" % (node.bind_url, node.node_list.x))
+        log.info("=========================")
+        counter_total = NetworkCounter()
+        for key in keys:
+            network_view = Connections.all[key]
+            log.info("Counters: %s %s" % (network_view._bind_url, network_view.counter))
+            counter_total += network_view.counter
+        log.info("TOTAL           %s" % (counter_total))
+
 
         # log.info("=========================")
         # for node_key in keys:
         #     node = Connections.all[node_key]
-        #     log.info("slot_id: %s %s" % (node.bind_url, node.pos.id()))
+        #     log.info("x-list: %s %s" % (node.bind_url, app.block_position.x))
+
+        # log.info("=========================")
+        # for node_key in keys:
+        #     node = Connections.all[node_key]
+        #     log.info("slot_id: %s %s" % (node.bind_url, app.block_position.id()))
 
         # log.info("=========================")
         # for node_key in keys:
