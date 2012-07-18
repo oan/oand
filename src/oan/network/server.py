@@ -16,8 +16,6 @@ class OANCounter:
     in_bytes = 0
     in_count = 0
     in_reads = 0
-    notify_count = 0
-
 
 class OANMessageDictionary:
     _messages = None
@@ -44,7 +42,8 @@ class OANMessageDictionary:
 
     def interrupt(self):
         with self._lock:
-            self._cond.notify()
+            if self._is_waiting:
+                self._cond.notify()
 
     def wait(self, block = True):
         with self._lock:
@@ -114,12 +113,12 @@ class OANLogEntry():
         self.max_elapsed = 0
 
     def __str__(self):
-        return "counter:%s total:%s avg: %s min:%s max:%s " % (
-            self.counter,
-            self.total_elapsed,
-            self.total_elapsed / (self.counter or 1),
-            self.min_elapsed,
-            self.max_elapsed)
+        return ("counter:{0:>6}, total:{1:>20}, avg:{2:>20}, " +
+                       "min:{3:>20}, max:{4:>20}").format(
+                            self.counter, self.total_elapsed,
+                            self.total_elapsed / (self.counter or 1),
+                            self.min_elapsed, self.max_elapsed
+                        )
 
 class OANLogCounter():
 
@@ -152,7 +151,7 @@ class OANLogCounter():
 
         ret = ""
         for key, entry in OANLogCounter._entries.items():
-            ret += "%s: %s\n" % (key, str(entry))
+            ret += "\n{0:<15} -> {1}".format(key, str(entry))
 
         return ret
 
@@ -237,6 +236,7 @@ class OANReader:
 
         OANLogCounter.end("handle_read")
         if ret:
+            OANCounter.in_count += len(ret)
             if not self._connected:
                 self._connected = True
                 self._connect_callback(self._fd, self._socket, self._create_auth(ret[0]))
@@ -244,7 +244,6 @@ class OANReader:
 
             if ret:
                 self._message_callback(self._fd, self._socket, self.auth, ret)
-                OANCounter.in_count += len(ret)
 
     def _create_auth(self, handshake):
         #log.info("_create_auth %s" % handshake)
@@ -497,7 +496,7 @@ class OANOut:
                     outputs.append(fd)
 
             if outputs:
-                #log.info("OANOut: current %s" % outputs)
+                # log.info("OANOut: current %s" % outputs)
                 # write output
                 try:
                     readable, writable, exceptional = select.select(inputs, outputs, inputs)
@@ -776,16 +775,16 @@ class OANServer:
             log.info("Error: %s" % e)
 
     @staticmethod
-    def _out_close_occured(fd, sock, auth):
-        log.info("OANServer: _out_close_occured %s" % (fd))
-
-    @staticmethod
     def _add_socket(sock):
         OANOut.handshake(sock, OANServer.auth)
 
     @staticmethod
     def _accept_occured(sock):
         OANServer._add_socket(sock)
+
+    @staticmethod
+    def _out_close_occured(fd, sock, auth):
+        log.info("OANServer: _out_close_occured %s" % (fd))
 
     @staticmethod
     def _message_occured(auth, messages):

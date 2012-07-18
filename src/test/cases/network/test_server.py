@@ -88,6 +88,10 @@ class TestOanSocket(OANTestCase):
         (utime, stime, cutime, cstime, elapsed_time) = os.times()
         log.info("Stat: %s, %s, %s, %s, %s" % (utime, stime, cutime, cstime, elapsed_time))
 
+        OANServer.shutdown()
+        self.daemon.stop()
+        self.daemon2.stop()
+
         if elapsed > 0:
             log.info("sec[%s] avg[%s] in[%s][%s KB] out[%s][%s KB] speed[%s MB/S]" % (
                 elapsed, (OANCounter.in_count / elapsed),
@@ -98,10 +102,6 @@ class TestOanSocket(OANTestCase):
 
 
         log.info(OANLogCounter.result())
-
-        OANServer.shutdown()
-        self.daemon.stop()
-        self.daemon2.stop()
 
     def my_test_connected(self, auth):
         log.info("my_test_connected")
@@ -173,8 +173,8 @@ class TestOanSocket(OANTestCase):
 
     def test_server(self):
 
-        num_push = 10000
-        to_push = ["M" * 50, "D" * 50, "X" * 50]
+        num_push = 1000
+        to_push = ["M" * 50, "D" * 50, "X" * 50, "Y" * 50]
 
         OANServer.message_callback = self.got_message
         OANServer.connect([("localhost", 8000)])
