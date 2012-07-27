@@ -78,6 +78,7 @@ class TestOanSocket(OANTestCase):
         self.auth = OANAuth("OAN v0.1", '00000000-0000-code-8001-000000000000', "localhost", 8001, False)
         OANServer.connect_callback = self.my_test_connected
         OANServer.close_callback = self.my_test_closed
+        OANServer.error_callback = self.my_test_error
         OANServer.start(self.auth)
 
         self.start = time.time()
@@ -108,16 +109,16 @@ class TestOanSocket(OANTestCase):
         self.inc_counter('my_test_connected')
         log.info(self.assert_counters)
 
-    def my_test_closed(self, auth, messages):
-        log.info("my_test_closed")
+    def my_test_closed(self, auth):
         self.inc_counter('my_test_closed')
         log.info(self.assert_counters)
 
     def my_test_message(self, auth, message):
         pass
 
-    def my_test_error(self, auth, error):
-        pass
+    def my_test_error(self, url, messages):
+        self.inc_counter('my_test_error', len(messages))
+        log.info(self.assert_counters)
 
     def atest_failed_start(self):
         # test start with same port
@@ -143,9 +144,15 @@ class TestOanSocket(OANTestCase):
         # start the server so it can be shitdown in tearDown
         OANServer.start(self.auth)
 
-    def atest_failed_connect(self):
-        with self.assertRaises(OANNetworkError):
-            OANServer.connect([("localhost", 8002)])
+    def test_push_to_unknown(self):
+        num_push = 100
+        to_push = ["M" * 50, "X" * 50, "Y" * 50]
+
+        for x in xrange(0, num_push):
+          OANServer.push([("localhost", 8010)], to_push)
+          time.sleep(0.01)
+
+        self.assert_counter_wait('my_test_error', num_push * len(to_push))
 
     def atest_connect(self):
         OANServer.connect([("localhost", 8000)])
@@ -171,13 +178,12 @@ class TestOanSocket(OANTestCase):
     def got_message(self, url, messages):
         self.my_queue.put(messages)
 
-    def test_server(self):
+    def atest_server(self):
 
-        num_push = 100000
+        num_push = 1000
         to_push = ["M" * 50, "X" * 50, "Y" * 50]
 
         OANServer.message_callback = self.got_message
-        #OANServer.connect([("localhost", 8000)])
 
         for x in xrange(0,num_push):
             OANServer.push([("localhost", 8000)], to_push)

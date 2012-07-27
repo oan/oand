@@ -92,17 +92,17 @@ class OANTestCase(unittest.TestCase):
     def reset_counter(self, key):
         self.assert_counters[key] = 0
 
-    def inc_counter(self, key):
+    def inc_counter(self, key, number = 1):
         if key not in self.assert_counters:
             self.assert_counters[key] = 0
 
-        self.assert_counters[key] += 1
+        self.assert_counters[key] += number
 
-    def dec_counter(self, key):
+    def dec_counter(self, key, number = 1):
         if key not in self.assert_counters:
             self.assert_counters[key] = 0
 
-        self.assert_counters[key] -= 1
+        self.assert_counters[key] -= number
 
     def assert_counter_wait(self, key, value):
         if key not in self.assert_counters:

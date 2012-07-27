@@ -415,7 +415,9 @@ class OANOut:
     _send_notify = None
 
     connect_callback = staticmethod(lambda fd, sock : None)
-    close_callback = staticmethod(lambda fd, sock, auth : None)
+    close_callback = staticmethod(lambda fd, sock : None)
+    accept_callback = staticmethod(lambda fd, sock : None)
+    error_callback = staticmethod(lambda url, messages : None)
 
     @staticmethod
     def start(notify_sock):
@@ -467,9 +469,14 @@ class OANOut:
     def _close_occured(fd, sock, auth):
         try:
             #log.info("OANOut:_close_occured %s" % fd)
-            OANOut.close_callback(fd, sock, auth)
+            OANOut.close_callback(fd, sock)
         except Exception, e:
             log.info("_disconnect_occured %s %s" % (fd, e))
+
+    @staticmethod
+    def _accept_occured(sock):
+        #log.info("OANIn: accept %s " % sock.fileno())
+        OANIn.accept_callback(sock)
 
     @staticmethod
     def _connect(url):
@@ -486,7 +493,7 @@ class OANOut:
                 log.info("my socket err %s" % err)
 
             OANOut._connecting[url] = s.fileno()
-            OANOut.handshake(s, OANServer.auth)
+            OANOut._accept_occured(s)
 
     @staticmethod
     def _close_all():
@@ -511,8 +518,8 @@ class OANOut:
                 log.info("connecting url removed (%s, %s)" % connected_url)
                 del OANOut._connecting[connected_url]
 
-
-
+                for url, poped, messages in OANOut._out.pop([connected_url], [], False):
+                   OANOut.error_callback(connected_url, messages)
 
     @staticmethod
     def _run():
@@ -528,8 +535,6 @@ class OANOut:
                                        not outputs and OANServer._running)
 
             for url, poped, entry_data in pop_data:
-                #log.info("OANOut: url %s size %s" % (url, len(entry_data)))
-                #log.info(OANOut._authorized)
                 if poped:
                     writer = OANOut._authorized[url]
                     writer.push(entry_data)
@@ -538,7 +543,6 @@ class OANOut:
                     if (fd not in outputs):
                         outputs.append(fd)
                 else:
-                    log.info("new url %s, %s" % url)
                     OANOut._connect(url)
 
             if outputs:
@@ -733,9 +737,9 @@ class OANServer:
     _lock = Lock()
 
     connect_callback = staticmethod(lambda auth : None)
-    close_callback = staticmethod(lambda auth, messages : None)
+    close_callback = staticmethod(lambda auth : None)
     message_callback = staticmethod(lambda url, messages : None)
-    error_callback = staticmethod(lambda reader, messages : None)
+    error_callback = staticmethod(lambda url, messages : None)
 
     @staticmethod
     def start(auth):
@@ -760,6 +764,8 @@ class OANServer:
 
         OANOut.close_callback = staticmethod(OANServer._out_close_occured)
         OANOut.connect_callback = staticmethod(OANServer._out_connect_occured)
+        OANOut.accept_callback = staticmethod(OANServer._accept_occured)
+        OANOut.error_callback = staticmethod(OANServer._out_error_occured)
 
         OANIn.start(server_notify_socket, OANServer._bind_socket)
         OANOut.start(client_notify_socket)
@@ -775,35 +781,10 @@ class OANServer:
 
     @staticmethod
     def connected():
-        ret = []
-        for url, state in OANServer._connected:
-            if state:
-                ret.append(url)
-
-        return ret
-
-    @staticmethod
-    def connect(urls):
-        for url in urls:
-            if url == OANServer.auth.url:
-                raise OANNetworkError("Can not connect to your self")
-
-            sock = OANServer._connect(url)
-            OANServer._add_socket(sock)
+        return OANServer._connected.keys()[:]
 
     @staticmethod
     def push(urls, messages):
-        """
-        with OANServer._lock:
-            for url in urls:
-                if url == OANServer.auth.url:
-                    raise OANNetworkError("Can not push messages to your self")
-
-                if url not in OANServer._connected:
-                    sock = OANServer._connect(url)
-                    OANServer._add_socket(sock)
-                    OANServer._connected[url] = False
-        """
         OANOut.push(urls, messages)
 
     @staticmethod
@@ -813,10 +794,10 @@ class OANServer:
             if auth == None:
                 raise OANNetworkError("auth is None")
 
-            if auth.url not in OANServer._connected or not OANServer._connected[auth.url]:
+            if auth.url not in OANServer._connected:
                 OANOut.authorized(fd, auth)
                 OANIn.authorized(fd, auth)
-                OANServer._connected[auth.url] = True
+                OANServer._connected[auth.url] = auth
                 OANServer.connect_callback(auth)
             else:
                 log.info("Already connected %s %s closing socket" % (fd, auth.url))
@@ -836,7 +817,7 @@ class OANServer:
         try:
             if auth != None:
                 del OANServer._connected[auth.url]
-                OANServer.close_callback(auth, [])
+                OANServer.close_callback(auth)
             else:
                 raise OANNetworkError("auth is None")
 
@@ -844,16 +825,17 @@ class OANServer:
             log.info("Error: %s" % e)
 
     @staticmethod
-    def _add_socket(sock):
+    def _accept_occured(sock):
         OANOut.handshake(sock, OANServer.auth)
 
     @staticmethod
-    def _accept_occured(sock):
-        OANServer._add_socket(sock)
+    def _out_close_occured(fd, sock):
+        log.info("OANServer: _out_close_occured %s" % (fd))
 
     @staticmethod
-    def _out_close_occured(fd, sock, auth):
-        log.info("OANServer: _out_close_occured %s" % (fd))
+    def _out_error_occured(url, messages):
+        log.info("OANServer: _out_error_occured %s %s" % (url, messages))
+        OANServer.error_callback(url, messages)
 
     @staticmethod
     def _message_occured(auth, messages):
@@ -862,7 +844,7 @@ class OANServer:
 
     @staticmethod
     def _create_controller(host, port, bind_socket):
-        client_socket = OANServer._connect((host, port))
+        client_socket = OANServer._connect_controller((host, port))
         readable, writable, exceptional = select.select([bind_socket.fileno()], [], [])
         server_socket, addr = bind_socket.accept()
         return (client_socket, server_socket)
@@ -892,7 +874,7 @@ class OANServer:
             raise OANNetworkError(e)
 
     @staticmethod
-    def _connect(url):
+    def _connect_controller(url):
         #todo: add errors from asyncore.
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.setblocking(0)
