@@ -173,11 +173,11 @@ class TestOanSocket(OANTestCase):
 
     def test_server(self):
 
-        num_push = 1000
-        to_push = ["M" * 50, "D" * 50, "X" * 50, "Y" * 50]
+        num_push = 100000
+        to_push = ["M" * 50, "X" * 50, "Y" * 50]
 
         OANServer.message_callback = self.got_message
-        OANServer.connect([("localhost", 8000)])
+        #OANServer.connect([("localhost", 8000)])
 
         for x in xrange(0,num_push):
             OANServer.push([("localhost", 8000)], to_push)

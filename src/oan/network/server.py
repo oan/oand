@@ -45,26 +45,37 @@ class OANMessageDictionary:
             if self._is_waiting:
                 self._cond.notify()
 
-    def wait(self, block = True):
-        with self._lock:
-            if block:
-                self._is_waiting = True
-                self._cond.wait()
-                self._is_waiting = False
-
     def clear(self, urls):
         with self._lock:
             for url in urls:
                 if url in self._messages:
                     del self._messages[url]
 
-    def pop(self, urls):
+    def pop(self, urls, exclude, block = True):
+        """
+        if url is in urls, it will always get a entry back.
+        if url is, in exclude
+
+        """
         with self._lock:
+
+            keys = []
+            for key in self._messages.keys():
+                if key in urls or key not in exclude:
+                    keys.append(key)
+
+            if not keys and block:
+                self._is_waiting = True
+                self._cond.wait()
+                self._is_waiting = False
+
             ret = []
-            for url in urls:
-                if url in self._messages:
-                    ret.append((url, self._messages[url]))
+            for url in keys:
+                if url in urls:
+                    ret.append((url, True, self._messages[url]))
                     del self._messages[url]
+                else:
+                    ret.append((url, False, self._messages[url]))
 
             return ret
 
@@ -348,12 +359,7 @@ class OANWriter:
 
         # fill buffer
         if len(self._buffer) > 0 and len(self._data) == self._current:
-            tmp = []
-            tmp.append(pack('i', self._size + (len(self._buffer)-1)))
-            tmp.append('\n'.join(self._buffer))
-            OANCounter.out_count += len(self._buffer)
-
-            self._data = ''.join(tmp)
+            self._data = self._pack(self._buffer)
             self._current = 0
             self._size = 0
             self._buffer = []
@@ -368,6 +374,15 @@ class OANWriter:
                 self._send()
 
         OANLogCounter.end("handle_write")
+
+
+    def _pack(self, buffer):
+        tmp = []
+        tmp.append(pack('i', self._size + (len(self._buffer)-1)))
+        tmp.append('\n'.join(self._buffer))
+        OANCounter.out_count += len(self._buffer)
+        return ''.join(tmp)
+
 
     def _send_all(self):
         while not self.empty():
@@ -387,11 +402,13 @@ class OANWriter:
 
         return handshake
 
+
 class OANOut:
 
     _out = OANMessageDictionary()
     _writers = {}
     _authorized = {}
+    _connecting = {}
     _fds = []
     _thread = None
     _started = None
@@ -455,13 +472,30 @@ class OANOut:
             log.info("_disconnect_occured %s %s" % (fd, e))
 
     @staticmethod
+    def _connect(url):
+        #todo: add errors from asyncore.
+        if url not in OANOut._connecting:
+            log.info("OANOut:_connect (%s, %s)" % url)
+
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.setblocking(0)
+            err = s.connect_ex(url)
+
+            err = s.getsockopt(socket.SOL_SOCKET, socket.SO_ERROR)
+            if err != 0:
+                log.info("my socket err %s" % err)
+
+            OANOut._connecting[url] = s.fileno()
+            OANOut.handshake(s, OANServer.auth)
+
+    @staticmethod
     def _close_all():
         for fd in OANOut._writers.keys()[:]:
             OANOut._close(fd)
 
     @staticmethod
     def _close(fd):
-
+        log.info("OANOut: _close %s, %s" % (fd, OANOut._connecting))
         if fd in OANOut._writers:
             writer = OANOut._writers[fd]
             writer.close()
@@ -470,7 +504,15 @@ class OANOut:
             if writer.auth:
                 url = writer.auth.url
                 del OANOut._authorized[url]
-                OANOut._out.clear(url)
+                OANOut._out.clear([url])
+
+        for connected_url, connected_fd in OANOut._connecting.items():
+            if fd == connected_fd:
+                log.info("connecting url removed (%s, %s)" % connected_url)
+                del OANOut._connecting[connected_url]
+
+
+
 
     @staticmethod
     def _run():
@@ -480,20 +522,24 @@ class OANOut:
         OANOut._started.set()
         while OANServer._running:
             #time.sleep(0.2)
-            #log.info("OANOut: loop")
+            OANLogCounter.begin("OANOut:Loop")
 
-            pop_data = OANOut._out.pop(OANOut._authorized.keys())
-            OANOut._out.wait(not outputs and not pop_data and OANServer._running)
+            pop_data = OANOut._out.pop(OANOut._authorized, OANOut._connecting,
+                                       not outputs and OANServer._running)
 
-            for url, entry_data in pop_data:
+            for url, poped, entry_data in pop_data:
                 #log.info("OANOut: url %s size %s" % (url, len(entry_data)))
                 #log.info(OANOut._authorized)
-                writer = OANOut._authorized[url]
-                writer.push(entry_data)
-                fd = writer.fileno()
+                if poped:
+                    writer = OANOut._authorized[url]
+                    writer.push(entry_data)
+                    fd = writer.fileno()
 
-                if (fd not in outputs):
-                    outputs.append(fd)
+                    if (fd not in outputs):
+                        outputs.append(fd)
+                else:
+                    log.info("new url %s, %s" % url)
+                    OANOut._connect(url)
 
             if outputs:
                 # log.info("OANOut: current %s" % outputs)
@@ -521,6 +567,8 @@ class OANOut:
                         except Exception, e:
                             outputs.remove(fd)
                             OANOut._close(fd)
+
+            OANLogCounter.end("OANOut:Loop")
 
         OANOut._close_all()
         log.info("OANOut: shutdown finished")
@@ -620,9 +668,8 @@ class OANIn:
         outputs = []
         OANIn._started.set()
         while OANServer._running:
-            #log.info("OANIn: loop")
+            OANLogCounter.begin("OANIn: loop")
             #time.sleep(0.5)
-            #log.info("OANIn current: %s" % (inputs))
             try:
                 readable, writable, exceptional = select.select(inputs, outputs, inputs)
                 #log.info("OANIn: %s, %s, %s" % (readable, writable, exceptional))
@@ -644,6 +691,8 @@ class OANIn:
                         readable, writable, exceptional = select.select([fd], outputs, [], 0)
                     except Exception, e:
                         OANIn._close(fd)
+
+            OANLogCounter.end("OANIn: loop")
 
         OANIn._close_all()
         log.info("OANIn: shutdown finished")
@@ -681,6 +730,7 @@ class OANServer:
     _thread = None
     _started = None
     _connected = None
+    _lock = Lock()
 
     connect_callback = staticmethod(lambda auth : None)
     close_callback = staticmethod(lambda auth, messages : None)
@@ -725,7 +775,12 @@ class OANServer:
 
     @staticmethod
     def connected():
-        return OANServer._connected.keys()
+        ret = []
+        for url, state in OANServer._connected:
+            if state:
+                ret.append(url)
+
+        return ret
 
     @staticmethod
     def connect(urls):
@@ -738,19 +793,33 @@ class OANServer:
 
     @staticmethod
     def push(urls, messages):
+        """
+        with OANServer._lock:
+            for url in urls:
+                if url == OANServer.auth.url:
+                    raise OANNetworkError("Can not push messages to your self")
+
+                if url not in OANServer._connected:
+                    sock = OANServer._connect(url)
+                    OANServer._add_socket(sock)
+                    OANServer._connected[url] = False
+        """
         OANOut.push(urls, messages)
 
     @staticmethod
     def _in_connect_occured(fd, sock, auth):
         log.info("OANServer: _in_connect_occured %s %s" % (fd, auth.url))
         try:
-            if auth.url not in OANServer._connected:
+            if auth == None:
+                raise OANNetworkError("auth is None")
+
+            if auth.url not in OANServer._connected or not OANServer._connected[auth.url]:
                 OANOut.authorized(fd, auth)
                 OANIn.authorized(fd, auth)
-                OANServer._connected[auth.url] = fd
+                OANServer._connected[auth.url] = True
                 OANServer.connect_callback(auth)
             else:
-                log.info("Already connected %s closing socket" % auth.url)
+                log.info("Already connected %s %s closing socket" % (fd, auth.url))
                 OANOut._writers[fd]._socket.close()
 
         except Exception, e:
