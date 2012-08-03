@@ -46,23 +46,23 @@ class MessageConnect(Message):
         also automatically expand.
 
         """
-        last_block_cord = block_list_y.size()
-        slots_in_last_block = block_list_y.size(last_block_cord)
+        last_block_cord = block_list_y.size()-1
+        slots_in_last_block = block_list_y.block_size(last_block_cord)
+
         if slots_in_last_block < MessageConnect.MAX_SLOTS_IN_BLOCK:
-            return max(3, last_block_cord-1)
-        else:
             return max(3, last_block_cord)
+        else:
+            return max(3, last_block_cord+1)
 
     def add_url_to_current_x_list(self, app, origin_url, x_pos):
         """
         Add url to first free slot on existing blocks in x direction.
 
         """
-        block = app.cube_view.x.get_block(x_pos)
         log.info("add_url_to_current_x_list x: %s y: %s" % (x_pos, app.block_position.y) )
-        log.info(app.cube_view.x.get_blocks())
+
+        block = app.cube_view.x.get_block(x_pos)
         block.append(origin_url)
-        log.info(app.cube_view.x.get_blocks())
 
         msg = MessageGiveBlockPosition(app, BlockPosition(x_pos, app.block_position.y, 0))
         app.send(origin_url, msg)
@@ -81,7 +81,7 @@ class MessageConnect(Message):
 
         """
         log.info("add_url_to_expanded_x_list %s" % app.cube_view.x.size() )
-        app.cube_view.x.add(app.cube_view.x.size()-1, self.origin_url)
+        app.cube_view.x.add(app.cube_view.x.size(), self.origin_url)
         msg = MessageGiveBlockPosition(app, BlockPosition(app.cube_view.x.size()-1, app.block_position.y, 0))
         app.send(origin_url, msg)
         app.push(app.network_builder.get_x(),     MessageGiveBlockListX(app.cube_view.x))
@@ -94,8 +94,8 @@ class MessageConnect(Message):
         the last block.
 
         """
-        log.info("add_url_to_expanded_y_list %s" % len(app.cube_view.x) )
-        app.cube_view.y.add(app.cube_view.y.size()-1, origin_url)
+        log.info("add_url_to_expanded_y_list cube_view.x.size %s" % app.cube_view.x.size())
+        app.cube_view.y.add(app.cube_view.y.size(), origin_url)
         msg = MessageGiveBlockPosition(app, BlockPosition(0, app.cube_view.y.size()-1, 0))
 
         app.send(origin_url, msg)
@@ -116,7 +116,7 @@ class MessageConnect(Message):
     def execute(self, app):
         x_max_size = self.get_x_size(app.cube_view.y)
 
-        log.info("X-max-size: %s, x: %s, y: %s" % (
+        log.info("X-max-size: %s, cube_view.x.size: %s, cube_view.y.size: %s" % (
                  x_max_size, app.cube_view.x.size(), app.cube_view.y.size()))
 
         for x_pos in xrange(0, app.cube_view.x.size()):
@@ -133,7 +133,6 @@ class MessageConnect(Message):
                 self.redirect_to_next_y_block(app, self.origin_url)
         else:
             self.add_url_to_expanded_x_list(app, self.origin_url)
-
 
 class MessageGiveBlockPosition(Message):
     """
@@ -158,14 +157,14 @@ class MessageGiveBlockPosition(Message):
 
         x_pos, y_pos, z_pos = self.block_position.id()
         if y_pos == app.block_position.y:
-            self.cube_view.x.set_block_list(app.cube_view.x)
+            self.cube_view.x.merge_block_list(app.cube_view.x)
         else:
-            self.cube_view.x.set_block(x_pos, app.cube_view.y[y_pos])
+            self.cube_view.x.merge_block(x_pos, app.cube_view.y.get(y_pos))
 
         if x_pos == app.block_position.x:
-            self.cube_view.y.set_block_list(app.cube_view.y)
+            self.cube_view.y.merge_block_list(app.cube_view.y)
         else:
-            self.cube_view.y.set_block(y_pos, app.cube_view.x[x_pos])
+            self.cube_view.y.merge_block(y_pos, app.cube_view.x.get(x_pos))
 
         # TODO Z
 
@@ -173,11 +172,13 @@ class MessageGiveBlockPosition(Message):
         app.set_block_position(self.block_position)
         app.cube_view.set_cube_view(self.cube_view)
 
+        log.info("MessageGiveBlockPosition x: %s y: %s" % (app.cube_view.x.get_blocks(), self.cube_view.y.get_blocks()))
         #todo self.sync_x_list(app)
         self.sync_y_list(app)
 
-        log.info(app.cube_view.x.get_blocks())
-        log.info(self.cube_view.x.get_blocks())
+        log.info("MessageGiveBlockPosition x: %s from %s" % (app.cube_view.x.get_blocks(), self.cube_view.x.get_blocks()))
+        log.info("MessageGiveBlockPosition y: %s from %s" % (app.cube_view.y.get_blocks(), self.cube_view.y.get_blocks()))
+
         app.connect()
 
         log.info(app.cube_view.x.get_blocks())
@@ -212,48 +213,74 @@ class MessageGetYList(Message):
     def __init__(self, block_position):
         self.origin_position = block_position
 
-    def execute(self, app):
-        log.info("MessageGetYList slot:%s x:%s y:%s x_pos %s of %s" % (
-                 app.bind_url,
-                 app.block_position.x, app.block_position.y,
-                 self.origin_position.x, app.block_list.x.size())
+    def is_in_block_with_y_list(self, app):
+        return (
+            app.block_position.y < self.origin_position.y and
+            app.block_position.x == self.origin_position.x
         )
-        log.info(app.block_list.x)
-        if self.origin_position.y <= app.block_position.y:
-            return
 
-        if self.origin_position.x == app.block_position.x:
-            log.info("MessageGetYList step 1 to %s" % self.origin_url)
-            app.send(self.origin_url, MessageGiveBlockListY( app.block_list.y))
+    def is_in_block_who_knows_block_with_y_list(self, app):
+        return (
+            app.block_position.y < self.origin_position.y and
+            app.cube_view.x.has_slot(self.origin_position.x, 0)
+        )
 
-        elif (self.origin_position.x <= app.block_list.x.size()-1 and
-              app.block_list.x.size(self.origin_position.x)):
-            log.info("MessageGetYList step 2 to %s" % app.block_list.x.size(self.origin_position.x))
-            msg = MessageRedirect(app.block_list.x.get(self.origin_position.x, 0), self)
-            app.send(self.origin_url, msg)
+    def is_in_block_left_of_origin(self, app):
+        return (
+            app.block_position.y <= self.origin_position.y and
+            app.block_position.x < self.origin_position.x
+        )
 
-        else:
-            destination_url = None
-            for y_pos in reversed(xrange(app.block_position.y)):
-                log.info("y_pos %s" % y_pos)
-                if app.block_list.y.size():
-                    destination_url = app.block_list.y.get(y_pos, 0)
-                    log.info("hit 1")
+    def forwards_y_list_back_to_origin(self, app):
+        log.info("MessageGetYList step 3 to %s" % self.origin_url)
+        log.info
+        app.send(self.origin_url, MessageGiveBlockListY( app.cube_view.y))
+
+    def redirects_to_right_in_cube(self, app):
+        log.info("MessageGetYList step 2 to %s" % app.cube_view.x.size(self.origin_position.x))
+        msg = MessageRedirect(app.cube_view.x.get(self.origin_position.x, 0), self)
+        app.send(self.origin_url, msg)
+
+    def redirects_up_in_cube(self, app):
+        destination_url = None
+        for y_pos in reversed(xrange(app.block_position.y)):
+            log.info("y_pos %s" % y_pos)
+            if app.cube_view.y.has_slot(y_pos, 0):
+                destination_url = app.cube_view.y.get_slot(y_pos, 0)
+                log.info("hit 1")
+                break
+
+        if not destination_url:
+            for x_pos in reversed(xrange(app.block_position.x)):
+                log.info("x_pos %s" % x_pos)
+                if app.cube_view.x.has_slot(x_pos, 0):
+                    destination_url = app.block_position.x.get(x_pos, 0)
+                    log.info("hit 2")
                     break
 
-            if not destination_url:
-                for x in reversed(xrange(app.block_position.x)):
-                    log.info("x %s" % x)
-                    if app.block_list.x.size(x):
-                        destination_url = app.block_position.x.get(x, 0)
-                        log.info("hit 2")
-                        break
+        log.info("MessageGetYList step 1 to %s" % destination_url)
+        if destination_url:
+            msg = MessageRedirect(destination_url, self)
+            app.send(self.origin_url, msg)
 
-            log.info("MessageGetYList step 3 to %s" % destination_url)
-            if destination_url:
-                msg = MessageRedirect(destination_url, self)
-                app.send(self.origin_url, msg)
+    def execute(self, app):
+        log.info("MessageGetYList slot:%s x:%s y:%s x_pos %s of %s y_pos %s of %s" % (
+                 app.bind_url,
+                 app.block_position.x, app.block_position.y,
+                 self.origin_position.x, app.cube_view.x.size(),
+                 self.origin_position.y, app.cube_view.y.size()
+        ))
+        log.info(app.cube_view.x.get_blocks())
+        log.info(app.cube_view.y.get_blocks())
 
+        if self.is_in_block_with_y_list(app):
+            self.forwards_y_list_back_to_origin(app)
+
+        elif self.is_in_block_who_knows_block_with_y_list(app):
+            self.redirects_to_right_in_cube(app)
+
+        elif self.is_in_block_left_of_origin(app):
+            self.redirects_up_in_cube(app)
 
 class MessageRedirect(Message):
     bind_url = None
@@ -280,7 +307,7 @@ class MessageGiveBlockList(Message):
 
     def __init__(self, block_list):
         self.block_list = BlockList()
-        self.block_list.set_block_list(block_list)
+        self.block_list.merge_block_list(block_list)
 
     def forward_sync(self, app):
         """Forward new synced list to all bff nodes."""
@@ -291,19 +318,19 @@ class MessageGiveBlockList(Message):
 class MessageGiveBlockListX(MessageGiveBlockList):
     def execute(self, app):
         log.info("On %s Merge list X" % (app.bind_url))
-        if app.cube_view.x.set_block_list(self.block_list):
+        if app.cube_view.x.merge_block_list(self.block_list):
             self.forward_sync()
 
 class MessageGiveBlockListY(MessageGiveBlockList):
     def execute(self, app):
         log.info("On %s Merge list Y" % (app.bind_url))
-        if app.cube_view.y.set_block_list(self.block_list):
+        if app.cube_view.y.merge_block_list(self.block_list):
             self.forward_sync()
 
 class MessageGiveBlockListZ(MessageGiveBlockList):
     def execute(self, app):
         log.info("On %s Merge list Z" % (app.bind_url))
-        if app.cube_view.z.set_block_list(self.block_list):
+        if app.cube_view.z.merge_block_list(self.block_list):
             self.forward_sync()
 
 
@@ -326,16 +353,8 @@ class Connections:
     all = {}
 
     @staticmethod
-    def trigger_5minute_cron():
-        """
-        Emulates a cron job that is executed every 5 minute.
-
-        Naturally a unit test don't have any scheduler/cron, so this function
-        should be called manually.
-
-        """
-        for network_view in Connections.all.itervalues():
-            network_view.trigger_5minute_cron()
+    def clear():
+        Connections.all = {}
 
 
 class BlockPosition:
@@ -378,44 +397,57 @@ class BlockList:
     # Number of blocks the block list will expand with.
     EXPAND_SIZE = 1
 
-    class OccupiedSlotException(Exception):
-        pass
-
     def __init__(self):
+        self._clear()
+
+    def _clear(self):
         self._blocks = []
 
-    def clear(self, block_pos):
+    def clear_block(self, block_pos):
         del self.get(block_pos)[:]
 
     def add(self, block_pos, url):
         # TODO rename add_slot
-        self.get(block_pos).append(url)
-        return self.size(block_pos)-1
+        self.get_block(block_pos).append(url)
+
+        return self.block_size(block_pos)-1
 
     def add_block(self, block):
         self.get(self.size()).extend(block)
 
     def merge_block_list(self, block_list):
+        log.info("block self: %s incoming: %s" % (self.get_blocks(), block_list.get_blocks()))
         pos=0
         for block in block_list.get_blocks():
             self.set(pos, block)
             pos+=1
+        log.info("block after: %s incoming: %s" % (self.get_blocks(), block_list.get_blocks()))
+
+    def merge_block(self, block_pos, block):
+        self._expand_size(block_pos)
+
+        slot_pos = 0
+        for slot in block:
+            self.set_slot(block_pos, slot_pos, slot)
+            slot_pos+=1
 
     def get(self, block_pos, slot_pos = None):
         if slot_pos == None:
             return self.get_block(block_pos)
         else:
-            return self._blocks[block_pos][slot_pos]
+            return self.get_slot(block_pos, slot_pos)
 
     def get_blocks(self):
         return self._blocks
 
     def get_block(self, block_pos):
+        # TODO: remove expand_size from all gets, should raise Exception if
+        #       not exist.
         self._expand_size(block_pos)
         return self._blocks[block_pos]
 
     def get_slot(self, block_pos, slot_pos):
-        return self.get_block()[slot_pos]
+        return self.get_block(block_pos)[slot_pos]
 
     def empty_slot(self, block_pos, slot_pos):
         if (len(self._blocks) > block_pos and
@@ -426,32 +458,49 @@ class BlockList:
     def remove(self, block_pos, url):
         self._blocks[block_pos].remove(url)
 
-    def set_block_list(self, block_list):
-        pos = 0
-        for block in block_list.get_blocks():
-            self.set(pos, block)
-            pos+=1
-
-    def set_block(self, block_pos, block):
-        if self.size(block_pos):
-            raise BlockList.OccupiedSlotException()
-        else:
-            self._blocks[block_pos] = block
-
     def set(self, block_pos, block):
-        self.set_block(block_pos, block)
+        self.merge_block(block_pos, block)
 
-    def _expand_size(self, length):
-        if length >= len(self._blocks):
-            for dummy in xrange(self.size(), length + BlockList.EXPAND_SIZE):
+    def set_slot(self, block_pos, slot_pos, url):
+        self._expand_slot_size(block_pos, slot_pos)
+        self._blocks[block_pos][slot_pos] = url
+
+    def set_shared_block(self, block_pos, block):
+        self._expand_size(block_pos)
+        self._blocks[block_pos] = block
+
+    def _expand_size(self, block_pos):
+        if block_pos+1 > len(self._blocks):
+            for dummy in xrange(self.size(), block_pos + BlockList.EXPAND_SIZE):
                 self._blocks.append([])
 
-    def size(self, block_pos = None):
-        # TODO split into two functions. size and block_size
-        if block_pos == None:
-            return len(self._blocks)
-        else:
+    def _expand_slot_size(self, block_pos, slot_pos):
+        self._expand_size(block_pos)
+        if slot_pos+1 > self.block_size(block_pos):
+            for dummy in xrange(self.block_size(block_pos), slot_pos + 1):
+                self._blocks[block_pos].append(None)
+
+    def _has_block(self, block_pos):
+        return block_pos <= self._size()-1
+
+    def has_slot(self, block_pos, slot_pos):
+        return self._has_block(block_pos) and slot_pos <= len(self._blocks[block_pos])-1
+
+    def _size(self):
+        # TODO should replace size
+        return len(self._blocks)
+
+    def block_size(self, block_pos):
+        if self._has_block(block_pos):
             return len(self.get(block_pos))
+        else:
+            return 0
+
+    def size(self, block_pos = None):
+        if block_pos == None:
+            return self._size()
+        else:
+            return self.block_size(block_pos)
 
 
 class TestBlockList(OANTestCase):
@@ -482,10 +531,7 @@ class TestBlockList(OANTestCase):
         block_list.remove(2, "002")
         self.assertEqual(block_list.get(2), ["002B"])
 
-        with self.assertRaises(BlockList.OccupiedSlotException):
-            block_list.set(2, ["002C"])
-
-        block_list.clear(2)
+        block_list.clear_block(2)
         self.assertEqual(block_list.get(2), [])
 
         block_list.set(2, ["002C"])
@@ -531,13 +577,13 @@ class CubeView:
         self.b = []
 
         self.x = BlockList()
-        self.x.set(self.block_position.x, self.b)
+        self.x.set_shared_block(self.block_position.x, self.b)
 
         self.y = BlockList()
-        self.y.set(self.block_position.y, self.b)
+        self.y.set_shared_block(self.block_position.y, self.b)
 
         self.z = BlockList()
-        self.z.set(self.block_position.z, self.b)
+        self.z.set_shared_block(self.block_position.z, self.b)
 
 class TestCubeView(OANTestCase):
     def test_cube_view_block_pos_0(self):
@@ -673,7 +719,8 @@ class NetworkBuilder:
 
             # Connect to previous node if it exists.
             elif block_pos_cord - 1 >= 0:
-                self._add_url(block_list.get(block_pos_cord - 1, 0), urls)
+                if block_list.has_slot(block_pos_cord - 1, 0):
+                    self._add_url(block_list.get_slot(block_pos_cord - 1, 0), urls)
 
             else:
                 raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
@@ -960,9 +1007,9 @@ class NetworkView():
             self.send(url, message)
 
     def receive(self, message):
+        log.info("%s received %s from %s " % (self._bind_url, message.__class__.__name__, message.origin_url))
         self.counter.receive += 1
         self.received_cb(self, message)
-        log.info("%s received %s from %s " % (self._bind_url, message.__class__.__name__, message.origin_url))
 
     def _disconnect(self, url):
         self.counter.disconnect += 1
@@ -1147,32 +1194,42 @@ class OANApplication:
         Reconnect if nodes has been disconnected, or new node are online.
 
         """
-        pass
-    #     self.bff_network = NetworkBuilder(xxx)
-    #     self.bff_network.build()
-    #     self.connect(xxx)
+        self.connect()
 
 
 class TestOANCube(OANTestCase):
+    _apps = None
+
+    def trigger_5minute_cron(self):
+        """
+        Emulates a cron job that is executed every 5 minute.
+
+        Naturally a unit test don't have any scheduler/cron, so this function
+        should be called manually.
+
+        """
+        for app in self._apps.values():
+            app.trigger_5minute_cron()
 
     def connect_node(self, url, block_id, test_list):
         log.info("======= %s =======================================================================================" % url)
         log.info("Create %s with block_id %s" % (url, block_id))
 
         app = OANApplication(url)
+        self._apps[url] = app
         app.send('001', MessageConnect())
-        return
-        #Connections.trigger_5minute_cron()
 
-        x_max_size = max(3, len(Connections.all['001'].node_list.x))
+        self.trigger_5minute_cron()
 
-        self.assertEqual(network_view.pos.id(), slot_id)
+        self.assertEqual(app.block_position.id(), block_id)
 
-        x_list = self.get_x_list(slot_id, test_list, x_max_size)
-        self.assertEqual(network_view.node_list.x, x_list)
+        x_max_size = max(3, self._apps['001'].cube_view.x.size())
 
-        y_list = self.get_y_list(slot_id, test_list, x_max_size)
-        self.assertEqual(network_view.node_list.y, y_list)
+        x_list = self.get_x_list(block_id, test_list, x_max_size)
+        self.assertEqual(app.cube_view.x.get_blocks(), x_list)
+
+        y_list = self.get_y_list(block_id, test_list, x_max_size)
+        self.assertEqual(app.cube_view.y.get_blocks(), y_list)
 
     def get_x_list(self, slot_id, test_list, width):
         x, y, z = slot_id
@@ -1205,7 +1262,11 @@ class TestOANCube(OANTestCase):
         return new_y_list
 
     def test_connection(self):
+        self._apps = {}
+        Connections.clear()
+
         first_app = OANApplication('001')
+        self._apps['001'] = first_app
         self.assertEqual(first_app.block_position.id(), (0, 0, 0))
 
         self.connect_node("002", (0, 0, 0), [["001", "002", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
@@ -1495,7 +1556,13 @@ class TestOANCube(OANTestCase):
         keys = Connections.all.keys()
         keys.sort()
 
-        log.info("=========================")
+        log.info("=== Slot id =======================")
+        for key in keys:
+            network_view = Connections.all[key]
+            app = self._apps[key]
+            log.info("slot_id: %s %s" % (network_view._bind_url, app.block_position.id()))
+
+        log.info("=== Counters ======================")
         counter_total = NetworkCounter()
         for key in keys:
             network_view = Connections.all[key]
@@ -1503,26 +1570,3 @@ class TestOANCube(OANTestCase):
             counter_total += network_view.counter
         log.info("TOTAL           %s" % (counter_total))
 
-
-        # log.info("=========================")
-        # for node_key in keys:
-        #     node = Connections.all[node_key]
-        #     log.info("x-list: %s %s" % (node.bind_url, app.block_position.x))
-
-        # log.info("=========================")
-        # for node_key in keys:
-        #     node = Connections.all[node_key]
-        #     log.info("slot_id: %s %s" % (node.bind_url, app.block_position.id()))
-
-        # log.info("=========================")
-        # for node_key in keys:
-        #     node = Connections.all[node_key]
-        #     log.info("Sockets: %s %s" % (node.bind_url, node.sockets))
-
-        # log.info("=========================")
-        # counter_total = Counter()
-        # for node_key in keys:
-        #     node = Connections.all[node_key]
-        #     log.info("Counters: %s %s" % (node.bind_url, node.counter))
-        #     counter_total += node.counter
-        # log.info("TOTAL         %s" % (counter_total))
