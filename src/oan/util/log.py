@@ -33,6 +33,10 @@ import logging.handlers
 NONE = 100
 
 
+# Number of tabs to indent message in log output.
+indent = 0
+
+
 # Gives shorter logging lines.
 level_convert = {
     "DEBUG": "DBG",
@@ -45,8 +49,8 @@ level_convert = {
 
 
 # Format of log output, used together with ContextFilter
-FORMATTER="%(small_time)s [%(small_levelname)-3s][%(threadName)-6s] " \
-          "%(extra)s %(message)s %(trace)s"
+FORMATTER="%(small_time)s %(small_levelname)-3s-%(process)d-%(threadName)-6s " \
+          "%(extra)-50s %(indent)s%(message)s %(trace)s"
 
 
 SYSLOG_FORMATTER="%(time)s %(hostname)s oand[%(process)d]: " \
@@ -57,14 +61,15 @@ class ContextFilter(Filter):
     """Filter which injects contextual information into the log."""
 
     def filter(self, record):
+        global indent
         record.hostname = os.uname()[1]
         record.time = strftime("%d %b %H:%M:%S", gmtime())
         record.small_time = strftime("%H:%M:%S", gmtime())
         record.small_levelname = level_convert[record.levelname]
         #record.levelname_ex = "[%s][%s]" % (record.levelname, record.threadName)
-        record.extra = ""
+
+        record.indent ="."*indent
         # Text to display on debugging messages.
-        #if record.levelno == DEBUG:
         record.extra = "(%s:%s:%s)" % (
             record.filename,
             record.funcName, record.lineno
