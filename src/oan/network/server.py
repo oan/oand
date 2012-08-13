@@ -17,6 +17,15 @@ class OANCounter:
     in_count = 0
     in_reads = 0
 
+    @staticmethod
+    def reset():
+        OANCounter.out_bytes = 0
+        OANCounter.out_count = 0
+        OANCounter.out_writes = 0
+        OANCounter.in_bytes = 0
+        OANCounter.in_count = 0
+        OANCounter.in_reads = 0
+
 class OANMessageDictionary:
     _messages = None
     _lock = None

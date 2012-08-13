@@ -104,11 +104,11 @@ class OANTestCase(unittest.TestCase):
 
         self.assert_counters[key] -= number
 
-    def assert_counter_wait(self, key, value):
+    def assert_counter_wait(self, key, value, timeout = 5):
         if key not in self.assert_counters:
             self.assert_counters[key] = 0
 
-        self.assertTrueWait(lambda : self.assert_counters[key] == value)
+        self.assertTrueWait(lambda : self.assert_counters[key] == value, timeout)
 
 
 
