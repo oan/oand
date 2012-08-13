@@ -2,6 +2,7 @@
 *.pyo
 *.cover
 *.log*
+.DS_Store
 _trial_temp
 tmp/
 var/
