@@ -482,7 +482,7 @@ class OANOut:
     def _connect(url):
         #todo: add errors from asyncore.
         if url not in OANOut._connecting:
-            log.info("OANOut:_connect (%s, %s)" % url)
+            log.info("OANOut:_connect %s %s" % ("", url))
 
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             s.setblocking(0)
@@ -834,7 +834,7 @@ class OANServer:
 
     @staticmethod
     def _out_error_occured(url, messages):
-        log.info("OANServer: _out_error_occured %s %s" % (url, messages))
+        #log.info("OANServer: _out_error_occured %s %s" % (url, messages))
         OANServer.error_callback(url, messages)
 
     @staticmethod

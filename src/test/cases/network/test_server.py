@@ -37,7 +37,7 @@ class ServerDaemon(OANDaemonBase):
     def my_test_connected(self, auth):
         log.info("ServerDaemon::my_test_connected")
 
-    def my_test_closed(self, auth, message):
+    def my_test_closed(self, auth):
         log.info("ServerDaemon::my_test_connected")
 
     def my_test_message(self, url, messages):
@@ -79,6 +79,7 @@ class TestOanSocket(OANTestCase):
         OANServer.connect_callback = self.my_test_connected
         OANServer.close_callback = self.my_test_closed
         OANServer.error_callback = self.my_test_error
+        OANServer.message_callback = self.my_test_message
         OANServer.start(self.auth)
 
         self.start = time.time()
@@ -87,7 +88,7 @@ class TestOanSocket(OANTestCase):
 
         elapsed = (time.time() - self.start)
         (utime, stime, cutime, cstime, elapsed_time) = os.times()
-        log.info("Stat: %s, %s, %s, %s, %s" % (utime, stime, cutime, cstime, elapsed_time))
+        log.info("Stat: %s, %s, %s, %s, %s sec" % (utime, stime, cutime, cstime, elapsed_time / 10000000000))
 
         OANServer.shutdown()
         self.daemon.stop()
@@ -113,8 +114,8 @@ class TestOanSocket(OANTestCase):
         self.inc_counter('my_test_closed')
         log.info(self.assert_counters)
 
-    def my_test_message(self, auth, message):
-        pass
+    def my_test_message(self, auth, messages):
+        self.inc_counter('my_test_message', len(messages))
 
     def my_test_error(self, url, messages):
         self.inc_counter('my_test_error', len(messages))
@@ -144,55 +145,36 @@ class TestOanSocket(OANTestCase):
         # start the server so it can be shitdown in tearDown
         OANServer.start(self.auth)
 
-    def test_push_to_unknown(self):
+    def atest_push_to_unknown(self):
+        """
+        Try to push messages to non existing server, all messages should
+        be sent to error callback.
+        """
         num_push = 100
         to_push = ["M" * 50, "X" * 50, "Y" * 50]
 
         for x in xrange(0, num_push):
           OANServer.push([("localhost", 8010)], to_push)
-          time.sleep(0.01)
 
         self.assert_counter_wait('my_test_error', num_push * len(to_push))
 
     def atest_connect(self):
-        OANServer.connect([("localhost", 8000)])
+        OANServer.push([("localhost", 8000)], ["M"])
         self.assert_counter_wait('my_test_connected', 1)
 
-    def atest_multi_connect(self):
-        auth = OANAuth("OAN v0.1", "oan:1", "localhost", 8001, False)
-
-        OANServer.connect([("localhost", 8000)])
-        OANServer.connect([("localhost", 8000)])
-        OANServer.connect([("localhost", 8000)])
-        OANServer.connect([("localhost", 8000)])
-        OANServer.connect([("localhost", 8000)])
-
-
     def atest_two_connect(self):
-
-        OANServer.connect([("localhost", 8000)])
-        OANServer.connect([("localhost", 8002)])
+        OANServer.push([("localhost", 8000), ("localhost", 8002)], ["M"])
         self.assert_counter_wait('my_test_connected', 2)
 
-    my_queue = OANQueue()
-    def got_message(self, url, messages):
-        self.my_queue.put(messages)
-
-    def atest_server(self):
-
-        num_push = 1000
-        to_push = ["M" * 50, "X" * 50, "Y" * 50]
-
-        OANServer.message_callback = self.got_message
+    def test_server(self):
+        num_push = 100000
+        to_push = ["M" * 500, "X" * 500, "Y" * 500]
+        urls = [("localhost", 8000), ("localhost", 8002)]
 
         for x in xrange(0,num_push):
-            OANServer.push([("localhost", 8000)], to_push)
-            #time.sleep(0.00001)
+            OANServer.push(urls, to_push)
+            #time.sleep(5)
 
-        excepted = num_push * len(to_push)
-        c = 0
-        while c < excepted:
-            c += len(self.my_queue.get())
-
+        self.assert_counter_wait('my_test_message', num_push * len(to_push) * len(urls))
 
 
