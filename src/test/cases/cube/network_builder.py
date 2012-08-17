@@ -57,7 +57,7 @@ class NetworkBuilder:
         return set(urls)
 
     def get_slot_pos(self):
-        return self._cube_view.b.index(self.bind_url)
+        return self._cube_view.get_slot_pos(self.bind_url)
 
     def build(self, cube_view):
         """
@@ -140,7 +140,8 @@ class NetworkBuilder:
             last_block_cord = block_list.size()-1
             if block_pos_cord == last_block_cord:
                 if block_list.size() > 2:
-                    self._add_url(block_list.get(0, self.get_slot_pos()), urls)
+                    if not block_list.empty_slot(0, self.get_slot_pos()):
+                        self._add_url(block_list.get(0, self.get_slot_pos()), urls)
 
             # Connect to next node if it exists.
             elif block_pos_cord + 1 <= block_list.size()-1:

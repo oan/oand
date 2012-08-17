@@ -42,6 +42,9 @@ class CubeView:
         self.y.merge_block_list(cube_view.y)
         self.z.merge_block_list(cube_view.z)
 
+    def get_slot_pos(self, bind_url):
+        return self.b.index(bind_url)
+
     def _clear(self):
         # Share the same block where each direction intersect/meet.
         self.b = []

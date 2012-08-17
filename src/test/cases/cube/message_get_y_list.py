@@ -76,8 +76,8 @@ class MessageGetYList(Message):
                  self.origin_position.x, app.cube_view.x.size(),
                  self.origin_position.y, app.cube_view.y.size()
         ))
-        log.info(app.cube_view.x.get_blocks())
-        log.info(app.cube_view.y.get_blocks())
+        log.info("x-list %s" % app.cube_view.x.get_blocks())
+        log.info("y-list %s" % app.cube_view.y.get_blocks())
 
         if self.is_in_block_with_y_list(app):
             self.forwards_y_list_back_to_origin(app)
@@ -85,5 +85,5 @@ class MessageGetYList(Message):
         elif self.is_in_block_who_knows_block_with_y_list(app):
             self.redirects_to_right_in_cube(app)
 
-        elif self.is_in_block_left_of_origin(app):
+        else:
             self.redirects_up_in_cube(app)
