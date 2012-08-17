@@ -167,7 +167,7 @@ class TestOanSocket(OANTestCase):
 
     def test_server(self):
         num_push = 10
-        to_push = ["M" * 500, "X" * 500, "Y" * 500]
+        to_push = ["M" * 5, "X" * 5, "Y" * 5]
         urls = [("localhost", 8000), ("localhost", 8002)]
 
         for x in xrange(0,num_push):

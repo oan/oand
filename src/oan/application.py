@@ -144,5 +144,4 @@ class OANDaemon(OANDaemonBase):
             except OANTerminateInterrupt, e:
                 break
 
-        print "kkkkkkkkkkkkkkkkkkkkkkkkkkkk"
         self._app.stop()

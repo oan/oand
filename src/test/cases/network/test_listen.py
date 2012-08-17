@@ -11,54 +11,60 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import asyncore
-from threading import Thread
+import time
 
 from test.test_case import OANTestCase
 from oan.util import log
 from oan.util.daemon_base import OANDaemonBase
-from oan.async.server import OANListen
-from oan.async.bridge import OANBridge, OANBridgeAuth
-from oan.async import serializer
-
-
-def start_asyncore_loop():
-    log.info("Start asyncore loop")
-    t = Thread(target=asyncore.loop, kwargs={'timeout':0.1})
-    t.name="asynco"
-    t.daemon = True
-    t.start()
-
+from oan.network import serializer
+from oan.network.server import OANServer, OANAuth
+from oan.util.signal_handler import OANTerminateInterrupt
 
 class MessageTest():
     def __init__(self, text = None):
         self.status = "ok"
         self.text = text
 
-
 class ClientNodeDaemon(OANDaemonBase):
-    close_done = None
     def run(self):
-        self.close_done = False
-        serializer.add(MessageTest)
 
-        auth = OANBridgeAuth.create(
-            'oand v1.0', '00000000-0000-code-1338-000000000000',
-            'localhost', 1338, False
-        )
+        try:
+            serializer.add(MessageTest)
 
-        bridge = OANBridge("localhost", 1337, auth)
-        bridge.connect()
-        bridge.send([MessageTest("Hello world")])
-        start_asyncore_loop()
-        log.info("ClientNodeDaemon:run end")
+            auth = OANAuth(
+                'oand v1.0', '00000000-0000-code-1338-000000000000',
+                'localhost', 1338, False
+            )
+
+            OANServer.error_callback = self.error_cb
+            OANServer.start(auth)
+            OANServer.push([('localhost', 1337)], [serializer.encode(MessageTest("Hello world"))])
+            log.info("ClientNodeDaemon:run end")
+            self.wait()
+
+        except OANTerminateInterrupt:
+            OANServer.shutdown()
+            log.info("ClientNodeDaemon::run::OANTerminateInterrupt")
+        except Exception, e:
+            log.info("ClientNodeDaemon::run::Error %s" % e)
+            OANServer.shutdown()
+
+
+    def error_cb(self, url, messages):
+        log.info("error_cb")
+        time.sleep(0.1)
+        OANServer.push([url], messages)
+
+    def connect_cb(auth):
+        pass
+
+
 
 class TestOANListen(OANTestCase):
     # Remote node to test network against.
     daemon = None
 
     # Callback counters
-    accept_counter = None
     connect_counter = None
     message_counter = None
     close_counter = None
@@ -69,45 +75,45 @@ class TestOANListen(OANTestCase):
         self.daemon = ClientNodeDaemon(
             pidfile="/tmp/ut_daemon.pid", stdout='/tmp/ut_out.log',
             stderr='/tmp/ut_err.log')
-        self.accept_counter = 0
+
+        self.daemon.start()
+
         self.connect_counter = 0
         self.message_counter = 0
         self.close_counter = 0
 
-        self._auth = OANBridgeAuth.create(
+        self._auth = OANAuth(
             'oand v1.0', '00000000-0000-code-1337-000000000000', 'localhost',
             1337, False)
 
 
     def tearDown(self):
-        self.daemon.stop()
+        pass
+        #self.daemon.stop()
 
-    def accept_cb(self, bridge):
-        log.info("TestOANListen::accept")
-        bridge.connect_callback = self.connect_cb
-        bridge.message_callback = self.message_cb
-        bridge.close_callback = self.close_cb
-
-    def connect_cb(self, bridge, auth):
+    def connect_cb(self, auth):
+        log.info("connect_cb")
         self.connect_counter += 1
 
-    def message_cb(self, bridge, message):
-        if message.__class__.__name__ == 'MessageTest':
-            self.message_counter += 1
+    def message_cb(self, auth, messages):
+        log.info("message_cb %s" % messages)
+        self.message_counter += len(messages)
 
-    def close_cb(self, bridge):
+    def close_cb(self, auth):
+        log.info("close_cb")
         self.close_counter += 1
 
     def test_bridge(self):
-        listen = OANListen(self._auth)
-        listen.accept_callback = self.accept_cb
-        listen.start()
-        start_asyncore_loop()
+        OANServer.connect_callback = self.connect_cb
+        OANServer.message_callback = self.message_cb
+        OANServer.close_callback = self.close_cb
+        OANServer.start(self._auth)
 
-        self.daemon.start()
-        self.assertTrueWait(lambda : self.message_counter == 1)
-        self.assertTrueWait(lambda : self.close_counter == 1)
         self.assertTrueWait(lambda : self.connect_counter == 1)
-
+        self.assertTrueWait(lambda : self.message_counter == 1)
         log.info("Close bridge")
+        OANServer.shutdown()
+
+        self.assertTrueWait(lambda : self.close_counter == 1)
+
 
