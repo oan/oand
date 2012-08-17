@@ -3,8 +3,9 @@ import os
 
 from struct import *
 
-from oan.network.server import OANWriter, OANCounter, OANLogCounter
+from oan.network.server import OANWriter, OANCounter
 from oan.util import log
+from oan.util import log_counter
 
 from test.test_case import OANTestCase
 
@@ -50,7 +51,7 @@ class TestOanWriter(OANTestCase):
             )
 
 
-        log.info(OANLogCounter.result())
+        log.info(log_counter.result())
 
 
     def do_fake_socket_test(self, message_size, block_size, buf_size):
@@ -99,7 +100,7 @@ class TestOanWriter(OANTestCase):
         writer.push(messages)
 
         while not writer.empty():
-            writer.handle_write()
+            writer.handle()
 
         buf = sock.get_value()
         (size,)  = unpack('i', buf[:4])

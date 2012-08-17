@@ -8,7 +8,8 @@ from struct import *
 
 from oan.util.queue import OANQueue
 from oan.util import log
-from oan.network.server import OANReader, OANNetworkError, OANCounter, OANLogCounter
+from oan.util import log_counter
+from oan.network.server import OANReader, OANNetworkError, OANCounter
 from test.test_case import OANTestCase
 
 class FakeSocket():
@@ -93,7 +94,7 @@ class TestOanReader(OANTestCase):
             )
 
 
-        log.info(OANLogCounter.result())
+        log.info(log_counter.result())
 
 
     def do_fake_socket_test(self, frame_size, frame_count, message_size, block_size, buf_size):
