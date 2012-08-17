@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test oan.network.serializer.
+Test oan.async.serializer.
 
 """
 

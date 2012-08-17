@@ -53,7 +53,6 @@ level_convert = {
 FORMATTER="%(small_time)s %(small_levelname)-3s-%(process)d-%(threadName)-6s " \
           "%(extra)-50s %(indent)s%(message)s %(trace)s"
 
-
 SYSLOG_FORMATTER="%(time)s %(hostname)s oand[%(process)d]: " \
                  "%(levelname)-8s %(message)s"
 

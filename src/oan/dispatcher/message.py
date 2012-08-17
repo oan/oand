@@ -18,7 +18,7 @@ from uuid import UUID
 from datetime import datetime
 
 from oan.manager import node_manager
-from oan.network import serializer
+from oan.async import serializer
 from oan.util import log
 from oan.heartbeat import OANHeartbeat
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Test cases for oan.network.network_node.py
+Test cases for oan.async.network_node.py
 
 """
 

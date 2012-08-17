@@ -129,7 +129,6 @@ class TestOANBridge(OANTestCase):
         start_asyncore_loop(1)
         self.assertTrueWait(lambda : len(OANNetworkServer._bridges) == 1)
         #OANNetworkServer.send(MessageTestToServer("Hello World"))
-
         #self.assertTrueWait(lambda : to_client_counter == 1)
         log.info("Stop it")
 

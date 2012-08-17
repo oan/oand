@@ -61,7 +61,7 @@ class OANDaemonBase:
         if self._daemonize():
             self._register_signal()
             self._run()
-            sys.exit(0)
+            os._exit(0)
         else:
             self._wait_for_deamon_to_start()
 
@@ -150,12 +150,13 @@ class OANDaemonBase:
             pid = os.fork()
             if pid > 0:
                 # exit from second parent
-                sys.exit(0)
+                os._exit(0)
         except OSError, e:
             sys.stderr.write(
                 "fork #2 failed: %d (%s)\n" % (e.errno, e.strerror)
             )
             sys.exit(1)
+
 
         self._redirect_standard_file_descriptors()
         self._create_pid()
@@ -238,6 +239,9 @@ class OANDaemonBase:
             pf = file(self.pidfile, 'r')
             pid = int(pf.read().strip())
             pf.close()
+        except ValueError:
+            self._delpid()
+            pid = None
         except IOError:
             pid = None
 

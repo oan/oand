@@ -19,7 +19,7 @@ from datetime import datetime, timedelta
 from oan import manager
 from oan.config import OANConfig
 from oan.manager import node_manager
-from oan.network.network_node import OANNetworkNode
+from oan.async.network_node import OANNetworkNode
 from oan.node_manager.node_manager import OANNodeManager
 from test.test_case import OANTestCase
 from oan.heartbeat import OANHeartbeat

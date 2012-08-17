@@ -33,8 +33,8 @@ from oan.node_manager.command import (OANCommandStaticHeartbeat,
     OANCommandStaticSyncNodes)
 
 from oan.dispatcher.dispatcher import OANDispatcher
-from oan.network.network import OANNetwork, OANNetworkTimer
-from oan.network.command import (OANNetworkCommandListen,
+from oan.async.network import OANNetwork, OANNetworkTimer
+from oan.async.command import (OANNetworkCommandListen,
     OANNetworkCommandConnectOan)
 
 class OANApplication():

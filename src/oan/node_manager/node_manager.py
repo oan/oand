@@ -15,9 +15,9 @@ from oan.heartbeat import OANHeartbeat
 from oan.manager import network, database, dispatcher
 from oan.util import log
 from oan.dispatcher.message import OANMessageRelay
-from oan.network.network_node import OANNetworkNode
-from oan.network.command import NetworksCommandConnectToNode
-from oan.network.bridge import OANBridgeAuth
+from oan.async.network_node import OANNetworkNode
+from oan.async.command import NetworksCommandConnectToNode
+from oan.async.bridge import OANBridgeAuth
 from oan.util.network import get_local_host
 
 from oan.node_manager.command import OANCommandCleanOutQueue

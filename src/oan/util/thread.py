@@ -2,6 +2,8 @@
 '''
 OANThread
 
+We don't need to use this anymore, we will use our own network classes
+and remove asyncore. (we used this to shutdown asyncore nicely)
 '''
 
 __author__ = "martin.palmer.develop@gmail.com"
