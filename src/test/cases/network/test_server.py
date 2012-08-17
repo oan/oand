@@ -7,8 +7,10 @@ from struct import *
 from oan.util.daemon_base import OANDaemonBase
 from oan.util.signal_handler import OANTerminateInterrupt
 
-from oan.network.server import OANAuth, OANServer, OANNetworkError, OANCounter, OANLogCounter
+from oan.network.server import OANAuth, OANServer, OANNetworkError, OANCounter
 from oan.util import log
+from oan.util import log_counter
+
 from oan.util.queue import OANQueue
 from test.test_case import OANTestCase
 
@@ -104,7 +106,7 @@ class TestOanSocket(OANTestCase):
             )
 
 
-        log.info(OANLogCounter.result())
+        log.info(log_counter.result())
 
     def my_test_connected(self, auth):
         log.info("my_test_connected")

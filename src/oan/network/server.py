@@ -6,6 +6,7 @@ from collections import deque
 
 from threading import Thread, Lock, Event, Condition
 from oan.util import log
+from oan.util import log_counter
 
 class OANNetworkError(Exception): pass
 
@@ -118,64 +119,6 @@ class OANRecvNotify:
         self._socket.recv(256)
         #log.info("OANRecvNotify")
 
-class OANLogEntry():
-    counter = None
-    last_elapsed = None
-    total_elapsed = None
-    min_elapsed = None
-    max_elapsed = None
-
-    def __init__(self):
-        self.counter = 0
-        self.last_elapsed = 0
-        self.total_elapsed = 0
-        self.min_elapsed = None
-        self.max_elapsed = 0
-
-    def __str__(self):
-        return ("counter:{0:>6}, total:{1:>20}, avg:{2:>20}, " +
-                       "min:{3:>20}, max:{4:>20}").format(
-                            self.counter, self.total_elapsed,
-                            self.total_elapsed / (self.counter or 1),
-                            self.min_elapsed, self.max_elapsed
-                        )
-
-class OANLogCounter():
-
-    _entries = {}
-
-    @staticmethod
-    def begin(key):
-        if key not in OANLogCounter._entries:
-            entry = OANLogEntry()
-            OANLogCounter._entries[key] = entry
-        else:
-            entry = OANLogCounter._entries[key]
-
-        entry.start = time.time()
-
-    @staticmethod
-    def end(key):
-        entry = OANLogCounter._entries[key]
-        entry.counter += 1
-        entry.last_elapsed = (time.time() - entry.start)
-        entry.total_elapsed += entry.last_elapsed
-        entry.max_elapsed = max(entry.last_elapsed, entry.max_elapsed)
-        if entry.min_elapsed == None:
-           entry.min_elapsed = entry.last_elapsed
-        else:
-            entry.min_elapsed = min(entry.last_elapsed, entry.min_elapsed)
-
-    @staticmethod
-    def result():
-
-        ret = ""
-        for key, entry in OANLogCounter._entries.items():
-            ret += "\n{0:<15} -> {1}".format(key, str(entry))
-
-        return ret
-
-
 class OANListen:
     _socket = None
     _accept_callback = None
@@ -233,7 +176,7 @@ class OANReader:
         """
         method called by OANIn when it's time to read from the socket.
         """
-        OANLogCounter.begin("handle_read")
+        log_counter.begin("handle_read")
         self._read_data()
 
         ret = []
@@ -254,7 +197,7 @@ class OANReader:
                 else:
                     break
 
-        OANLogCounter.end("handle_read")
+        log_counter.end("handle_read")
         if ret:
             OANCounter.in_count += len(ret)
             if not self._connected:
@@ -294,7 +237,7 @@ class OANReader:
         return None. pop data from the buffer and decrease _buffer_size.
         """
         if self._buffer_size >= bytes:
-            OANLogCounter.begin("_get_data")
+            log_counter.begin("_get_data")
             tmp = []
             size = 0
             while size < bytes:
@@ -310,7 +253,7 @@ class OANReader:
                 size += s
                 self._buffer_size -= s
 
-            OANLogCounter.end("_get_data")
+            log_counter.end("_get_data")
             return ''.join(tmp)
 
         return None
@@ -364,7 +307,7 @@ class OANWriter:
 
     def handle(self):
 
-        OANLogCounter.begin("handle_write")
+        log_counter.begin("handle_write")
 
         # fill buffer
         if len(self._buffer) > 0 and len(self._data) == self._current:
@@ -382,7 +325,7 @@ class OANWriter:
             else:
                 self._send()
 
-        OANLogCounter.end("handle_write")
+        log_counter.end("handle_write")
 
 
     def _pack(self, buffer):
@@ -538,7 +481,7 @@ class OANOut:
         OANOut._started.set()
         while OANServer._running:
             #time.sleep(0.2)
-            OANLogCounter.begin("OANOut:Loop")
+            log_counter.begin("OANOut:Loop")
 
             pop_data = OANOut._out.pop(OANOut._authorized, OANOut._connecting,
                                        not outputs and OANServer._running)
@@ -581,7 +524,7 @@ class OANOut:
                             outputs.remove(fd)
                             OANOut._close(fd)
 
-            OANLogCounter.end("OANOut:Loop")
+            log_counter.end("OANOut:Loop")
 
         OANOut._close_all()
         log.info("OANOut: shutdown finished")
@@ -681,7 +624,7 @@ class OANIn:
         outputs = []
         OANIn._started.set()
         while OANServer._running:
-            OANLogCounter.begin("OANIn: loop")
+            log_counter.begin("OANIn: loop")
             #time.sleep(0.5)
             try:
                 readable, writable, exceptional = select.select(inputs, outputs, inputs)
@@ -705,7 +648,7 @@ class OANIn:
                     except Exception, e:
                         OANIn._close(fd)
 
-            OANLogCounter.end("OANIn: loop")
+            log_counter.end("OANIn: loop")
 
         OANIn._close_all()
         log.info("OANIn: shutdown finished")
