@@ -77,9 +77,11 @@ class MessageGiveBlockPosition(Message):
         return True
 
     def sync_y_list(self, app):
+        log.info("whats in y %s %s" % (app.cube_view.y.get_blocks(), app.block_position.y))
         if self.empty_list(app, app.cube_view.y) and app.block_position.y != 0:
-            log.info("sync_y_list")
+            log.info("sync_y_list-begin")
             # TODO handle if left block is empty.
             left_origin_url = app.cube_view.x.get(app.block_position.x - 1, 0)
             msg = MessageGetYList(app.block_position)
             app.send(left_origin_url, msg)
+            log.info("sync_y_list-end")

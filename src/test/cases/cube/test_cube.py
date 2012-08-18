@@ -2,7 +2,14 @@
 """
 Test cases for oan.cube
 
+What are the cube?
+A huge network where a single node can 'broadcast' a message to all other nodes,
+routed through several independent nodes.
+
 OAN Cube Rules
+* The good thing with the cube.
+    * One application only needs to know all other applications in x,y,z direction
+      which maximizes the number of applications that can exist in the network.
 * All nodes will push their node lists to their bffs every hour.
   So all nodes can see if any node has expired, and a slot is free.
 * When a new node should be assigned a slot, an empty slot is primary taken
@@ -14,7 +21,7 @@ OAN Cube Rules
 TODO
 ====
 * Connect/Reconnect to random nodes.
-* Split into different files.
+* Merge different cubes.
 * Follow the log flow, to verify that everything works as expected.
 * Asyncrontest
 * Fix all todos.

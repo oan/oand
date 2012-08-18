@@ -43,8 +43,7 @@ class MessageConnect(Message):
         """
         log.info("add_url_to_current_x_list x: %s y: %s" % (x_pos, app.block_position.y) )
 
-        block = app.cube_view.x.get_block(x_pos)
-        block.append(origin_url)
+        app.cube_view.x.add(x_pos, origin_url)
 
         msg = MessageGiveBlockPosition(app, BlockPosition(x_pos, app.block_position.y, 0))
         app.send(origin_url, msg)
@@ -91,7 +90,7 @@ class MessageConnect(Message):
             origin_url, app.cube_view.x.size(), app.cube_view.y.size()
         ))
 
-        msg = MessageGiveBlockPosition(app, BlockPosition(0, app.cube_view.y.size()-1, 0))
+        msg = MessageGiveBlockPosition(app, BlockPosition(app.block_position.x, app.cube_view.y.size()-1, 0))
         app.send(origin_url, msg)
 
         # Will push the new CubeView before the network rebuild has been
@@ -120,7 +119,10 @@ class MessageConnect(Message):
         log.info("X-max-size: %s, cube_view.x.size: %s, cube_view.y.size: %s" % (
                  x_max_size, app.cube_view.x.size(), app.cube_view.y.size()))
 
-        for x_pos in xrange(0, app.cube_view.x.size()):
+        all_x_pos = (range(app.block_position.x, x_max_size) +
+                    range(0, app.block_position.x))
+
+        for x_pos in all_x_pos:
             block = app.cube_view.x.get(x_pos)
 
             if len(block) < MAX_SLOTS_IN_BLOCK:
