@@ -39,8 +39,8 @@ class ClientNodeDaemon(OANDaemonBase):
             OANServer.error_callback = self.error_cb
             OANServer.start(auth)
             OANServer.push([('localhost', 1337)], [serializer.encode(MessageTest("Hello world"))])
-            log.info("ClientNodeDaemon:run end")
             self.wait()
+            log.info("ClientNodeDaemon:run end")
 
         except OANTerminateInterrupt:
             OANServer.shutdown()
@@ -59,7 +59,6 @@ class ClientNodeDaemon(OANDaemonBase):
         pass
 
 
-
 class TestOANListen(OANTestCase):
     # Remote node to test network against.
     daemon = None
@@ -70,6 +69,7 @@ class TestOANListen(OANTestCase):
     close_counter = None
 
     def setUp(self):
+        self.reset_all_counters()
         serializer.add(MessageTest)
 
         self.daemon = ClientNodeDaemon(
@@ -78,30 +78,21 @@ class TestOANListen(OANTestCase):
 
         self.daemon.start()
 
-        self.connect_counter = 0
-        self.message_counter = 0
-        self.close_counter = 0
-
         self._auth = OANAuth(
             'oand v1.0', '00000000-0000-code-1337-000000000000', 'localhost',
             1337, False)
 
-
     def tearDown(self):
-        pass
-        #self.daemon.stop()
+        self.daemon.stop()
 
     def connect_cb(self, auth):
-        log.info("connect_cb")
-        self.connect_counter += 1
+        self.inc_counter("connects")
 
     def message_cb(self, auth, messages):
-        log.info("message_cb %s" % messages)
-        self.message_counter += len(messages)
+        self.inc_counter("messages", len(messages))
 
     def close_cb(self, auth):
-        log.info("close_cb")
-        self.close_counter += 1
+        self.inc_counter("closes")
 
     def test_bridge(self):
         OANServer.connect_callback = self.connect_cb
@@ -109,11 +100,9 @@ class TestOANListen(OANTestCase):
         OANServer.close_callback = self.close_cb
         OANServer.start(self._auth)
 
-        self.assertTrueWait(lambda : self.connect_counter == 1)
-        self.assertTrueWait(lambda : self.message_counter == 1)
-        log.info("Close bridge")
+        self.assert_counter_wait('connects', 1)
+        self.assert_counter_wait('messages', 1)
+
         OANServer.shutdown()
 
-        self.assertTrueWait(lambda : self.close_counter == 1)
-
-
+        self.assert_counter_wait('closes', 1)
