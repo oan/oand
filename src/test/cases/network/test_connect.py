@@ -50,25 +50,18 @@ class ServerNodeDaemon(OANDaemonBase):
         log.info("ServerNodeDaemon::message")
         OANServer.push([url], messages)
 
-class TestOANBridge(OANTestCase):
+class TestOANConnect(OANTestCase):
     # Remote node to test network against.
     daemon = None
 
-    # Callback counters
-    connect_counter = None
-    message_counter = None
-    close_counter = None
-
     def setUp(self):
+        self.reset_all_counters()
         serializer.add(MessageTest)
 
         self.daemon = ServerNodeDaemon(
             pidfile="/tmp/ut_daemon.pid", stdout='/tmp/ut_out.log',
             stderr='/tmp/ut_err.log')
         self.daemon.start()
-        self.connect_counter = 0
-        self.message_counter = 0
-        self.close_counter = 0
         self._auth = OANAuth(
             'oand v1.0', '00000000-0000-code-1337-000000000000', 'localhost',
             1337, False)
@@ -77,15 +70,15 @@ class TestOANBridge(OANTestCase):
         self.daemon.stop()
 
     def connect_cb(self, auth):
-        self.connect_counter += 1
+        self.inc_counter("connects")
 
     def message_cb(self, auth, messages):
-        self.message_counter += len(messages)
+        self.inc_counter("messages", len(messages))
 
-    def close_cb(self, bridge):
-        self.close_counter += 1
+    def close_cb(self, auth):
+        self.inc_counter("closes")
 
-    def test_bridge(self):
+    def test_connect(self):
         OANServer.connect_callback = self.connect_cb
         OANServer.message_callback = self.message_cb
         OANServer.close_callback = self.close_cb
@@ -93,8 +86,9 @@ class TestOANBridge(OANTestCase):
         OANServer.start(self._auth)
         OANServer.push([("localhost", 1338)], [serializer.encode(MessageTest("Hello world"))])
 
-        self.assertTrueWait(lambda : self.connect_counter == 1)
-        self.assertTrueWait(lambda : self.message_counter == 1)
+        self.assert_counter_wait('connects', 1)
+        self.assert_counter_wait('messages', 1)
 
         OANServer.shutdown()
-        self.assertTrueWait(lambda : self.close_counter == 1)
+
+        self.assert_counter_wait('closes', 1)
