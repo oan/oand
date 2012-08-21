@@ -111,4 +111,16 @@ class OANTestCase(unittest.TestCase):
         self.assertTrueWait(lambda : self.assert_counters[key] == value, timeout)
 
 
+    def assert_counter_less(self, key, value, timeout = 5):
+        if key not in self.assert_counters:
+            self.assert_counters[key] = 0
+
+        self.assertTrueWait(lambda : self.assert_counters[key] < value, timeout)
+
+    def assert_counter_greater(self, key, value, timeout = 5):
+        if key not in self.assert_counters:
+            self.assert_counters[key] = 0
+
+        self.assertTrueWait(lambda : self.assert_counters[key] > value, timeout)
+
 
