@@ -29,7 +29,7 @@ class BlockPosition:
 
 
 class TestBlockPosition(OANTestCase):
-    def dis_test_block_position(self):
+    def test_block_position(self):
         pos = BlockPosition(10, 11, 12)
         self.assertEqual(pos.id(), (10, 11, 12))
         self.assertEqual(pos.x, 10)

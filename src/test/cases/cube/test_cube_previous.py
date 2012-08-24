@@ -11,8 +11,10 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import os
+import time
 
-from test.test_case import OANTestCase
+from test.test_case import OANCubeTestCase
 from oan.util import log
 from oan.util import log_counter
 from application import OANApplication
@@ -21,7 +23,7 @@ from message_connect import MessageConnect
 from network_counter import NetworkCounter
 
 
-class TestOANCube(OANTestCase):
+class TestOANCube(OANCubeTestCase):
     _apps = None
 
     def trigger_5minute_cron(self):
@@ -36,16 +38,24 @@ class TestOANCube(OANTestCase):
             app.trigger_5minute_cron()
 
     def connect_node(self, url, block_id, test_list):
-        log.info("======= %s =======================================================================================" % url)
-        log.info("Create %s with block_id %s" % (url, block_id))
-
         server_bind_url = "{0:03d}".format(int(url) - 1)
+        server_bind_url = self._create_bind_url(server_bind_url)
+        url = self._create_bind_url(url)
+        log.info("======= %s =======================================================================================" % (url,))
+        log.info("Create %s with block_id %s" % (url, block_id))
 
         app = OANApplication(url)
         self._apps[url] = app
         app.send(server_bind_url, MessageConnect())
 
         self.trigger_5minute_cron()
+
+        self.assert_node(url, block_id, test_list)
+
+    def check_node(self, url, block_id, test_list):
+        url = self._create_bind_url(url)
+        log.info("======= %s =======================================================================================" % (url,))
+        log.info("Check %s with block_id %s" % (url, block_id))
         self.assert_node(url, block_id, test_list)
 
     def assert_node(self, url, block_id, test_list):
@@ -57,11 +67,13 @@ class TestOANCube(OANTestCase):
         x_max_size = max(3, self._apps[url].cube_view.x.size())
 
         x_list = self.get_x_list(block_id, test_list, x_max_size)
-        self.assertEqual(app.cube_view.x.get_blocks(), x_list)
+        log.info('Returned: x: %s' % app.cube_view.x.get_blocks())
+        self.assert_block_list(app.cube_view.x.get_blocks(), x_list)
 
         # Assert y
         y_list = self.get_y_list(block_id, test_list, x_max_size)
-        self.assertEqual(app.cube_view.y.get_blocks(), y_list)
+        log.info('Returned: y: %s' % app.cube_view.y.get_blocks())
+        self.assert_block_list(app.cube_view.y.get_blocks(), y_list)
 
     def get_x_list(self, slot_id, test_list, width):
         x, y, z = slot_id
@@ -70,17 +82,8 @@ class TestOANCube(OANTestCase):
         for c_list in test_list[y*width:y*width+width]:
             new_c_list = []
             for node in c_list:
-                if node == "___":
-                    node = None
-                else:
-                    node = str(node)
-                new_c_list.append(node)
-
-            for new_c_list_idx in reversed(xrange(0, len(new_c_list))):
-                if new_c_list[new_c_list_idx] == None:
-                    del new_c_list[new_c_list_idx]
-                else:
-                    break
+                if node != "___":
+                    new_c_list.append(node)
 
             new_x_list.append(new_c_list)
 
@@ -102,20 +105,10 @@ class TestOANCube(OANTestCase):
             log.info("slot_id %s slot_pos %s %s" % (slot_id, slot_pos, c_list))
             new_c_list = []
             for node in c_list:
-                if node == "___":
-                    node = None
-                else:
-                    node = str(node)
-                new_c_list.append(node)
+                if node != "___":
+                    new_c_list.append(node)
 
-            for new_c_list_idx in reversed(xrange(0, len(new_c_list))):
-                if new_c_list[new_c_list_idx] == None:
-                    del new_c_list[new_c_list_idx]
-                else:
-                    break
-
-            if len(new_c_list):
-                new_y_list.append(new_c_list)
+            new_y_list.append(new_c_list)
 
         for new_y_list_idx in reversed(xrange(0, len(new_y_list))):
             if len(new_y_list[new_y_list_idx]) == 0:
@@ -126,13 +119,26 @@ class TestOANCube(OANTestCase):
         log.info('Expected: y(%s) %s' % (slot_id, new_y_list))
         return new_y_list
 
+    def _create_bind_url(self, url):
+         return ('localhost', int(url))
+
+    def setUp(self):
+        # CPU: 0.7, 0.07, 0.0, 0.0 time: 0.528876781464 cpu time: 0.134579854272
+        self.start = time.time()
+
+    def tearDown(self):
+        elapsed = (time.time() - self.start)
+        (utime, stime, cutime, cstime, elapsed_time) = os.times()
+        log.info("CPU: %s, %s, %s, %s time: %s cpu time: %s" % (utime, stime, cutime, cstime, elapsed, elapsed_time / 10000000000))
+
+
     def test_connection(self):
         log_counter.clear()
         self._apps = {}
         Connections.clear()
 
-        first_app = OANApplication('001')
-        self._apps['001'] = first_app
+        first_app = OANApplication(self._create_bind_url('001'))
+        self._apps[self._create_bind_url('001')] = first_app
         self.assertEqual(first_app.block_position.id(), (0, 0, 0))
 
 
@@ -276,7 +282,7 @@ class TestOANCube(OANTestCase):
                                              ["017", "018", "019", "020"], ["021", "022", "023", "024"], ["013", "014", "015", "016"],
                                              ["033", "034", "035", "036"], ["025", "026", "027", "028"], ["029", "030", "031", "032"]])
 
-        self.assert_node("036", (0, 2, 0),  [["001", "002", "003", "004"], ["005", "006", "007", "008"], ["009", "010", "011", "012"],
+        self.check_node("036", (0, 2, 0),  [["001", "002", "003", "004"], ["005", "006", "007", "008"], ["009", "010", "011", "012"],
                                              ["017", "018", "019", "020"], ["021", "022", "023", "024"], ["013", "014", "015", "016"],
                                              ["033", "034", "035", "036"], ["025", "026", "027", "028"], ["029", "030", "031", "032"]])
 
@@ -285,7 +291,7 @@ class TestOANCube(OANTestCase):
         return
 
 
-        self.assert_node("036", (0, 2, 0),  [["001", "002", "003", "004"], ["___", "___", "___", "___"], ["009", "010", "011", "012"],
+        self.check_node("036", (0, 2, 0),   [["001", "002", "003", "004"], ["___", "___", "___", "___"], ["009", "010", "011", "012"],
                                              ["017", "018", "019", "020"], ["021", "022", "023", "024"], ["013", "014", "015", "016"],
                                              ["033", "034", "035", "036"], ["025", "026", "027", "028"], ["029", "030", "031", "032"]])
 

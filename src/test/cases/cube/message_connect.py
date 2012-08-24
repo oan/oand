@@ -8,6 +8,7 @@ __version__ = "0.1"
 __status__ = "Test"
 
 from cube_constants import *
+from cube_node import OANCubeNode
 
 from oan.util import log
 
@@ -36,17 +37,17 @@ class MessageConnect(Message):
         else:
             return max(3, last_block_cord+1)
 
-    def add_url_to_current_x_list(self, app, origin_url, x_pos):
+    def add_url_to_current_x_list(self, app, x_pos):
         """
         Add url to first free slot on existing blocks in x direction.
 
         """
         log.info("add_url_to_current_x_list x: %s y: %s" % (x_pos, app.block_position.y) )
 
-        app.cube_view.x.add(x_pos, origin_url)
+        app.cube_view.x.add(x_pos, OANCubeNode(self.origin_oan_id, self.origin_url))
 
         msg = MessageGiveBlockPosition(app, BlockPosition(x_pos, app.block_position.y, 0))
-        app.send(origin_url, msg)
+        app.send(self.origin_url, msg)
         app.push(app.network_builder.get_x(), MessageGiveBlockListX(app.cube_view.x))
         app.push(app.network_builder.get_y(), MessageGiveBlockListY(app.cube_view.y))
         app.push(app.network_builder.get_z(), MessageGiveBlockListZ(app.cube_view.z))
@@ -55,19 +56,20 @@ class MessageConnect(Message):
         app.push(app.network_builder.get_block(), MessageGiveBlockListY(app.cube_view.y))
         app.push(app.network_builder.get_block(), MessageGiveBlockListZ(app.cube_view.z))
 
-    def add_url_to_expanded_x_list(self, app, origin_url):
+    def add_url_to_expanded_x_list(self, app):
         """
         Expand the number of blocks in the x direction, and add the url to
         the last block.
 
         """
-        app.cube_view.x.add(app.cube_view.x.size(), self.origin_url)
+        log.info("%s %s" % (self.origin_oan_id, self.origin_url))
+        app.cube_view.x.add(app.cube_view.x.size(), OANCubeNode(self.origin_oan_id, self.origin_url))
         log.info("expand cube_view.x with %s, cube_view.{x,y}.size: %s %s" % (
-            origin_url, app.cube_view.x.size(), app.cube_view.y.size()
+            self.origin_url, app.cube_view.x.size(), app.cube_view.y.size()
         ))
 
         msg = MessageGiveBlockPosition(app, BlockPosition(app.cube_view.x.size()-1, app.block_position.y, 0))
-        app.send(origin_url, msg)
+        app.send(self.origin_url, msg)
 
         # Will push the new CubeView before the network rebuild has been
         # executed on this application. This is good because then our old
@@ -79,19 +81,19 @@ class MessageConnect(Message):
         app.push(app.network_builder.get_block(), MessageGiveBlockListX(app.cube_view.x))
 
 
-    def add_url_to_expanded_y_list(self, app, origin_url):
+    def add_url_to_expanded_y_list(self, app):
         """
         Expand the number of blocks in the y direction, and add the url to
         the last block.
 
         """
-        app.cube_view.y.add(app.cube_view.y.size(), origin_url)
+        app.cube_view.y.add(app.cube_view.y.size(), OANCubeNode(self.origin_oan_id, self.origin_url))
         log.info("expand cube_view.y with %s, cube_view.{x,y}.size: %s %s" % (
-            origin_url, app.cube_view.x.size(), app.cube_view.y.size()
+            self.origin_url, app.cube_view.x.size(), app.cube_view.y.size()
         ))
 
         msg = MessageGiveBlockPosition(app, BlockPosition(app.block_position.x, app.cube_view.y.size()-1, 0))
-        app.send(origin_url, msg)
+        app.send(self.origin_url, msg)
 
         # Will push the new CubeView before the network rebuild has been
         # executed on this application. This is good because then our old
@@ -102,7 +104,7 @@ class MessageConnect(Message):
         app.push(app.network_builder.get_y(),     MessageGiveBlockListY(app.cube_view.y))
         app.push(app.network_builder.get_block(), MessageGiveBlockListY(app.cube_view.y))
 
-    def redirect_to_next_y_block(self, app, origin_url):
+    def redirect_to_next_y_block(self, app):
         """
         The current applications all slots on all blocks are occupied. Redirect
         to an url on the next block on y list. Let the connecting application
@@ -111,7 +113,7 @@ class MessageConnect(Message):
         """
         log.info("redirect_to_next_y_block x:%s y:%s" % (app.cube_view.x.size(), app.cube_view.y.size()))
         msg = MessageRedirect(app.cube_view.y.get(app.block_position.y + 1, 0), self)
-        app.send(origin_url, msg)
+        app.send(self.origin_url, msg)
 
     def execute(self, app):
         x_max_size = self.get_x_size(app.cube_view.y)
@@ -126,13 +128,13 @@ class MessageConnect(Message):
             block = app.cube_view.x.get(x_pos)
 
             if len(block) < MAX_SLOTS_IN_BLOCK:
-                self.add_url_to_current_x_list(app, self.origin_url, x_pos)
+                self.add_url_to_current_x_list(app, x_pos)
                 return
 
         if app.cube_view.x.size() == x_max_size:
             if app.cube_view.y.size() <= app.block_position.y + 1:
-                self.add_url_to_expanded_y_list(app, self.origin_url)
+                self.add_url_to_expanded_y_list(app)
             else:
-                self.redirect_to_next_y_block(app, self.origin_url)
+                self.redirect_to_next_y_block(app)
         else:
-            self.add_url_to_expanded_x_list(app, self.origin_url)
+            self.add_url_to_expanded_x_list(app)

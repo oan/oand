@@ -13,10 +13,10 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-import sys
 import unittest
 from time import time, sleep
 from threading import Timer
+from uuid import UUID
 
 class OANMatcherClass(object):
     cls_ = None
@@ -110,7 +110,6 @@ class OANTestCase(unittest.TestCase):
 
         self.assertTrueWait(lambda : self.assert_counters[key] == value, timeout)
 
-
     def assert_counter_less(self, key, value, timeout = 5):
         if key not in self.assert_counters:
             self.assert_counters[key] = 0
@@ -123,4 +122,45 @@ class OANTestCase(unittest.TestCase):
 
         self.assertTrueWait(lambda : self.assert_counters[key] > value, timeout)
 
+
+class OANCubeTestCase(OANTestCase):
+    def create_oan_id(self, port):
+        return UUID("00000000-0000-0000-0000-00000000{0:04d}".format(int(port)))
+
+    def create_oan_ids(self, ports):
+        oan_ids = []
+        for port in ports:
+            oan_ids.append(self.create_oan_id(port))
+        return oan_ids
+
+    def assert_block(self, result, expected):
+        '''
+        Compares a blocklist with a list of ids.
+
+        Example:
+            cube_view.z.add(0, OANCubeNode(self.create_oan_id(3)))
+            self.assertBlockList(cube_view.z.get(0), ["000", "001", "002", "003"])
+
+        '''
+        expected = self.create_oan_ids(expected)
+        i = 0
+        self.assertEqual(len(result), len(expected))
+        for node in result:
+            self.assertEqual(node.oan_id, expected[i])
+            i += 1
+
+    def assert_block_list(self, result, expected):
+        '''
+        Compares a blocklist with a list of ids.
+
+        Example:
+            cube_view.z.add(0, OANCubeNode(self.create_oan_id(3)))
+            self.assertBlockList(cube_view.z.get(0), ["000", "001", "002", "003"])
+
+        '''
+        i = 0
+        self.assertEqual(len(result), len(expected))
+        for block in result:
+            self.assert_block(block, expected[i])
+            i += 1
 

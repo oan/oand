@@ -32,7 +32,7 @@ class MessageGiveBlockList(Message):
 
 class MessageGiveBlockListX(MessageGiveBlockList):
     def execute(self, app):
-        log.info("On %s Merge list X" % (app.bind_url))
+        log.info("On %s Merge list X" % (app.bind_url,))
         if app.cube_view.x.merge_block_list(self.block_list):
             log_counter.begin("GiveBlockListX Forward ")
             app.push(app.network_builder.get_x(), self)
@@ -44,7 +44,7 @@ class MessageGiveBlockListX(MessageGiveBlockList):
 
 class MessageGiveBlockListY(MessageGiveBlockList):
     def execute(self, app):
-        log.info("On %s Merge list Y" % (app.bind_url))
+        log.info("On %s Merge list Y" % (app.bind_url,))
         if app.cube_view.y.merge_block_list(self.block_list):
             log_counter.begin("GiveBlockListY Forward")
             app.push(app.network_builder.get_y(), self)
@@ -56,7 +56,7 @@ class MessageGiveBlockListY(MessageGiveBlockList):
 
 class MessageGiveBlockListZ(MessageGiveBlockList):
     def execute(self, app):
-        log.info("On %s Merge list Z" % (app.bind_url))
+        log.info("On %s Merge list Z" % (app.bind_url,))
         if app.cube_view.z.merge_block_list(self.block_list):
             log_counter.begin("GiveBlockListZ Forward")
             app.push(app.network_builder.get_z(), self)

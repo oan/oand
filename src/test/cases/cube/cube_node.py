@@ -73,13 +73,14 @@ class OANCubeNode:
         return self.state == OANCubeNodeState.DISCONNECTED
 
     def __str__(self):
-        return 'OANCubeNode(%s, %s) S(%s) hb(%s)\n' % (
+        return 'OANCubeNode(%s, %s) S(%s) hb(%s)' % (
             self.oan_id, self.url,
             self.state,
             self.heartbeat.time
         )
 
-
+    def __repr__(self):
+        return "CubeNode: %s" % str(self.url)
 
 
 from test.test_case import OANTestCase

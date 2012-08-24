@@ -14,8 +14,8 @@ from message import Message
 class MessageRedirect(Message):
     bind_url = None
     message = None
-    def __init__(self, bind_url, message):
-        self.bind_url = bind_url
+    def __init__(self, cube_node, message):
+        self.bind_url = cube_node.url
         self.message = message
         log.info("Redirect %s to %s" % (
                  self.message.__class__.__name__, self.bind_url))

@@ -7,10 +7,10 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from test.test_case import OANTestCase
+from uuid import UUID
 from oan.util import log
 
-
+from cube_node import OANCubeNode
 from block_position import BlockPosition
 from cube_view import CubeView
 from network_builder import NetworkBuilder
@@ -19,20 +19,26 @@ from network_view import NetworkView
 
 class OANApplication:
     bind_url = None
+    cube_node = None
     cube_view = None
     block_position = None
     network_builder = None
     network_view = None
 
+    def _create_uuid(self):
+        (host, port) = self.bind_url
+        return UUID("00000000-0000-0000-0000-00000000{0:04d}".format(port))
+
     def __init__(self, bind_url):
         self.bind_url = bind_url
 
+        self.cube_node = OANCubeNode(self._create_uuid(), self.bind_url)
         self.cube_view = CubeView()
-        self.network_view = NetworkView(self.bind_url)
+        self.network_view = NetworkView(self.cube_node)
         self.network_view.received_cb = self.received_cb
 
         self.set_block_position(BlockPosition(0, 0, 0))
-        self.cube_view.b.append(self.bind_url)
+        self.cube_view.b.append(self.cube_node)
 
     def set_block_position(self, block_position):
         self.block_position = block_position

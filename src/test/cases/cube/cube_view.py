@@ -8,8 +8,6 @@ __version__ = "0.1"
 __status__ = "Test"
 
 
-from test.test_case import OANTestCase
-
 from block_list import BlockList
 from block_position import BlockPosition
 
@@ -43,7 +41,13 @@ class CubeView:
         self.z.merge_block_list(cube_view.z)
 
     def get_slot_pos(self, bind_url):
-        return self.b.index(bind_url)
+        i = 0
+        for node in self.b:
+            if node.url == bind_url:
+                return i
+            i += 1
+
+        raise Exception("Key %s not found." % (bind_url,))
 
     def _clear(self):
         # Share the same block where each direction intersect/meet.
@@ -58,30 +62,28 @@ class CubeView:
         self.z = BlockList()
         self.z.set_shared_block(self.block_position.z, self.b)
 
-class TestCubeView(OANTestCase):
-    def dis_test_cube_view_block_pos_0(self):
+
+from test.test_case import OANCubeTestCase
+from cube_node import OANCubeNode
+
+
+class TestCubeView(OANCubeTestCase):
+    def test_cube_view_block_pos_0(self):
         cube_view = CubeView(BlockPosition())
-        cube_view.b.append("000")
-        self.assertEqual(cube_view.b, ["000"])
+        cube_view.b.append(OANCubeNode(self.create_oan_id(0)))
+        self.assert_block(cube_view.b, ['000'])
 
-        cube_view.x.add(0, "001")
-        self.assertEqual(cube_view.x.get(0), ["000", "001"])
+        cube_view.x.add(0, OANCubeNode(self.create_oan_id(1)))
+        self.assert_block(cube_view.x.get(0), ["000", "001"])
 
-        cube_view.y.add(0, "002")
-        self.assertEqual(cube_view.y.get(0), ["000", "001", "002"])
+        cube_view.y.add(0, OANCubeNode(self.create_oan_id(2)))
+        self.assert_block(cube_view.y.get(0), ["000", "001", "002"])
 
-        cube_view.z.add(0, "003")
-        self.assertEqual(cube_view.z.get(0), ["000", "001", "002", "003"])
+        cube_view.z.add(0, OANCubeNode(self.create_oan_id(3)))
+        self.assert_block(cube_view.z.get(0), ["000", "001", "002", "003"])
 
         # Total cube view
-        self.assertEqual(cube_view.b, ["000", "001", "002", "003"])
-        self.assertEqual(cube_view.x.get(0), ["000", "001", "002", "003"])
-        self.assertEqual(cube_view.y.get(0), ["000", "001", "002", "003"])
-        self.assertEqual(cube_view.z.get(0), ["000", "001", "002", "003"])
-
-    # TODO
-    # def dis_test_cube_view_block_pos_2(self):
-    #     cube_view = CubeView(BlockPosition())
-    #     cube_view.set_block_pos(2, 2, 2)
-    #     cube_view.b.append("000")
-    #     self.assertEqual(cube_view.b, ["000"])
+        self.assert_block(cube_view.b, ["000", "001", "002", "003"])
+        self.assert_block(cube_view.x.get(0), ["000", "001", "002", "003"])
+        self.assert_block(cube_view.y.get(0), ["000", "001", "002", "003"])
+        self.assert_block(cube_view.z.get(0), ["000", "001", "002", "003"])

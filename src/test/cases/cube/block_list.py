@@ -7,8 +7,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
-from test.test_case import OANTestCase
-
+from oan.util.decorator.accept import IGNORE, accepts
+from cube_node import OANCubeNode
 
 class BlockList:
     '''
@@ -32,6 +32,7 @@ class BlockList:
     def clear_block(self, block_pos):
         del self.get(block_pos)[:]
 
+    @accepts(IGNORE, int, OANCubeNode)
     def add(self, block_pos, url):
         # TODO rename add_slot
         self.get_block(block_pos).append(url)
@@ -85,9 +86,6 @@ class BlockList:
             return False
         return True
 
-    def remove(self, block_pos, url):
-        self._blocks[block_pos].remove(url)
-
     def set(self, block_pos, block):
         return self.merge_block(block_pos, block)
 
@@ -138,42 +136,44 @@ class BlockList:
             return self.block_size(block_pos)
 
 
-class TestBlockList(OANTestCase):
-    def dis_test_block_list(self):
+from test.test_case import OANCubeTestCase
+
+
+class TestBlockList(OANCubeTestCase):
+    def test_block_list(self):
         block_list = BlockList()
-        self.assertEqual(block_list.add(2, "002"), 0)
+        self.assertEqual(block_list.add(2, OANCubeNode(self.create_oan_id(2))), 0)
         self.assertEqual(block_list.size(2), 1)
         self.assertEqual(block_list.size(), 3)
 
-        self.assertEqual(block_list.add(1, "001"), 0)
+        self.assertEqual(block_list.add(1, OANCubeNode(self.create_oan_id(1))), 0)
         self.assertEqual(block_list.size(1), 1)
         self.assertEqual(block_list.size(), 3)
 
-        self.assertEqual(block_list.add(3, "003"), 0)
+        self.assertEqual(block_list.add(3, OANCubeNode(self.create_oan_id(3))), 0)
         self.assertEqual(block_list.size(3), 1)
         self.assertEqual(block_list.size(), 4)
 
-        self.assertEqual(block_list.add(0, "000"), 0)
-        self.assertEqual(block_list.add(2, "002B"), 1)
+        self.assertEqual(block_list.add(0, OANCubeNode(self.create_oan_id(0))), 0)
+        self.assertEqual(block_list.add(2, OANCubeNode(self.create_oan_id(102))), 1)
 
-        self.assertEqual(block_list.get(2, 0), "002")
-        self.assertEqual(block_list.get(2, 1), "002B")
-        self.assertEqual(block_list.get(2), ["002", "002B"])
-        self.assertEqual(block_list.get(0), ["000"])
-        self.assertEqual(block_list.get(1), ["001"])
-        self.assertEqual(block_list.get(3), ["003"])
+        self.assert_block([block_list.get(2, 0)], ['002'])
+        self.assert_block([block_list.get(2, 1)], ['102'])
 
-        block_list.remove(2, "002")
-        self.assertEqual(block_list.get(2), ["002B"])
+        self.assert_block(block_list.get(2), ['002', '102'])
+
+        self.assert_block(block_list.get(0), ['000'])
+        self.assert_block(block_list.get(1), ['001'])
+        self.assert_block(block_list.get(3), ['003'])
 
         block_list.clear_block(2)
-        self.assertEqual(block_list.get(2), [])
+        self.assert_block(block_list.get(2), [])
 
-        block_list.set(2, ["002C"])
-        self.assertEqual(block_list.get(2), ["002C"])
+        block_list.set(2, [OANCubeNode(self.create_oan_id(202))])
+        self.assert_block(block_list.get(2), ['202'])
 
         # Complete list test.
-        self.assertEqual(block_list.get(0), ["000"])
-        self.assertEqual(block_list.get(1), ["001"])
-        self.assertEqual(block_list.get(2), ["002C"])
-        self.assertEqual(block_list.get(3), ["003"])
+        self.assert_block(block_list.get(0), ['000'])
+        self.assert_block(block_list.get(1), ['001'])
+        self.assert_block(block_list.get(2), ['202'])
+        self.assert_block(block_list.get(3), ['003'])

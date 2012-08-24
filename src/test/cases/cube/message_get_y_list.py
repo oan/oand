@@ -20,9 +20,15 @@ class MessageGetYList(Message):
         self.origin_position = block_position
 
     def is_in_block_with_y_list(self, app):
+        '''
+        Is in block who are in the same y list/direction as sender. Might even
+        be the same block as the sender, but can't be the same slot.
+
+        '''
         return (
-            app.block_position.y < self.origin_position.y and
-            app.block_position.x == self.origin_position.x
+            app.block_position.y <= self.origin_position.y and
+            app.block_position.x == self.origin_position.x and
+            self.origin_oan_id != app.cube_node.oan_id
         )
 
     def is_in_block_who_knows_block_with_y_list(self, app):
@@ -38,8 +44,7 @@ class MessageGetYList(Message):
         )
 
     def forwards_y_list_back_to_origin(self, app):
-        log.info("MessageGetYList step 3 to %s" % self.origin_url)
-        log.info
+        log.info("MessageGetYList step 3 to %s" % (self.origin_url,))
         app.send(self.origin_url, MessageGiveBlockListY( app.cube_view.y))
 
     def redirects_to_right_in_cube(self, app):
@@ -64,7 +69,7 @@ class MessageGetYList(Message):
                     log.info("hit 2")
                     break
 
-        log.info("MessageGetYList step 1 to %s" % destination_url)
+        log.info("MessageGetYList step 1 to %s" % (destination_url,))
         if destination_url:
             msg = MessageRedirect(destination_url, self)
             app.send(self.origin_url, msg)

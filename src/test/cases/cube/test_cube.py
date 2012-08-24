@@ -36,8 +36,10 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import os
+import time
 
-from test.test_case import OANTestCase
+from test.test_case import OANCubeTestCase
 from oan.util import log
 from oan.util import log_counter
 from application import OANApplication
@@ -46,7 +48,7 @@ from message_connect import MessageConnect
 from network_counter import NetworkCounter
 
 
-class TestOANCube(OANTestCase):
+class TestOANCube(OANCubeTestCase):
     _apps = None
 
     def trigger_5minute_cron(self):
@@ -61,26 +63,27 @@ class TestOANCube(OANTestCase):
             app.trigger_5minute_cron()
 
     def connect_node(self, url, block_id, test_list):
-        log.info("======= %s =======================================================================================" % url)
+        url = self._create_bind_url(url)
+        log.info("======= %s =======================================================================================" % (url,))
         log.info("Create %s with block_id %s" % (url, block_id))
 
         app = OANApplication(url)
         self._apps[url] = app
-        app.send('001', MessageConnect())
+        app.send(self._create_bind_url('001'), MessageConnect())
 
         self.trigger_5minute_cron()
 
         self.assertEqual(app.block_position.id(), block_id)
 
         # Assert x
-        x_max_size = max(3, self._apps['001'].cube_view.x.size())
+        x_max_size = max(3, self._apps[self._create_bind_url('001')].cube_view.x.size())
 
         x_list = self.get_x_list(block_id, test_list, x_max_size)
-        self.assertEqual(app.cube_view.x.get_blocks(), x_list)
+        self.assert_block_list(app.cube_view.x.get_blocks(), x_list)
 
         # Assert y
         y_list = self.get_y_list(block_id, test_list, x_max_size)
-        self.assertEqual(app.cube_view.y.get_blocks(), y_list)
+        self.assert_block_list(app.cube_view.y.get_blocks(), y_list)
 
     def get_x_list(self, slot_id, test_list, width):
         x, y, z = slot_id
@@ -90,7 +93,7 @@ class TestOANCube(OANTestCase):
             new_c_list = []
             for node in c_list:
                 if node != "___":
-                    new_c_list.append(str(node))
+                    new_c_list.append(node)
             if len(new_c_list):
                 new_x_list.append(new_c_list)
         log.info('Expected: x(%s) %s' % (slot_id, new_x_list))
@@ -106,19 +109,33 @@ class TestOANCube(OANTestCase):
             new_c_list = []
             for node in c_list:
                 if node != "___":
-                    new_c_list.append(str(node))
+                    new_c_list.append(node)
             if len(new_c_list):
                 new_y_list.append(new_c_list)
         log.info('Expected: y(%s) %s' % (slot_id, new_y_list))
         return new_y_list
+
+    def _create_bind_url(self, url):
+         return ('localhost', int(url))
+
+    def setUp(self):
+        # CPU: 1.43, 0.13, 0.0, 0.0 time: 1.32448792458 cpu time: 0.134579848835
+        # added tuple url - > CPU: 1.49, 0.14, 0.0, 0.0 time: 1.39384007454 cpu time: 0.134580326773
+        self.start = time.time()
+
+    def tearDown(self):
+        elapsed = (time.time() - self.start)
+        (utime, stime, cutime, cstime, elapsed_time) = os.times()
+        log.info("CPU: %s, %s, %s, %s time: %s cpu time: %s" % (utime, stime, cutime, cstime, elapsed, elapsed_time / 10000000000))
+
 
     def test_connection(self):
         log_counter.clear()
         self._apps = {}
         Connections.clear()
 
-        first_app = OANApplication('001')
-        self._apps['001'] = first_app
+        first_app = OANApplication(self._create_bind_url('001'))
+        self._apps[self._create_bind_url('001')] = first_app
         self.assertEqual(first_app.block_position.id(), (0, 0, 0))
 
         self.connect_node("002", (0, 0, 0), [["001", "002", "___", "___"], ["___", "___", "___", "___"], ["___", "___", "___", "___"],
@@ -413,7 +430,6 @@ class TestOANCube(OANTestCase):
                     app.network_view.counter.disconnect + app.network_view.counter.close
                 )
 
-
         #
         # DEBUG
         #
@@ -424,13 +440,13 @@ class TestOANCube(OANTestCase):
         for key in keys:
             network_view = Connections.all[key]
             app = self._apps[key]
-            log.info("slot_id: %s %s" % (network_view._bind_url, app.block_position.id()))
+            log.info("slot_id: %s %s" % (network_view._cube_node.url, app.block_position.id()))
 
         log.info("=== Network Counters ======================")
         counter_total = NetworkCounter()
         for key in keys:
             network_view = Connections.all[key]
-            log.info("Counters: %s %s" % (network_view._bind_url, network_view.counter))
+            log.info("Counters: %s %s" % (network_view._cube_node.url, network_view.counter))
             counter_total += network_view.counter
         log.info("TOTAL           %s" % (counter_total))
 

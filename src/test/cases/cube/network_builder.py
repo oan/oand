@@ -7,11 +7,15 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+from uuid import UUID
+from oan.util.decorator.accept import IGNORE, accepts, returns
+
 from test.test_case import OANTestCase
 from oan.util import log
 
 from block_position import BlockPosition
 from cube_view import CubeView
+from cube_node import OANCubeNode
 
 
 class NetworkBuilder:
@@ -35,6 +39,7 @@ class NetworkBuilder:
     # The cube view build is working with.
     _cube_view = None
 
+    @accepts(IGNORE, tuple, BlockPosition)
     def __init__(self, bind_url, block_pos):
         self.bind_url = bind_url
         self.block_pos = block_pos
@@ -76,7 +81,7 @@ class NetworkBuilder:
           doesn't exist, the highest slot id will be used.
 
         """
-        log.info("%s build network." % self.bind_url)
+        log.info("%s build network." % (self.bind_url,))
         self._cube_view = cube_view
         self._clear()
         self._add_current_block(cube_view)
@@ -112,7 +117,6 @@ class NetworkBuilder:
         """Connect to all nodes in current block."""
         for bind_url in cube_view.b:
             self._add_url(bind_url, self.block)
-
 
     def _add_previous_block(self, block_pos_cord, block_list, urls):
         """Connect to the previous block, the block before current block."""
@@ -170,115 +174,128 @@ class NetworkBuilder:
             if not block_list.empty_slot(faraway_block_pos_cord, self.get_slot_pos()):
                 self._add_url(block_list.get(faraway_block_pos_cord, self.get_slot_pos()), urls)
 
-    def _add_url(self, url, urls):
+    def _add_url(self, cube_node, urls):
+        url = cube_node.url
         if url and url != self.bind_url and url not in urls:
             log.info("%s added %s to network." % (self.bind_url, url))
             urls.append(url)
 
 
 class TestNetworkBuilder(OANTestCase):
-    def dis_test_connect(self):
+    def _create_uuid(self, port):
+        return UUID("00000000-0000-0000-0000-00000000{0:04d}".format(int(port)))
+
+    def test_connect(self):
         cube_view = CubeView(BlockPosition(0, 0, 0))
-        cube_view.b.append("001")
-        cube_view.b.append("002")
-        cube_view.b.append("003")
-        cube_view.b.append("004")
 
-        bff = NetworkBuilder("002", BlockPosition(0, 0, 0))
-        bff.build(cube_view)
-        self.assertEqual(bff.block, ["001", "003", "004"])
+        cube_view.b.append(OANCubeNode(self._create_uuid(1), ('x', 1)))
+        cube_view.b.append(OANCubeNode(self._create_uuid(2), ('x', 2)))
+        cube_view.b.append(OANCubeNode(self._create_uuid(3), ('x', 3)))
+        cube_view.b.append(OANCubeNode(self._create_uuid(4), ('x', 4)))
 
-        cube_view.b.append("005")
-        bff.build(cube_view)
-        self.assertEqual(bff.block, ["001", "003", "004", "005"])
+        nb = NetworkBuilder(('x', 2), BlockPosition(0, 0, 0))
+        nb.build(cube_view)
+        self.assertEqual(nb.block, [('x', 1), ('x', 3), ('x', 4)])
 
-        cube_view.b.remove("003")
-        bff.build(cube_view)
-        self.assertEqual(bff.block, ["001", "004", "005"])
+        cube_view.b.append(OANCubeNode(self._create_uuid(5), ('x', 5)))
+        nb.build(cube_view)
+        self.assertEqual(nb.block, [('x', 1), ('x', 3), ('x', 4), ('x', 5)])
 
-        self.assertEqual(bff.get_all(), set(["001", "004", "005"]))
+        self.assertEqual(nb.get_all(), set([('x', 1), ('x', 3), ('x', 4), ('x', 5)]))
 
     def get_cube_view(self, block_pos):
         cube_view = CubeView(block_pos)
-        cube_view.x.add(0, "000")
-        cube_view.x.add(1, "001")
-        cube_view.x.add(2, "002")
-        cube_view.x.add(3, "003")
-        cube_view.x.add(4, "004")
+        cube_view.x.add(0, OANCubeNode(self._create_uuid(0), ('x', 0)))
+        cube_view.x.add(1, OANCubeNode(self._create_uuid(1), ('x', 1)))
+        cube_view.x.add(2, OANCubeNode(self._create_uuid(2), ('x', 2)))
+        cube_view.x.add(3, OANCubeNode(self._create_uuid(3), ('x', 3)))
+        cube_view.x.add(4, OANCubeNode(self._create_uuid(4), ('x', 4)))
 
-        cube_view.y.add(0, "100")
-        cube_view.y.add(1, "101")
-        cube_view.y.add(2, "102")
-        cube_view.y.add(3, "103")
-        cube_view.y.add(4, "104")
+        cube_view.y.add(0, OANCubeNode(self._create_uuid(100), ('y', 100)))
+        cube_view.y.add(1, OANCubeNode(self._create_uuid(101), ('y', 101)))
+        cube_view.y.add(2, OANCubeNode(self._create_uuid(102), ('y', 102)))
+        cube_view.y.add(3, OANCubeNode(self._create_uuid(103), ('y', 103)))
+        cube_view.y.add(4, OANCubeNode(self._create_uuid(104), ('y', 104)))
 
-        cube_view.z.add(0, "200")
-        cube_view.z.add(1, "201")
-        cube_view.z.add(2, "202")
-        cube_view.z.add(3, "203")
-        cube_view.z.add(4, "204")
+        cube_view.z.add(0, OANCubeNode(self._create_uuid(200), ('z', 200)))
+        cube_view.z.add(1, OANCubeNode(self._create_uuid(201), ('z', 201)))
+        cube_view.z.add(2, OANCubeNode(self._create_uuid(202), ('z', 202)))
+        cube_view.z.add(3, OANCubeNode(self._create_uuid(203), ('z', 203)))
+        cube_view.z.add(4, OANCubeNode(self._create_uuid(204), ('z', 204)))
 
         return cube_view
 
-    def dis_test_build_from_first_node(self):
+    def test_build_from_first_node(self):
         block_pos = BlockPosition(0, 0, 0)
         cube_view = self.get_cube_view(block_pos)
-        bff = NetworkBuilder("000", block_pos)
-        bff.build(cube_view)
+        nb = NetworkBuilder(('x', 0), block_pos)
+        nb.build(cube_view)
 
-        self.assertEqual(bff.previous_x, ["004"])
-        self.assertEqual(bff.next_x, ["001"])
-        self.assertEqual(bff.faraway_x, ["002"])
+        self.assertEqual(nb.previous_x, [('x', 4)])
+        self.assertEqual(nb.next_x,     [('x', 1)])
+        self.assertEqual(nb.faraway_x,  [('x', 2)])
 
-        self.assertEqual(bff.previous_y, ["104"])
-        self.assertEqual(bff.next_y, ["101"])
-        self.assertEqual(bff.faraway_y, ["102"])
+        self.assertEqual(nb.previous_y, [('y', 104)])
+        self.assertEqual(nb.next_y,     [('y', 101)])
+        self.assertEqual(nb.faraway_y,  [('y', 102)])
 
-        self.assertEqual(bff.previous_z, ["204"])
-        self.assertEqual(bff.next_z, ["201"])
-        self.assertEqual(bff.faraway_z, ["202"])
+        self.assertEqual(nb.previous_z, [('z', 204)])
+        self.assertEqual(nb.next_z,     [('z', 201)])
+        self.assertEqual(nb.faraway_z,  [('z', 202)])
 
-        self.assertEqual(bff.get_all(), set(['201', '200', '202', '204', '002', '001', '004', '102', '100', '101', '104']))
+        self.assertEqual(nb.get_all(), set([
+            ('z', 201), ('z', 200), ('z', 202), ('z', 204),
+            ('x', 002), ('x', 001), ('x', 004),
+            ('y', 102), ('y', 100), ('y', 101), ('y', 104)
+        ]))
 
-    def dis_test_build_from_middle_node(self):
+    def test_build_from_middle_node(self):
         block_pos = BlockPosition(2, 2, 2)
 
         cube_view = self.get_cube_view(block_pos)
-        bff = NetworkBuilder("002", block_pos)
-        bff.build(cube_view)
+        nb = NetworkBuilder(('x', 2), block_pos)
+        nb.build(cube_view)
 
-        self.assertEqual(bff.previous_x, ["001"])
-        self.assertEqual(bff.next_x, ["003"])
-        self.assertEqual(bff.faraway_x, ["004"])
+        self.assertEqual(nb.previous_x, [('x', 1)])
+        self.assertEqual(nb.next_x,     [('x', 3)])
+        self.assertEqual(nb.faraway_x,  [('x', 4)])
 
-        self.assertEqual(bff.previous_y, ["101"])
-        self.assertEqual(bff.next_y, ["103"])
-        self.assertEqual(bff.faraway_y, ["104"])
+        self.assertEqual(nb.previous_y, [('y', 101)])
+        self.assertEqual(nb.next_y,     [('y', 103)])
+        self.assertEqual(nb.faraway_y,  [('y', 104)])
 
-        self.assertEqual(bff.previous_z, ["201"])
-        self.assertEqual(bff.next_z, ["203"])
-        self.assertEqual(bff.faraway_z, ["204"])
+        self.assertEqual(nb.previous_z, [('z', 201)])
+        self.assertEqual(nb.next_z,     [('z', 203)])
+        self.assertEqual(nb.faraway_z,  [('z', 204)])
 
-        self.assertEqual(bff.get_all(), set(['201', '203', '202', '204', '003', '001', '004', '102', '103', '101', '104']))
+        self.assertEqual(nb.get_all(), set([
+            ('z', 201), ('z', 203), ('z', 202), ('z', 204),
+            ('x', 003), ('x', 001), ('x', 004),
+            ('y', 102), ('y', 103), ('y', 101), ('y', 104)
+        ]))
 
-    def dis_test_build_from_last_node(self):
+    def test_build_from_last_node(self):
         block_pos = BlockPosition(4, 4, 4)
 
         cube_view = self.get_cube_view(block_pos)
-        bff = NetworkBuilder("004", block_pos)
-        bff.build(cube_view)
+        nb = NetworkBuilder(('x', 4), block_pos)
+        nb.build(cube_view)
 
-        self.assertEqual(bff.previous_x, ["003"])
-        self.assertEqual(bff.next_x, ["000"])
-        self.assertEqual(bff.faraway_x, ["001"])
+        self.assertEqual(nb.previous_x, [('x', 3)])
+        self.assertEqual(nb.next_x,     [('x', 0)])
+        self.assertEqual(nb.faraway_x,  [('x', 1)])
 
-        self.assertEqual(bff.previous_y, ["103"])
-        self.assertEqual(bff.next_y, ["100"])
-        self.assertEqual(bff.faraway_y, ["101"])
+        self.assertEqual(nb.previous_y, [('y', 103)])
+        self.assertEqual(nb.next_y,     [('y', 100)])
+        self.assertEqual(nb.faraway_y,  [('y', 101)])
 
-        self.assertEqual(bff.previous_z, ["203"])
-        self.assertEqual(bff.next_z, ["200"])
-        self.assertEqual(bff.faraway_z, ["201"])
+        self.assertEqual(nb.previous_z, [('z', 203)])
+        self.assertEqual(nb.next_z,     [('z', 200)])
+        self.assertEqual(nb.faraway_z,  [('z', 201)])
 
-        self.assertEqual(bff.get_all(), set(['201', '200', '203', '204', '003', '001', '000', '103', '100', '101', '104']))
+        self.assertEqual(nb.get_all(), set([
+            ('z', 201), ('z', 200), ('z', 203), ('z', 204),
+            ('x', 003), ('x', 001), ('x', 000),
+            ('y', 103), ('y', 100), ('y', 101), ('y', 104)
+        ]))
 

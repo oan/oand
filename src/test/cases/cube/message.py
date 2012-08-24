@@ -16,6 +16,7 @@ class Message(object):
 
     """
     origin_url = None
+    origin_oan_id = None
 
 
 class MessageGetSlotNode(): pass
