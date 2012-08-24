@@ -50,13 +50,15 @@ def accepts(*types, **kw):
     def decorator(f):
         def newf(*args, **kw):
             assert len(kw) == 0 # we dont support accept keyargument
-            assert len(args) == len(types)
             arglist = list(map(decorator_type, args))
 
             # If decorated function is a member of a class ignore
             for i in xrange(len(types)):
                 if types[i] == IGNORE:
-                    arglist[i] = IGNORE
+                    if i <= len(arglist)-1:
+                        arglist[i] = IGNORE
+                    else:
+                        arglist.append(IGNORE)
 
             argtypes = tuple(arglist)
             if argtypes != types:
