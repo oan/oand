@@ -13,6 +13,7 @@ __status__ = "Test"
 
 from uuid import UUID
 
+from oan.util import log
 from oan.util.decorator.accept import IGNORE, accepts, returns
 from oan.heartbeat import OANHeartbeat
 

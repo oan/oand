@@ -49,6 +49,17 @@ class CubeView:
 
         raise Exception("Key %s not found." % (bind_url,))
 
+    def find_slot(self, url):
+        node = self.x.find_slot(url)
+
+        if not node:
+            node = self.y.find_slot(url)
+
+        if not node:
+            node = self.z.find_slot(url)
+
+        return node
+
     def _clear(self):
         # NOTE: Share the same block where each direction intersect/meet.
         self.b = []

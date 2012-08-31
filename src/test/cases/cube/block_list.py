@@ -7,6 +7,8 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+from uuid import UUID
+
 from oan.util.decorator.accept import IGNORE, accepts, returns
 from cube_node import OANCubeNode
 
@@ -28,10 +30,7 @@ class BlockList:
 
     def __init__(self):
         self._blocks = []
-
-    @accepts(IGNORE, int)
-    def clear_block(self, block_pos):
-        del self._blocks[block_pos][:]
+        self._nodes = {}
 
     @accepts(IGNORE, int)
     @returns(bool)
@@ -70,20 +69,40 @@ class BlockList:
     def get_slot(self, block_pos, slot_pos):
         return self.get_block(block_pos)[slot_pos]
 
+    @accepts(IGNORE, tuple)
+    def find_slot(self, url):
+        if url in self._nodes:
+            return self._nodes[url]
+
+        return None
+
+    @accepts(IGNORE, tuple)
+    @returns(bool)
+    def exist_slot(self, url):
+        return self._nodes[url]
+
     @accepts(IGNORE, int)
     def add_block(self, block):
-        self._expand_size(self.size())
-        self._block[self.size()].extend(block)
+        block_pos = self.size()
+        for slot in block:
+            self.add_slot(block_pos, slot)
 
     @accepts(IGNORE, int, OANCubeNode)
     def add_slot(self, block_pos, cube_node):
         self._expand_size(block_pos)
         self._blocks[block_pos].append(cube_node)
+        self._add_node_to_index(cube_node)
 
     @accepts(IGNORE, int, list)
     def set_block(self, block_pos, block):
+        if self.has_block(block_pos):
+            # TODO: We need to handle this in the big asyncron net.
+            raise Exception("Block is occupied with another block.")
+
         self._expand_size(block_pos)
         self._blocks[block_pos] = block
+        for cube_node in block:
+            self._add_node_to_index(cube_node)
 
     @accepts(IGNORE, int, int, OANCubeNode)
     @returns(bool)
@@ -97,6 +116,7 @@ class BlockList:
         else:
             self._expand_slot_size(block_pos, slot_pos)
             self._blocks[block_pos][slot_pos] = cube_node
+            self._add_node_to_index(cube_node)
             return True
 
     @accepts(IGNORE, IGNORE)
@@ -134,6 +154,9 @@ class BlockList:
             for dummy in xrange(self.block_size(block_pos), slot_pos + 1):
                 self._blocks[block_pos].append(None)
 
+    @accepts(IGNORE, OANCubeNode)
+    def _add_node_to_index(self, cube_node):
+        self._nodes[cube_node.url] = cube_node
 
 
 from test.test_case import OANCubeTestCase
@@ -142,20 +165,20 @@ from test.test_case import OANCubeTestCase
 class TestBlockList(OANCubeTestCase):
     def test_block_list(self):
         block_list = BlockList()
-        block_list.add_slot(2, OANCubeNode(self.create_oan_id(2)))
+        block_list.add_slot(2, OANCubeNode(self.create_oan_id(2), ('localhost', 2)))
         self.assertEqual(block_list.block_size(2), 1)
         self.assertEqual(block_list.size(), 3)
 
-        block_list.add_slot(1, OANCubeNode(self.create_oan_id(1)))
+        block_list.add_slot(1, OANCubeNode(self.create_oan_id(1), ('localhost', 1)))
         self.assertEqual(block_list.block_size(1), 1)
         self.assertEqual(block_list.size(), 3)
 
-        block_list.add_slot(3, OANCubeNode(self.create_oan_id(3)))
+        block_list.add_slot(3, OANCubeNode(self.create_oan_id(3), ('localhost', 3)))
         self.assertEqual(block_list.block_size(3), 1)
         self.assertEqual(block_list.size(), 4)
 
-        block_list.add_slot(0, OANCubeNode(self.create_oan_id(0)))
-        block_list.add_slot(2, OANCubeNode(self.create_oan_id(102)))
+        block_list.add_slot(0, OANCubeNode(self.create_oan_id(0), ('localhost', 0)))
+        block_list.add_slot(2, OANCubeNode(self.create_oan_id(102), ('localhost', 102)))
 
         self.assert_block([block_list.get_slot(2, 0)], ['002'])
         self.assert_block([block_list.get_slot(2, 1)], ['102'])
@@ -166,14 +189,6 @@ class TestBlockList(OANCubeTestCase):
         self.assert_block(block_list.get_block(1), ['001'])
         self.assert_block(block_list.get_block(3), ['003'])
 
-        block_list.clear_block(2)
-        self.assert_block(block_list.get_block(2), [])
-
-        block_list.merge_block(2, [OANCubeNode(self.create_oan_id(202))])
-        self.assert_block(block_list.get_block(2), ['202'])
-
-        # Complete list test.
-        self.assert_block(block_list.get_block(0), ['000'])
-        self.assert_block(block_list.get_block(1), ['001'])
-        self.assert_block(block_list.get_block(2), ['202'])
-        self.assert_block(block_list.get_block(3), ['003'])
+        # Test nodes index.
+        url = ('localhost', 2)
+        self.assertEqual(block_list.find_slot(url).url, url)

@@ -51,7 +51,7 @@ class OANHeartbeat(object):
             self.set_value(last_heartbeat)
 
     def __str__(self):
-        return self.get_time()
+        return str(self._value)
 
     def get_value(self):
         return self._value.strftime(self._date_fmt)

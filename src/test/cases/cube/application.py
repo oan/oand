@@ -7,6 +7,7 @@ __license__ = "We pwn it all."
 __version__ = "0.1"
 __status__ = "Test"
 
+import copy
 from uuid import UUID
 from oan.util import log
 
@@ -51,7 +52,9 @@ class OANApplication:
 
     def send(self, url, message):
         self.network_view.send(url, message)
-        #self.cube_view.find(url).heartbeat.touch
+        node = self.cube_view.find_slot(url)
+        if node:
+            node.heartbeat.touch()
 
     def push(self, urls, message):
         self.network_view.push(urls, message)
@@ -62,6 +65,10 @@ class OANApplication:
         message.execute(self)
         log.indent -= 1
         log.info("")
+
+        node = self.cube_view.find_slot(message.origin_url)
+        if node:
+            node.heartbeat.touch()
 
     def trigger_5minute_cron(self):
         """
