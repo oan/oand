@@ -20,6 +20,14 @@ class TestType:
     def __str__(self):
         return "my test type"
 
+@returns(TestType)
+def func_obj_return():
+    return TestType()
+
+@returns(TestType)
+def func_obj_invalid_return():
+    return None
+
 @accepts(int)
 @returns(int)
 def func_int(int_var):
@@ -52,6 +60,12 @@ class TestLogging(OANTestCase):
     @returns(int)
     def member_default_value(self, int_var, def_var = 0):
         return int_var + def_var
+
+    def test_obj_return(self):
+        func_obj_return()
+
+        with self.assertRaises(TypeError):
+            func_obj_invalid_return()
 
     def test_func(self):
         self.assertEqual(func_int(10), 10)

@@ -29,6 +29,11 @@ __status__ = "Test"
 class IGNORE():
     """Used to ignore an accept parameter, for example self."""
 
+def decorator_type(arg):
+    if hasattr(arg, "__class__"):
+        return arg.__class__
+    else:
+        return type(arg)
 
 def accepts(*types, **kw):
     """
@@ -41,12 +46,6 @@ def accepts(*types, **kw):
              for self on class members.
 
     """
-    def decorator_type(arg):
-        if hasattr(arg, "__class__"):
-            return arg.__class__
-        else:
-            return type(arg)
-
     def decorator(f):
         def newf(*args, **kw):
             assert len(kw) == 0 # we dont support accept keyargument
@@ -86,7 +85,7 @@ def returns(ret_type, **kw):
     def decorator(f):
         def newf(*args):
             result = f(*args)
-            res_type = type(result)
+            res_type = decorator_type(result)
             if res_type != ret_type:
                 msg = _info(f.__name__, (ret_type,), (res_type,), 1)
                 raise TypeError, msg
