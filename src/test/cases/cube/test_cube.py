@@ -20,6 +20,8 @@ OAN Cube Rules
 
 TODO
 ====
+* Serialize/Unserizlise messages to be sure that each application has it's own
+  objects.
 * Connect/Reconnect to random nodes.
 * Merge different cubes.
 * Follow the log flow, to verify that everything works as expected.
