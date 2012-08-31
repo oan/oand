@@ -44,7 +44,7 @@ class MessageConnect(Message):
         """
         log.info("add_url_to_current_x_list x: %s y: %s" % (x_pos, app.block_position.y) )
 
-        app.cube_view.x.add(x_pos, OANCubeNode(self.origin_oan_id, self.origin_url))
+        app.cube_view.x.add_slot(x_pos, OANCubeNode(self.origin_oan_id, self.origin_url))
 
         msg = MessageGiveBlockPosition(app, BlockPosition(x_pos, app.block_position.y, 0))
         app.send(self.origin_url, msg)
@@ -63,7 +63,7 @@ class MessageConnect(Message):
 
         """
         log.info("%s %s" % (self.origin_oan_id, self.origin_url))
-        app.cube_view.x.add(app.cube_view.x.size(), OANCubeNode(self.origin_oan_id, self.origin_url))
+        app.cube_view.x.add_slot(app.cube_view.x.size(), OANCubeNode(self.origin_oan_id, self.origin_url))
         log.info("expand cube_view.x with %s, cube_view.{x,y}.size: %s %s" % (
             self.origin_url, app.cube_view.x.size(), app.cube_view.y.size()
         ))
@@ -87,7 +87,7 @@ class MessageConnect(Message):
         the last block.
 
         """
-        app.cube_view.y.add(app.cube_view.y.size(), OANCubeNode(self.origin_oan_id, self.origin_url))
+        app.cube_view.y.add_slot(app.cube_view.y.size(), OANCubeNode(self.origin_oan_id, self.origin_url))
         log.info("expand cube_view.y with %s, cube_view.{x,y}.size: %s %s" % (
             self.origin_url, app.cube_view.x.size(), app.cube_view.y.size()
         ))
@@ -112,7 +112,7 @@ class MessageConnect(Message):
 
         """
         log.info("redirect_to_next_y_block x:%s y:%s" % (app.cube_view.x.size(), app.cube_view.y.size()))
-        msg = MessageRedirect(app.cube_view.y.get(app.block_position.y + 1, 0), self)
+        msg = MessageRedirect(app.cube_view.y.get_slot(app.block_position.y + 1, 0), self)
         app.send(self.origin_url, msg)
 
     def execute(self, app):
@@ -125,9 +125,7 @@ class MessageConnect(Message):
                     range(0, app.block_position.x))
 
         for x_pos in all_x_pos:
-            block = app.cube_view.x.get(x_pos)
-
-            if len(block) < MAX_SLOTS_IN_BLOCK:
+            if app.cube_view.x.block_size(x_pos) < MAX_SLOTS_IN_BLOCK:
                 self.add_url_to_current_x_list(app, x_pos)
                 return
 

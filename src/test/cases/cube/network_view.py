@@ -162,15 +162,15 @@ class TestNetworkView(OANCubeTestCase):
 
         cube_view = CubeView(block_pos)
         for x in xrange(000, cube_size):
-            cube_view.x.add(x, OANCubeNode(self.create_oan_id(x), ('x', x)))
+            cube_view.x.add_slot(x, OANCubeNode(self.create_oan_id(x), ('x', x)))
             all_network_urls.append(('x', x))
 
         for y in xrange(000, cube_size):
-            cube_view.y.add(y, OANCubeNode(self.create_oan_id(y), ('y', y)))
+            cube_view.y.add_slot(y, OANCubeNode(self.create_oan_id(y), ('y', y)))
             all_network_urls.append(('y', y))
 
         for z in xrange(000, cube_size):
-            cube_view.z.add(z, OANCubeNode(self.create_oan_id(z), ('z', z)))
+            cube_view.z.add_slot(z, OANCubeNode(self.create_oan_id(z), ('z', z)))
             all_network_urls.append(('z', z))
 
         network_builder = NetworkBuilder(my_url, block_pos)

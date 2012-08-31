@@ -50,6 +50,9 @@ class OANHeartbeat(object):
         else:
             self.set_value(last_heartbeat)
 
+    def __str__(self):
+        return self.get_time()
+
     def get_value(self):
         return self._value.strftime(self._date_fmt)
 

@@ -50,17 +50,17 @@ class CubeView:
         raise Exception("Key %s not found." % (bind_url,))
 
     def _clear(self):
-        # Share the same block where each direction intersect/meet.
+        # NOTE: Share the same block where each direction intersect/meet.
         self.b = []
 
         self.x = BlockList()
-        self.x.set_shared_block(self.block_position.x, self.b)
+        self.x.set_block(self.block_position.x, self.b)
 
         self.y = BlockList()
-        self.y.set_shared_block(self.block_position.y, self.b)
+        self.y.set_block(self.block_position.y, self.b)
 
         self.z = BlockList()
-        self.z.set_shared_block(self.block_position.z, self.b)
+        self.z.set_block(self.block_position.z, self.b)
 
 
 from test.test_case import OANCubeTestCase
@@ -73,17 +73,17 @@ class TestCubeView(OANCubeTestCase):
         cube_view.b.append(OANCubeNode(self.create_oan_id(0)))
         self.assert_block(cube_view.b, ['000'])
 
-        cube_view.x.add(0, OANCubeNode(self.create_oan_id(1)))
-        self.assert_block(cube_view.x.get(0), ["000", "001"])
+        cube_view.x.add_slot(0, OANCubeNode(self.create_oan_id(1)))
+        self.assert_block(cube_view.x.get_block(0), ["000", "001"])
 
-        cube_view.y.add(0, OANCubeNode(self.create_oan_id(2)))
-        self.assert_block(cube_view.y.get(0), ["000", "001", "002"])
+        cube_view.y.add_slot(0, OANCubeNode(self.create_oan_id(2)))
+        self.assert_block(cube_view.y.get_block(0), ["000", "001", "002"])
 
-        cube_view.z.add(0, OANCubeNode(self.create_oan_id(3)))
-        self.assert_block(cube_view.z.get(0), ["000", "001", "002", "003"])
+        cube_view.z.add_slot(0, OANCubeNode(self.create_oan_id(3)))
+        self.assert_block(cube_view.z.get_block(0), ["000", "001", "002", "003"])
 
         # Total cube view
         self.assert_block(cube_view.b, ["000", "001", "002", "003"])
-        self.assert_block(cube_view.x.get(0), ["000", "001", "002", "003"])
-        self.assert_block(cube_view.y.get(0), ["000", "001", "002", "003"])
-        self.assert_block(cube_view.z.get(0), ["000", "001", "002", "003"])
+        self.assert_block(cube_view.x.get_block(0), ["000", "001", "002", "003"])
+        self.assert_block(cube_view.y.get_block(0), ["000", "001", "002", "003"])
+        self.assert_block(cube_view.z.get_block(0), ["000", "001", "002", "003"])

@@ -79,11 +79,11 @@ class TestOANCube(OANCubeTestCase):
         x_max_size = max(3, self._apps[self._create_bind_url('001')].cube_view.x.size())
 
         x_list = self.get_x_list(block_id, test_list, x_max_size)
-        self.assert_block_list(app.cube_view.x.get_blocks(), x_list)
+        self.assert_block_list(app.cube_view.x._blocks, x_list)
 
         # Assert y
         y_list = self.get_y_list(block_id, test_list, x_max_size)
-        self.assert_block_list(app.cube_view.y.get_blocks(), y_list)
+        self.assert_block_list(app.cube_view.y._blocks, y_list)
 
     def get_x_list(self, slot_id, test_list, width):
         x, y, z = slot_id
@@ -436,11 +436,14 @@ class TestOANCube(OANCubeTestCase):
         keys = Connections.all.keys()
         keys.sort()
 
-        log.info("=== Slot id =======================")
+        log.info("=== CubeNodes =======================")
         for key in keys:
             network_view = Connections.all[key]
             app = self._apps[key]
-            log.info("slot_id: %s %s" % (network_view._cube_node.url, app.block_position.id()))
+            log.info("CubeNode: URL: %s ID: %s HB: %s" % (
+                app.cube_node.url, app.block_position.id(),
+                app.cube_node.heartbeat
+            ))
 
         log.info("=== Network Counters ======================")
         counter_total = NetworkCounter()

@@ -51,6 +51,7 @@ class OANApplication:
 
     def send(self, url, message):
         self.network_view.send(url, message)
+        #self.cube_view.find(url).heartbeat.touch
 
     def push(self, urls, message):
         self.network_view.push(urls, message)

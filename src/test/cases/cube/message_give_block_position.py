@@ -44,26 +44,26 @@ class MessageGiveBlockPosition(Message):
             self.cube_view.x.merge_block_list(app.cube_view.x)
             self.complete_list_x = True
         else:
-            self.cube_view.x.merge_block(x_pos, app.cube_view.y.get(y_pos))
+            self.cube_view.x.merge_block(x_pos, app.cube_view.y.get_block(y_pos))
             self.complete_list_x = False
 
         if x_pos == app.block_position.x:
             self.cube_view.y.merge_block_list(app.cube_view.y)
             self.complete_list_y = True
         else:
-            self.cube_view.y.merge_block(y_pos, app.cube_view.x.get(x_pos))
+            self.cube_view.y.merge_block(y_pos, app.cube_view.x.get_block(x_pos))
             self.complete_list_y = False
 
         # TODO Z
 
     def execute(self, app):
         log.info("%s got block position: %s" % (app.bind_url, self.block_position.id()))
-        log.info("%s got cubeview.x: %s" % (app.bind_url, self.cube_view.x.get_blocks()))
-        log.info("%s got cubeview.y: %s" % (app.bind_url, self.cube_view.y.get_blocks()))
+        log.info("%s got cubeview.x: %s" % (app.bind_url, self.cube_view.x._blocks))
+        log.info("%s got cubeview.y: %s" % (app.bind_url, self.cube_view.y._blocks))
         app.set_block_position(self.block_position)
         app.cube_view.set_cube_view(self.cube_view)
-        log.info("%s has cubeview.x: %s" % (app.bind_url, app.cube_view.x.get_blocks()))
-        log.info("%s has cubeview.y: %s" % (app.bind_url, app.cube_view.y.get_blocks()))
+        log.info("%s has cubeview.x: %s" % (app.bind_url, app.cube_view.x._blocks))
+        log.info("%s has cubeview.y: %s" % (app.bind_url, app.cube_view.y._blocks))
 
         #todo self.sync_x_list(app)
         self.sync_y_list(app)
@@ -90,7 +90,7 @@ class MessageGiveBlockPosition(Message):
         return None
 
     def sync_y_list(self, app):
-        log.info("whats in y %s %s" % (app.cube_view.y.get_blocks(), app.block_position.y))
+        log.info("whats in y %s %s" % (app.cube_view.y._blocks, app.block_position.y))
         if not self.complete_list_y and app.block_position.y != 0:
             log.info("sync_y_list-begin")
             # TODO handle if left block is empty.
@@ -101,7 +101,7 @@ class MessageGiveBlockPosition(Message):
             # Send to left block if we have no slot neighbour
             if not destination_url:
                 if app.cube_view.x.has_slot(app.block_position.x - 1, 0):
-                    destination_url = app.cube_view.x.get(app.block_position.x - 1, 0).url
+                    destination_url = app.cube_view.x.get_slot(app.block_position.x - 1, 0).url
                 else:
                     raise Exception("sync-y-list left block don't exist.")
 

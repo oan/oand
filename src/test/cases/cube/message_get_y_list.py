@@ -48,30 +48,30 @@ class MessageGetYList(Message):
         app.send(self.origin_url, MessageGiveBlockListY( app.cube_view.y))
 
     def redirects_to_right_in_cube(self, app):
-        log.info("MessageGetYList step 2 to %s" % app.cube_view.x.size(self.origin_position.x))
-        msg = MessageRedirect(app.cube_view.x.get(self.origin_position.x, 0), self)
+        log.info("MessageGetYList step 2 to %s" % app.cube_view.x.block_size(self.origin_position.x))
+        msg = MessageRedirect(app.cube_view.x.get_slot(self.origin_position.x, 0), self)
         app.send(self.origin_url, msg)
 
     def redirects_up_in_cube(self, app):
-        destination_url = None
+        destination_node = None
         for y_pos in reversed(xrange(app.block_position.y)):
             log.info("y_pos %s" % y_pos)
             if app.cube_view.y.has_slot(y_pos, 0):
-                destination_url = app.cube_view.y.get_slot(y_pos, 0)
+                destination_node = app.cube_view.y.get_slot(y_pos, 0)
                 log.info("hit 1")
                 break
 
-        if not destination_url:
+        if not destination_node:
             for x_pos in reversed(xrange(app.block_position.x)):
                 log.info("x_pos %s" % x_pos)
                 if app.cube_view.x.has_slot(x_pos, 0):
-                    destination_url = app.block_position.x.get(x_pos, 0)
+                    destination_node = app.block_position.x.get_slot(x_pos, 0)
                     log.info("hit 2")
                     break
 
-        log.info("MessageGetYList step 1 to %s" % (destination_url,))
-        if destination_url:
-            msg = MessageRedirect(destination_url, self)
+        log.info("MessageGetYList step 1 to %s" % (destination_node,))
+        if destination_node:
+            msg = MessageRedirect(destination_node, self)
             app.send(self.origin_url, msg)
 
     def execute(self, app):
@@ -81,8 +81,8 @@ class MessageGetYList(Message):
                  self.origin_position.x, app.cube_view.x.size(),
                  self.origin_position.y, app.cube_view.y.size()
         ))
-        log.info("x-list %s" % app.cube_view.x.get_blocks())
-        log.info("y-list %s" % app.cube_view.y.get_blocks())
+        log.info("x-list %s" % app.cube_view.x._blocks)
+        log.info("y-list %s" % app.cube_view.y._blocks)
 
         if self.is_in_block_with_y_list(app):
             self.forwards_y_list_back_to_origin(app)

@@ -118,44 +118,44 @@ class NetworkBuilder:
         for bind_url in cube_view.b:
             self._add_url(bind_url, self.block)
 
-    def _add_previous_block(self, block_pos_cord, block_list, urls):
+    def _add_previous_block(self, block_pos, block_list, urls):
         """Connect to the previous block, the block before current block."""
         if block_list.size() > 1:
             # If current block is the first block, connect to last block,
-            if block_pos_cord == 0:
+            if block_pos == 0:
                 # But not if the current block is the last block
-                last_block_cord = block_list.size()-1
-                if block_pos_cord != last_block_cord:
-                    if not block_list.empty_slot(last_block_cord, self.get_slot_pos()):
-                        self._add_url(block_list.get(last_block_cord, self.get_slot_pos()), urls)
+                last_block_pos = block_list.size()-1
+                if block_pos != last_block_pos:
+                    if block_list.has_slot(last_block_pos, self.get_slot_pos()):
+                        self._add_url(block_list.get_slot(last_block_pos, self.get_slot_pos()), urls)
 
             # Connect to previous node if it exists.
-            elif block_pos_cord - 1 >= 0:
-                if block_list.has_slot(block_pos_cord - 1, self.get_slot_pos()):
-                    self._add_url(block_list.get_slot(block_pos_cord - 1, self.get_slot_pos()), urls)
+            elif block_pos - 1 >= 0:
+                if block_list.has_slot(block_pos - 1, self.get_slot_pos()):
+                    self._add_url(block_list.get_slot(block_pos - 1, self.get_slot_pos()), urls)
 
             else:
-                raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
+                raise Exception('Invalid block_pos: %s' % block_pos)
 
-    def _add_next_block(self, block_pos_cord, block_list, urls):
+    def _add_next_block(self, block_pos, block_list, urls):
         """Connect to the next block, the block after current block."""
         if block_list.size() > 1:
             # If current block is the last block, connect to first block,
-            last_block_cord = block_list.size()-1
-            if block_pos_cord == last_block_cord:
+            last_block_pos = block_list.size()-1
+            if block_pos == last_block_pos:
                 if block_list.size() > 2:
-                    if not block_list.empty_slot(0, self.get_slot_pos()):
-                        self._add_url(block_list.get(0, self.get_slot_pos()), urls)
+                    if block_list.has_slot(0, self.get_slot_pos()):
+                        self._add_url(block_list.get_slot(0, self.get_slot_pos()), urls)
 
             # Connect to next node if it exists.
-            elif block_pos_cord + 1 <= block_list.size()-1:
-                if not block_list.empty_slot(block_pos_cord + 1, self.get_slot_pos()):
-                    self._add_url(block_list.get(block_pos_cord + 1, self.get_slot_pos()), urls)
+            elif block_pos + 1 <= block_list.size()-1:
+                if block_list.has_slot(block_pos + 1, self.get_slot_pos()):
+                    self._add_url(block_list.get_slot(block_pos + 1, self.get_slot_pos()), urls)
 
             else:
-                raise Exception('Invalid block_pos_cord: %s' % block_pos_cord)
+                raise Exception('Invalid block_pos: %s' % block_pos)
 
-    def _add_faraway_block(self, block_pos_cord, block_list, urls):
+    def _add_faraway_block(self, block_pos, block_list, urls):
         """
         Connect to a faraway block.
 
@@ -166,13 +166,13 @@ class NetworkBuilder:
         """
         if block_list.size() > 2:
             block_list_middle_cord = int(block_list.size()/2)
-            faraway_block_pos_cord = block_pos_cord + block_list_middle_cord
+            faraway_block_pos = block_pos + block_list_middle_cord
 
-            if faraway_block_pos_cord >= block_list.size()-1:
-                faraway_block_pos_cord -= block_list.size()
+            if faraway_block_pos >= block_list.size()-1:
+                faraway_block_pos -= block_list.size()
 
-            if not block_list.empty_slot(faraway_block_pos_cord, self.get_slot_pos()):
-                self._add_url(block_list.get(faraway_block_pos_cord, self.get_slot_pos()), urls)
+            if block_list.has_slot(faraway_block_pos, self.get_slot_pos()):
+                self._add_url(block_list.get_slot(faraway_block_pos, self.get_slot_pos()), urls)
 
     def _add_url(self, cube_node, urls):
         url = cube_node.url
@@ -205,23 +205,23 @@ class TestNetworkBuilder(OANTestCase):
 
     def get_cube_view(self, block_pos):
         cube_view = CubeView(block_pos)
-        cube_view.x.add(0, OANCubeNode(self._create_uuid(0), ('x', 0)))
-        cube_view.x.add(1, OANCubeNode(self._create_uuid(1), ('x', 1)))
-        cube_view.x.add(2, OANCubeNode(self._create_uuid(2), ('x', 2)))
-        cube_view.x.add(3, OANCubeNode(self._create_uuid(3), ('x', 3)))
-        cube_view.x.add(4, OANCubeNode(self._create_uuid(4), ('x', 4)))
+        cube_view.x.add_slot(0, OANCubeNode(self._create_uuid(0), ('x', 0)))
+        cube_view.x.add_slot(1, OANCubeNode(self._create_uuid(1), ('x', 1)))
+        cube_view.x.add_slot(2, OANCubeNode(self._create_uuid(2), ('x', 2)))
+        cube_view.x.add_slot(3, OANCubeNode(self._create_uuid(3), ('x', 3)))
+        cube_view.x.add_slot(4, OANCubeNode(self._create_uuid(4), ('x', 4)))
 
-        cube_view.y.add(0, OANCubeNode(self._create_uuid(100), ('y', 100)))
-        cube_view.y.add(1, OANCubeNode(self._create_uuid(101), ('y', 101)))
-        cube_view.y.add(2, OANCubeNode(self._create_uuid(102), ('y', 102)))
-        cube_view.y.add(3, OANCubeNode(self._create_uuid(103), ('y', 103)))
-        cube_view.y.add(4, OANCubeNode(self._create_uuid(104), ('y', 104)))
+        cube_view.y.add_slot(0, OANCubeNode(self._create_uuid(100), ('y', 100)))
+        cube_view.y.add_slot(1, OANCubeNode(self._create_uuid(101), ('y', 101)))
+        cube_view.y.add_slot(2, OANCubeNode(self._create_uuid(102), ('y', 102)))
+        cube_view.y.add_slot(3, OANCubeNode(self._create_uuid(103), ('y', 103)))
+        cube_view.y.add_slot(4, OANCubeNode(self._create_uuid(104), ('y', 104)))
 
-        cube_view.z.add(0, OANCubeNode(self._create_uuid(200), ('z', 200)))
-        cube_view.z.add(1, OANCubeNode(self._create_uuid(201), ('z', 201)))
-        cube_view.z.add(2, OANCubeNode(self._create_uuid(202), ('z', 202)))
-        cube_view.z.add(3, OANCubeNode(self._create_uuid(203), ('z', 203)))
-        cube_view.z.add(4, OANCubeNode(self._create_uuid(204), ('z', 204)))
+        cube_view.z.add_slot(0, OANCubeNode(self._create_uuid(200), ('z', 200)))
+        cube_view.z.add_slot(1, OANCubeNode(self._create_uuid(201), ('z', 201)))
+        cube_view.z.add_slot(2, OANCubeNode(self._create_uuid(202), ('z', 202)))
+        cube_view.z.add_slot(3, OANCubeNode(self._create_uuid(203), ('z', 203)))
+        cube_view.z.add_slot(4, OANCubeNode(self._create_uuid(204), ('z', 204)))
 
         return cube_view
 

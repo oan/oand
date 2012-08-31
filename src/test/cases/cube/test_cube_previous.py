@@ -67,13 +67,13 @@ class TestOANCube(OANCubeTestCase):
         x_max_size = max(3, self._apps[url].cube_view.x.size())
 
         x_list = self.get_x_list(block_id, test_list, x_max_size)
-        log.info('Returned: x: %s' % app.cube_view.x.get_blocks())
-        self.assert_block_list(app.cube_view.x.get_blocks(), x_list)
+        log.info('Returned: x: %s' % app.cube_view.x._blocks)
+        self.assert_block_list(app.cube_view.x._blocks, x_list)
 
         # Assert y
         y_list = self.get_y_list(block_id, test_list, x_max_size)
-        log.info('Returned: y: %s' % app.cube_view.y.get_blocks())
-        self.assert_block_list(app.cube_view.y.get_blocks(), y_list)
+        log.info('Returned: y: %s' % app.cube_view.y._blocks)
+        self.assert_block_list(app.cube_view.y._blocks, y_list)
 
     def get_x_list(self, slot_id, test_list, width):
         x, y, z = slot_id
